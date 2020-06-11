@@ -78,7 +78,7 @@ def raw_filter(df):
         lambda g: len(g) >= MIN_DUR and 
         np.nanmax(g['fishNum'].values) < MAX_FISH
     )
-    print(".", end = ' ')
+    print(".", end = '')
     return filtered
 
 def dur_y_x_filter(df):
@@ -94,7 +94,7 @@ def dur_y_x_filter(df):
     f2 = grp_by_epoch(f1).filter(
         lambda g: ((g['headx'].mean() - g['x'].mean()) * g.tail(1)['x'].values)[0] >= 0
     )
-    print(".", end=' ')
+    print(".", end='')
     return f2
 
 def displ_dist_vel_filter(df):
@@ -117,7 +117,7 @@ def displ_dist_vel_filter(df):
     f3 = grp_by_epoch(f2).filter(
         lambda g: np.nanmax(np.abs(g['angAccel'].values)) <= MAX_ANG_ACCEL
     )
-    print(".", end=" ")
+    print(".", end="")
     return f3
 
 # %%
@@ -215,7 +215,7 @@ def analyze_dlm(raw, file_i, file, folder):
 
     # res.to_pickle(f'{folder}/{file_i+1}_analyzed_epochs.pkl')
     # fish_length.to_pickle(f'{folder}/{file_i+1}_fish_length.pkl')
-    print(f"  {len(grp_by_epoch(res).size())} epochs extracted")
+    print(f" {len(grp_by_epoch(res).size())} epochs extracted", end=' ')
 
     return res, fish_length
 

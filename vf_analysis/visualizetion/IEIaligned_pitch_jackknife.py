@@ -1,5 +1,5 @@
 '''
-This version uses "propBoutIEIAligned_pitch" in the "prop_bout_IEI_aligned" file
+This version uses "propBoutIEIAligned_pitch" in the "prop_bout_IEI_aligned" dataframe from IEI_data.h5 file
 which includes body angles at all frames between qualified bouts
 Folder structure:
     root -|
@@ -67,7 +67,7 @@ for condition_idx, folder in enumerate(folder_paths):
             for expNum, exp in enumerate(subdir_list):
                 # for each sub-folder, get the path
                 exp_path = os.path.join(subpath, exp)
-                df = pd.read_pickle(f"{exp_path}/prop_bout_IEI_aligned.pkl")
+                df = pd.read_hdf(f"{exp_path}/IEI_data.h5", key='prop_bout_IEI_aligned')               
                 # get pitch
                 body_angles = df.loc[:,['propBoutIEIAligned_pitch']].rename(columns={'propBoutIEIAligned_pitch':f'exp{expNum}'}).transpose()
                 all_angles = pd.concat([all_angles, body_angles])

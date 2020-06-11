@@ -168,7 +168,7 @@ def grab_fish_angle(analyzed, fish_length):
         locoIDXadj = spd_window_adj['swimIndicator'].diff().abs().cumsum()
     )
 
-    print(".", end = '')
+    print(".", end = ' ')
     # %% [markdown]
     # ## Isolate bouts
     # Calculate duration from peak to trough of angular acceleration for each propulsion bout, in a window of 0.6s (+/- 12 samples) surounding
@@ -362,9 +362,9 @@ def grab_fish_angle(analyzed, fish_length):
         propBout_netPitchChg = np.nan,
         propBout_matchIndex = bout_aligned['boutNum'],
         propBoutIEI_yDispl = np.nan,
-        propBoutIEI_yDisplTimes = np.datetime64('NaT'),
+        propBoutIEI_yDisplTimes = np.nan,
         propBoutIEI_yDisplMatchedIEIs = np.nan,
-        aligned_time_flat = np.datetime64('NaT'),
+        aligned_time_flat = np.nan,
     )
 
     # initialize bout_heading for heading calculation
@@ -572,7 +572,7 @@ def grab_fish_angle(analyzed, fish_length):
         fisn_length = bout_attributes['epochNum'].map(fish_length.set_index('epochNum').to_dict()['fishLenEst'])
     )
     
-    print(".", end="")
+    print(".", end=" ")
     # %% [markdown]
     # ## Extract IEI values
     # 
@@ -637,7 +637,7 @@ def grab_fish_angle(analyzed, fish_length):
                 'propBoutIEI_timedHeadingPre',
                 'propBoutIEI_timedPitchPre',
             ] 
-    IEI_res3 = pd.DataFrame(index=index, columns=column, dtype=np.float64)
+    IEI_res3 = pd.DataFrame(index=index, columns=column)
 
     # %%
     # extract data
@@ -739,7 +739,7 @@ def grab_fish_angle(analyzed, fish_length):
         x_dir = grouped_df.apply(lambda e: e.loc[e['swimSpeed']>PROPULSION_THRESHOLD,'yvel'].mean()),
     ).reset_index()
 
-    print(".", end='')
+    print(".", end=' ')
 
     # %% [markdown]
     # ## Grab all headings (movement angles)
@@ -808,13 +808,13 @@ def grab_fish_angle(analyzed, fish_length):
               'IEI_attributes':IEI_attributes,
               'prop_bout_IEI_aligned':IEI_res,
               'prop_bout_IEI2':IEI_res2,
-              'prop_bout_IEI_timed':IEI_res3,
+              'propb_out_IEI_timed':IEI_res3,
               'wolpert_IEI':IEI_wolpert,
               'epoch_attributes':epoch_attributes,
               'heading_matched':heading_res,
               'epoch_pitch_heading_RMS':heading_res2}
     
-    print(f" {len(bout_res2)} bouts aligned")
+    print(f"  {len(bout_res2)} bouts aligned\n")
     return output
 
 def run(filenames, folder):
@@ -833,7 +833,7 @@ def run(filenames, folder):
     IEI_attributes = pd.DataFrame()
     prop_bout_IEI_aligned = pd.DataFrame()
     prop_bout_IEI2 = pd.DataFrame()
-    prop_bout_IEI_timed = pd.DataFrame()
+    propb_out_IEI_timed = pd.DataFrame()
     wolpert_IEI = pd.DataFrame()
     epoch_attributes = pd.DataFrame()
     heading_matched = pd.DataFrame()
@@ -854,55 +854,34 @@ def run(filenames, folder):
         IEI_attributes = pd.concat([IEI_attributes, res['IEI_attributes']], ignore_index=True)
         prop_bout_IEI_aligned = pd.concat([prop_bout_IEI_aligned, res['prop_bout_IEI_aligned']], ignore_index=True)
         prop_bout_IEI2 = pd.concat([prop_bout_IEI2, res['prop_bout_IEI2']], ignore_index=True)
-        prop_bout_IEI_timed = pd.concat([prop_bout_IEI_timed, res['prop_bout_IEI_timed']], ignore_index=True)
+        propb_out_IEI_timed = pd.concat([propb_out_IEI_timed, res['propb_out_IEI_timed']], ignore_index=True)
         wolpert_IEI = pd.concat([wolpert_IEI, res['wolpert_IEI']], ignore_index=True)
         epoch_attributes = pd.concat([epoch_attributes, res['epoch_attributes']], ignore_index=True)
         heading_matched = pd.concat([heading_matched, res['heading_matched']], ignore_index=True)
         epoch_pitch_heading_RMS = pd.concat([epoch_pitch_heading_RMS, res['epoch_pitch_heading_RMS']], ignore_index=True)
     
-    # %%    
     output_dir = f"{folder}"
-    grabbed_all.to_hdf(f'{output_dir}/all_data.h5', key='grabbed_all', mode='w', format='table')
-    baseline_angVel.to_hdf(f'{output_dir}/all_data.h5', key='baseline_angVel', format='table')
-    bout_attributes.to_hdf(f'{output_dir}/bout_data.h5', key='bout_attributes', mode='w', format='table')
-    prop_bout_aligned.to_hdf(f'{output_dir}/bout_data.h5', key='prop_bout_aligned', format='table')
-    prop_bout2.to_hdf(f'{output_dir}/bout_data.h5', key='prop_bout2', format='table')
-    prop_bout_aligned_long.to_hdf(f'{output_dir}/bout_data.h5', key='prop_bout_aligned_long', format='table')
-    prop_bout_aligned_long2.to_hdf(f'{output_dir}/bout_data.h5', key='prop_bout_aligned_long2', format='table')
-    IEI_attributes.to_hdf(f'{output_dir}/IEI_data.h5', key='IEI_attributes', mode='w', format='table')
-    prop_bout_IEI_aligned.to_hdf(f'{output_dir}/IEI_data.h5', key='prop_bout_IEI_aligned', format='table')
-    prop_bout_IEI2.to_hdf(f'{output_dir}/IEI_data.h5', key='prop_bout_IEI2', format='table')
-    prop_bout_IEI_timed.to_hdf(f'{output_dir}/IEI_data.h5', key='prop_bout_IEI_timed', format='table')
-    wolpert_IEI.to_hdf(f'{output_dir}/IEI_data.h5', key='wolpert_IEI', format='table')
-    epoch_attributes.to_hdf(f'{output_dir}/all_data.h5', key='epoch_attributes', format='table')
-    heading_matched.to_hdf(f'{output_dir}/all_data.h5', key='heading_matched', format='table')
-    epoch_pitch_heading_RMS.to_hdf(f'{output_dir}/all_data.h5', key='epoch_pitch_heading_RMS', format='table')  
-
+    
     # %%
-    # pickel format
-    # grabbed_all.to_pickle(f'{output_dir}/grabbed_all.pkl')
-    # baseline_angVel.to_pickle(f'{output_dir}/baseline_angVel.pkl')
-    # bout_attributes.to_pickle(f'{output_dir}/bout_attributes.pkl')
-    # prop_bout_aligned.to_pickle(f'{output_dir}/prop_bout_aligned.pkl')
-    # prop_bout2.to_pickle(f'{output_dir}/prop_bout2.pkl')
-    # prop_bout_aligned_long.to_pickle(f'{output_dir}/prop_bout_aligned_long.pkl')
-    # prop_bout_aligned_long2.to_pickle(f'{output_dir}/prop_bout_aligned_long2.pkl')
-    # IEI_attributes.to_pickle(f'{output_dir}/IEI_attributes.pkl')
-    # prop_bout_IEI_aligned.to_pickle(f'{output_dir}/prop_bout_IEI_aligned.pkl')
-    # prop_bout_IEI2.to_pickle(f'{output_dir}/prop_bout_IEI2.pkl')
-    # propb_out_IEI_timed.to_pickle(f'{output_dir}/propb_out_IEI_timed.pkl')
-    # wolpert_IEI.to_pickle(f'{output_dir}/wolpert_IEI.pkl')
-    # epoch_attributes.to_pickle(f'{output_dir}/epoch_attributes.pkl')
-    # heading_matched.to_pickle(f'{output_dir}/heading_matched.pkl')
-    # epoch_pitch_heading_RMS.to_pickle(f'{output_dir}/epoch_pitch_heading_RMS.pkl')
- 
-    # %%   
+    grabbed_all.to_pickle(f'{output_dir}/grabbed_all.pkl')
+    baseline_angVel.to_pickle(f'{output_dir}/baseline_angVel.pkl')
+    bout_attributes.to_pickle(f'{output_dir}/bout_attributes.pkl')
+    prop_bout_aligned.to_pickle(f'{output_dir}/prop_bout_aligned.pkl')
+    prop_bout2.to_pickle(f'{output_dir}/prop_bout2.pkl')
+    prop_bout_aligned_long.to_pickle(f'{output_dir}/prop_bout_aligned_long.pkl')
+    prop_bout_aligned_long2.to_pickle(f'{output_dir}/prop_bout_aligned_long2.pkl')
+    IEI_attributes.to_pickle(f'{output_dir}/IEI_attributes.pkl')
+    prop_bout_IEI_aligned.to_pickle(f'{output_dir}/prop_bout_IEI_aligned.pkl')
+    prop_bout_IEI2.to_pickle(f'{output_dir}/prop_bout_IEI2.pkl')
+    propb_out_IEI_timed.to_pickle(f'{output_dir}/propb_out_IEI_timed.pkl')
+    wolpert_IEI.to_pickle(f'{output_dir}/wolpert_IEI.pkl')
+    epoch_attributes.to_pickle(f'{output_dir}/epoch_attributes.pkl')
+    heading_matched.to_pickle(f'{output_dir}/heading_matched.pkl')
+    epoch_pitch_heading_RMS.to_pickle(f'{output_dir}/epoch_pitch_heading_RMS.pkl')
+    
     catalog = pd.DataFrame.from_dict(
         {'grabbed_all':grabbed_all.columns.to_list(),
          'bout_attributes':bout_attributes.columns.to_list(),
-         'epoch_attributes':epoch_attributes.columns.to_list(),
-         'heading_matched':heading_matched.columns.to_list(),
-         'epoch_pitch_heading_RMS':epoch_pitch_heading_RMS.columns.to_list(),
          'prop_bout_aligned':prop_bout_aligned.columns.to_list(),
          'prop_bout2':prop_bout2.columns.to_list(),
          'prop_bout_aligned_long':prop_bout_aligned_long.columns.to_list(),
@@ -910,8 +889,11 @@ def run(filenames, folder):
          'IEI_attributes':IEI_attributes.columns.to_list(),
          'prop_bout_IEI_aligned':prop_bout_IEI_aligned.columns.to_list(),
          'prop_bout_IEI2':prop_bout_IEI2.columns.to_list(),
-         'prop_bout_IEI_timed':prop_bout_IEI_timed.columns.to_list(),
-         'wolpert_IEI':wolpert_IEI.columns.to_list() }
+         'propb_out_IEI_timed':propb_out_IEI_timed.columns.to_list(),
+         'wolpert_IEI':wolpert_IEI.columns.to_list(),
+         'epoch_attributes':epoch_attributes.columns.to_list(),
+         'heading_matched':heading_matched.columns.to_list(),
+         'epoch_pitch_heading_RMS':epoch_pitch_heading_RMS.columns.to_list()}    
     , orient='index')
     
     catalog.to_csv(f'{output_dir}/catalog.csv')

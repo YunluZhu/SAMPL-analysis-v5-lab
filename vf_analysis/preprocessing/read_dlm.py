@@ -19,7 +19,7 @@ def read_dlm(i, filename):
     except:
         print(f"No .dlm file found in the directory entered")
     else:
-        print(f"File {i+1}: {filename[-19:]} loaded")
+        print(f"File {i+1}: {filename[-19:]}", end=' ')
         
     # Clear original time data stored in the first row
     raw.loc[0,'time'] = 0

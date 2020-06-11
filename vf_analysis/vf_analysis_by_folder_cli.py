@@ -28,8 +28,8 @@ def main(root):
 if __name__ == "__main__":
     args = sys.argv[1:]
     if len(args) == 1:
-        # main(args[0])
-        main("/Users/yunluzhu/Lab/! Lab2/Python VF/script/vertical_fish_analysis/tests/test_data")
+        main(args[0])
+        # main("/Users/yunluzhu/Lab/! Lab2/Python VF/script/vertical_fish_analysis/tests/test_data")
     else:
         print('too many/few args, should just be the file path!')
         

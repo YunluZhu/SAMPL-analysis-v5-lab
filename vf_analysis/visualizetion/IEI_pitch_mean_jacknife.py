@@ -70,7 +70,7 @@ for condition_idx, folder in enumerate(folder_paths):
             for expNum, exp in enumerate(subdir_list):
                 # for each sub-folder, get the path
                 exp_path = os.path.join(subpath, exp)
-                df = pd.read_pickle(f"{exp_path}/prop_bout_IEI2.pkl")
+                df = pd.read_hdf(f"{exp_path}/IEI_data.h5", key='prop_bout_IEI2')
                 # get pitch
                 body_angles = df.loc[:,['propBoutIEI_pitch']].rename(columns={'propBoutIEI_pitch':f'exp{expNum}'}).transpose()
                 all_angles = pd.concat([all_angles, body_angles])

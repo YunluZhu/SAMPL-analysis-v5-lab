@@ -68,7 +68,7 @@ for condition_idx, folder in enumerate(folder_paths):
             for expNum, exp in enumerate(subdir_list):
                 # for each sub-folder, get the path
                 exp_path = os.path.join(subpath, exp)
-                df = pd.read_pickle(f"{exp_path}/prop_bout_aligned.pkl")
+                df = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout_aligned')
                 # get pitch
                 swim_speed = df.loc[:,['propBoutAligned_speed']].rename(columns={'propBoutAligned_speed':f'exp{expNum}'}).transpose()
                 all_speed = pd.concat([all_speed, swim_speed])

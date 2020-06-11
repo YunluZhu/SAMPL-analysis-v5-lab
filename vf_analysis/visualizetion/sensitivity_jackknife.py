@@ -1,5 +1,5 @@
 '''
-This version loads "prop_Bout_IEI2" and reads 'propBoutIEI', 'propBoutIEI_pitch', 'propBoutIEItime'
+This version loads "prop_Bout_IEI2" from IEI_data.h5 and reads 'propBoutIEI', 'propBoutIEI_pitch', 'propBoutIEItime'
 outputs: 
     plots of fiitted parabola (jackknifed)
     plots of fiitted coefs of function y = a * ((x-b)**2) + c (jackknifed)
@@ -94,7 +94,7 @@ for condition_idx, folder in enumerate(folder_paths):
             for expNum, exp in enumerate(subdir_list):
                 # for each sub-folder, get the path
                 exp_path = os.path.join(subpath, exp)
-                df = pd.read_pickle(f"{exp_path}/prop_bout_IEI2.pkl")
+                df = pd.read_hdf(f"{exp_path}/IEI_data.h5", key='prop_bout_IEI2')               
                 body_angles = df.loc[:,['propBoutIEI', 'propBoutIEI_pitch', 'propBoutIEItime']]
                 day_angles = day_night_split2(body_angles,'propBoutIEItime').assign(expNum=expNum)
                 day_angles.dropna(inplace=True)
