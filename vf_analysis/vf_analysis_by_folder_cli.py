@@ -19,7 +19,7 @@ def main(root):
         for folder_name in dir_list:
             # get the folder dir by joining path and subfolder name 
             folder = os.path.join(path, folder_name)        
-            filenames = glob.glob(f"{folder}/*.dlm") # subject to change
+            filenames = glob.glob(r'{folder}/*.dlm') # subject to change
             # print(f"{len(filenames)} file(s) detected")
             if filenames:
                 print(f"In {folder_name}")

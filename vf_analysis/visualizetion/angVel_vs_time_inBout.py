@@ -74,12 +74,13 @@ for condition_idx, folder in enumerate(folder_paths):
                 # for each sub-folder, get the path
                 exp_path = os.path.join(subpath, exp)
                 # get pitch                
-                angVel = pd.read_pickle(f"{exp_path}/prop_bout_aligned.pkl").loc[:,['propBoutAligned_angVel']].abs()
+                angVel = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout_aligned').loc[:,['propBoutAligned_angVel']].abs()
+                
                 # assign frame number, 51 frames per bout
                 angVel = angVel.assign(idx=int(len(angVel)/51)*list(range(0,51)))
                 
                 # - get the index of the rows in angVel to keep (for each bout, there are range(0:51) frames. keep range(20:41) frames)
-                bout_time = pd.read_pickle(f"{exp_path}/prop_bout2.pkl").loc[:,['aligned_time']]
+                bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,['aligned_time']]
                 for i in bout_time.index:
                 # # if only need day or night bouts:
                 # for i in day_night_split(bout_time,'aligned_time').index:
@@ -87,10 +88,9 @@ for condition_idx, folder in enumerate(folder_paths):
                 all_around_peak_angVel = pd.concat([all_around_peak_angVel,angVel.loc[rows,:]])
                 
                 # - attack angle calculation
-                angles = pd.read_pickle(f"{exp_path}/prop_bout_aligned.pkl").loc[:,['propBoutAligned_heading','propBoutAligned_pitch']]
+                angles = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout_aligned').loc[:,['propBoutAligned_heading','propBoutAligned_pitch']]
                 angles = angles.assign(idx=int(len(angles)/51)*list(range(0,51)))
-                peak_angles = angles.loc[angles['idx']==30]
-                peak_angles.dropna(inplace=True)
+                peak_angles = angles.loc[angles['idx']==30].dropna()
                 peak_angles = peak_angles.loc[(peak_angles['propBoutAligned_heading']<HEADING_LIM) & (peak_angles['propBoutAligned_heading']>-HEADING_LIM)]
                 
                 average_atk_ang = np.nanmean(peak_angles['propBoutAligned_heading'] - peak_angles['propBoutAligned_pitch'])

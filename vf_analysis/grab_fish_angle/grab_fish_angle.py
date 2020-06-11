@@ -90,6 +90,19 @@ def grab_fish_angle(analyzed, fish_length):
         lambda g: np.nanmax(g['swimSpeed'].values) >= PROPULSION_THRESHOLD
     ).reset_index(drop=True)
 
+    grouped_df = grp_by_epoch(df)
+    
+    # calculate smoothed x and y velocity for heading calculation later. Save into a new dataaframe, which will be chopped for heading matched calculations later
+    df_chopped = df.assign(
+        # because SM_WINDOW = 3 and the first vel of each epoch is NA
+        # and NA values caused by smoothing will be dropped later, smooth through all the rows won't cause epoch-crossing troubles
+        xvel_sm = smooth_series_ML(df['xvel'],SM_WINDOW),
+        yvel_sm = smooth_series_ML(df['yvel'],SM_WINDOW),
+        # also get an x axis modifier, +1 to right, -1 to left
+        x_dir = grouped_df['x'].transform(
+            lambda x: (x.iloc[-1] - x.iloc[0])/np.absolute(x.iloc[-1] - x.iloc[0])
+        )
+    )
     # %% [markdown]
     # Identify start and end of window when fish crosses threshold
     # One way is to loop through all the epoch groups and every timepoint to find the start and end of each swim window. However, it takes ~8s to loop through one .dlm file in this way using the code below:
@@ -367,13 +380,7 @@ def grab_fish_angle(analyzed, fish_length):
         aligned_time_flat = np.datetime64('NaT'),
     )
 
-    # initialize bout_heading for heading calculation
-    bouts = range(len(bout_aligned))
-    frames = range(51)
-    index = pd.MultiIndex.from_product([bouts, frames], names=['bout_i', 'frame_i'])
-    column = ['xvel_sm', 'yvel_sm']
-    bout_heading = pd.DataFrame(index=index, columns=column)
-
+    # some counters
     aligned_headUp_counter = 0
     aligned_headDn_counter = 0
     aligned_flat_counter = 0
@@ -456,7 +463,32 @@ def grab_fish_angle(analyzed, fish_length):
     })
 
     # %%
-    # now, let's do it bout by bout!
+    # calculate heading values using (unchopped) df_chopped (Modified 2020.06.11)
+    # for: each epoch
+    #     if: x[-1] > x[1]  # >> 
+    #         then: move_angle = np.arctan2(yvel,xvel)
+    #     if: x[-1] < x[1]  # <<
+    #         then: flip x axis
+    #               move_angle = np.arctan2(yvel,-xvel)
+    
+    bout_heading = pd.concat([
+        df_chopped.loc[bout['peak_idx']-30:bout['peak_idx']+20,[  # select rows to concat
+            'xvel_sm',  # select columns to concat
+            'yvel_sm',
+            'x_dir',]
+        ].assign(bout_i=[i]*51, frame_i=range(51))  # assign bout_i for each bout, assign frame_i for each row  
+        for i, bout in bout_aligned.iterrows()  # loop through bouts
+    ]).set_index(['bout_i','frame_i'])
+    
+    # get the heading in -180:180 deg, which is the same unit/range as the original PropBoutAlignedHeading after U_D/R_L modifications
+    bout_res = bout_res.assign(
+        propBoutAligned_heading = np.degrees(np.arctan2(
+            bout_heading['yvel_sm'], (bout_heading['xvel_sm']*bout_heading['x_dir'])
+        ))
+    )
+    
+    # %%
+    # for rest of the values, let's do it bout by bout!
     for i, bout in bout_aligned.iterrows():
         aligned_peak = bout['peak_idx']
         aligned_start = bout['peak_idx'] - 30
@@ -476,9 +508,6 @@ def grab_fish_angle(analyzed, fish_length):
         bout_res2.loc[i, 'propBout_initYPos'] = df.loc[aligned_peak-10:aligned_peak-5, 'y'].mean()
         bout_res2.loc[i, 'propBout_deltaY'] = df.loc[aligned_peak+5:aligned_peak+10, 'y'].mean() - bout_res2.loc[i, 'propBout_initYPos'] 
         bout_res2.loc[i, 'propBout_netPitchChg'] = df.loc[aligned_peak+5:aligned_peak+10, 'ang'].mean() - bout_res2.loc[i, 'propBout_initPitch']
-        # calculate x and y velocity for determining heading
-        bout_heading.loc[i, 'xvel_sm'] = smooth_ML(df.loc[aligned_start:aligned_end, 'xvel'], SM_WINDOW)
-        bout_heading.loc[i, 'yvel_sm'] = smooth_ML(df.loc[aligned_start:aligned_end, 'yvel'], SM_WINDOW)
 
         # if the current (alignable) bout is not the last bout in the epoch 
         if bout['boutNum'] < bout_attributes.loc[bout_attributes['epochNum']==bout['epochNum'],'boutNum'].max():
@@ -536,10 +565,10 @@ def grab_fish_angle(analyzed, fish_length):
         #     bout_res.loc[idx[i,:], 'propBoutInflAligned_accel'] = df.loc[inflectAlign_start:inflectAlign_end,'angAccel'].values
 
     # %%
-    # get the heading in -180:180 deg, which is the same unit/range as the original PropBoutAlignedHeading after U_D/R_L modifications
-    bout_res = bout_res.assign(
-        propBoutAligned_heading = np.degrees(np.arctan2(bout_heading['xvel_sm'].values.astype(float), bout_heading['yvel_sm'].values.astype(float)))
-    )
+
+    # bout_res = bout_res.assign(
+    #     propBoutAligned_heading = np.degrees(np.arctan2(bout_heading['xvel_sm'].values.astype(float), bout_heading['yvel_sm'].values.astype(float)))
+    # )
 
     # x and y displacement for bout trajectory calculation
     yy = (bout_res.loc[idx[:,35],'propBoutAligned_y'].values - bout_res.loc[idx[:,26],'propBoutAligned_y'].values).astype(float)
@@ -753,16 +782,10 @@ def grab_fish_angle(analyzed, fish_length):
     # ```
     
     # %%
-    df_chopped = df.assign(
-        # because SM_WINDOW = 3 and the first vel of each epoch is NA
-        # and NA values caused by smoothing will be dropped later, smooth through all the rows won't cause epoch-crossing troubles
-        xvel_sm = smooth_series_ML(df['xvel'],SM_WINDOW),
-        yvel_sm = smooth_series_ML(df['yvel'],SM_WINDOW),
-        # also get an x axis modifier, +1 to right, -1 to left
-        x_dir = grouped_df['x'].transform(
-            lambda x: (x.iloc[-1] - x.iloc[0])/np.absolute(x.iloc[-1] - x.iloc[0])
-        )
-    )
+    # below is for heading matched calculation
+    
+    # df_chopped dataframe has been created at the beginning of the function
+    
     # chop top and bottom rows
     rows_to_drop = grouped_df.head(EDGE_CHOP).index.to_list() + grouped_df.tail(EDGE_CHOP).index.to_list()
     df_chopped.drop(axis=0, index=rows_to_drop, inplace=True)
@@ -916,56 +939,3 @@ def run(filenames, folder):
     
     catalog.to_csv(f'{output_dir}/catalog.csv')
     
-
-
-# %% [markdown]
-# ## Save Variables! 
-
-# %%
-
-
-
-# # %%
-# output_dir = f"{file_path}"
-
-# # ['boutNum', 'epochNum', 'peak_idx', 'swim_start_idx', 'swim_end_idx', 'bout_start_idx', 'bout_end_idx', 'propBout_maxSpd', 'propBout_maxAngvel', 'propBout_peakAngvel', 'propBoutDispl', 'propBoutDur', 'IEIheadings', 'propBout_time', 'propBoutMixed_peak', 'boutMixedIntegral', 'propBoutMixed_value', 'if_align', 'if_align_long', 'boutInflectAlign', 'boutAccAlign', 'fisn_length']
-# bout_attributes.to_pickle(f'{output_dir}/boutAttributes.pkl')
-
-# # ['oriIndex', 'propBoutAligned_angVel', 'propBoutAligned_angVel_hUp', 'propBoutAligned_angVel_hDn', 'propBoutAligned_speed', 'propBoutAligned_speed_hUp', 'propBoutAligned_speed_hDn', 'propBoutAligned_accel', 'propBoutAligned_pitch', 'propBoutAligned_pitch_hUp', 'propBoutAligned_pitch_hDn', 'propBoutAligned_absy', 'propBoutAligned_x', 'propBoutAligned_y', 'propBoutAligned_heading', 'propBoutAligned_angVel_flat', 'propBoutAligned_speed_flat', 'propBoutAligned_pitch_flat', 'propBoutInflAligned_angVel', 'propBoutInflAligned_speed', 'propBoutInflAligned_accel']
-# bout_res.to_pickle(f'{output_dir}/propBoutAligned.pkl')
-
-# # ['aligned_time', 'aligned_time_hUp', 'aligned_time_hDn', 'propBoutAligned_dur', 'propBoutAligned_displ', 'propBout_initPitch', 'propBout_initYPos', 'propBout_deltaY', 'propBout_netPitchChg', 'propBout_matchIndex', 'propBoutIEI_yDispl', 'propBoutIEI_yDisplTimes', 'propBoutIEI_yDisplMatchedIEIs', 'aligned_time_flat', 'epochBouts_indices', 'epochBouts_heading', 'epochBouts_preBoutPitch', 'epochBouts_earlyRotations_28_30', 'epochBouts_earlyRotations', 'epochBouts_lateRotations', 'epochBouts_trajectory']
-# bout_res2.to_pickle(f'{output_dir}/propBout2.pkl')
-
-# # ['propBoutAlignedLong_angVel', 'propBoutAlignedLong_speed', 'propBoutAlignedLong_accel', 'propBoutAlignedLong_pitch']
-# bout_long_res.to_pickle(f'{output_dir}/propBoutAlignedLong.pkl')
-
-# # ['propBoutAlignedLong_angVel', 'propBoutAlignedLong_speed', 'propBoutAlignedLong_accel', 'propBoutAlignedLong_pitch']
-# bout_long_res2.to_pickle(f'{output_dir}/propBoutAlignedLong2.pkl')
-
-# # ['boutNum', 'epochNum', 'swim_start_idx', 'swim_end_idx', 'swim_end_shift']
-# IEI_attributes.to_pickle(f'{output_dir}/IEIAttributes.pkl')
-
-# # ['propBoutIEIAligned_angVel', 'propBoutIEIAligned_pitch', 'propBoutIEIAligned_yvel']
-# IEI_res.to_pickle(f'{output_dir}/propBoutIEIAligned.pkl')
-
-# # ['boutNum', 'epochNum', 'propBoutIEI', 'propBoutIEItime', 'propBoutIEI_pitchFirst', 'propBoutIEI_pitchLast', 'propBoutIEI_angVel_postBout', 'propBoutIEI_angVel_preNextBout', 'propBoutIEI_pitch', 'propBoutIEI_angVel', 'propBoutIEI_angAcc', 'propBoutIEI_pauseDur', 'propBoutIEI_yvel', 'IEI_matchIndex', 'rowsInRes', 'propBoutIEI_heading']
-# IEI_res2.to_pickle(f'{output_dir}/propBoutIEI.pkl')
-
-# # ['propBoutIEI_timedHeading', 'propBoutIEI_timedPitch', 'propBoutIEI_timedHeadingPre', 'propBoutIEI_timedPitchPre']
-# IEI_res3.to_pickle(f'{output_dir}/propBoutIEItimed.pkl')
-
-# # ['IEI_matchIndex', 'wolpert_IEI', 'wolpert_preIEI_pitch', 'wolpert_postIEI_netRot', 'wolpert_Time']
-# IEI_wolpert.to_pickle(f'{output_dir}/wolpertIEI.pkl')
-
-# # ['epochNum', 'mean_bl_angVel', 'epoch_absTime', 'epoch_mean_angVel', 'epoch_pause_yvel', 'epoch_bout_yvel', 'x_dir']
-# epoch_attributes.to_pickle(f'{output_dir}/epochAttributes.pkl')
-
-# # ['dfIdx', 'epochNum', 'moveAngle', 'headingMatched_ang', 'headingMatched_speed', 'headingMatched_angVel', 'headingMatched_angAccel', 'headingMathced_time', 'headingMatched_yvel']
-# heading_res.to_pickle(f'{output_dir}/headingMatched.pkl')
-
-# # ['epochPitch', 'epochHeading', 'RMS_pitch', 'RMS_speed']
-# heading_res2.to_pickle(f'{output_dir}/epochPitchHeading_RMS.pkl')
-
-# print (f"File {file_i+1}: variables successfully saved! \n__\n")
-
