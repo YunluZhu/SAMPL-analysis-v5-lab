@@ -406,6 +406,7 @@ def grab_fish_angle(analyzed, fish_length):
     bout_res_tmp1 = pd.concat([
         df.loc[bout['peak_idx']-30:bout['peak_idx']+20,[  # select rows to concat
             'oriIndex',  # select columns to concat
+            'absTime',  # added 06.17.2020
             'angVelSmoothed',
             'swimSpeed',
             'angAccel',
@@ -417,6 +418,7 @@ def grab_fish_angle(analyzed, fish_length):
         for i, bout in bout_aligned.iterrows()  # loop through bouts
     ]).set_index(['bout_i','frame_i']).rename(columns={  # reset index
             'oriIndex':'oriIndex',
+            'absTime':'propBoutAligned_time',
             'angVelSmoothed':'propBoutAligned_angVel',
             'swimSpeed':'propBoutAligned_speed',
             'angAccel':'propBoutAligned_accel',
@@ -508,6 +510,7 @@ def grab_fish_angle(analyzed, fish_length):
         bout_res2.loc[i, 'propBout_initYPos'] = df.loc[aligned_peak-10:aligned_peak-5, 'y'].mean()
         bout_res2.loc[i, 'propBout_deltaY'] = df.loc[aligned_peak+5:aligned_peak+10, 'y'].mean() - bout_res2.loc[i, 'propBout_initYPos'] 
         bout_res2.loc[i, 'propBout_netPitchChg'] = df.loc[aligned_peak+5:aligned_peak+10, 'ang'].mean() - bout_res2.loc[i, 'propBout_initPitch']
+        
 
         # if the current (alignable) bout is not the last bout in the epoch 
         if bout['boutNum'] < bout_attributes.loc[bout_attributes['epochNum']==bout['epochNum'],'boutNum'].max():
@@ -577,6 +580,7 @@ def grab_fish_angle(analyzed, fish_length):
     # get more data
     bout_res2 = bout_res2.assign(
         epochBouts_indices = bout_aligned['peak_idx'],
+        propBout_maxSpd = bout_aligned['peakSpeed'],  # modified 06.17.20 
         epochBouts_heading = bout_res.loc[idx[:,30],'propBoutAligned_heading'].values,
         epochBouts_preBoutPitch = bout_res.loc[idx[:,26],'propBoutAligned_pitch'].values,
         epochBouts_earlyRotations_28_30 = bout_res.loc[idx[:,29],'propBoutAligned_pitch'].values - bout_res.loc[idx[:,27],'propBoutAligned_pitch'].values,

@@ -31,6 +31,7 @@ from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 root = "/Users/yunluzhu/Lab/! Lab2/Python VF/script/vertical_fish_analysis/tests/test_data"
 SAMPLES_PER_BIN = 70
 x_range = range(-80,80,1)
+
 # %%
 def defaultPlotting(): 
     sns.set(rc={"xtick.labelsize":'large',"ytick.labelsize":'large', "axes.labelsize":'x-large'},style="whitegrid")
@@ -126,6 +127,7 @@ jackknifed_coef.sort_values(by=['condition','dpf'],inplace=True, ignore_index=Tr
 
 jackknifed_y.columns = ['y','x','dpf','condition']
 jackknifed_y.sort_values(by=['condition','dpf'],inplace=True, ignore_index=True)
+binned_angles.sort_values(by=['condition','dpf'],inplace=True, ignore_index=True)
 
 coef_ori.columns = ['sensitivity','x_inter','y_inter','dpf','condition']
 coef_ori.sort_values(by=['condition','dpf'],inplace=True, ignore_index=True)
@@ -157,13 +159,13 @@ binned4 = binned_angles.loc[binned_angles['dpf']=='4']
 
 defaultPlotting()
 
-f, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 6),sharey='all')
+f, axes = plt.subplots(nrows=1, ncols=2, figsize=(8, 5),sharey='all')
 
 g = sns.lineplot(x='x',y='y',hue='condition',data=fitted4, ci="sd", ax=axes[0])
-g = sns.scatterplot(x='propBoutIEI_pitch',y='y_boutFreq',hue='condition',s=30, data=binned4, alpha=0.5, ax=axes[0])
+g = sns.scatterplot(x='propBoutIEI_pitch',y='y_boutFreq',hue='condition',s=30, data=binned4, alpha=0.3, ax=axes[0],linewidth=0)
 
 g3 = sns.lineplot(x='x',y='y',hue='condition',data=fitted7, ci="sd", ax=axes[1])
-g4 = sns.scatterplot(x='propBoutIEI_pitch',y='y_boutFreq',hue='condition',s=30, data=binned7, alpha=0.5, ax=axes[1])
+g4 = sns.scatterplot(x='propBoutIEI_pitch',y='y_boutFreq',hue='condition',s=30, data=binned7, alpha=0.3, ax=axes[1],linewidth=0)
 plt.show()
 
 # 2. Violin plot of jackknifed coef

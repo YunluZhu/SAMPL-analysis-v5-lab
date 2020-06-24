@@ -19,7 +19,7 @@ def main(root):
         for folder_name in dir_list:
             # get the folder dir by joining path and subfolder name 
             folder = os.path.join(path, folder_name)        
-            filenames = glob.glob(r'{folder}/*.dlm') # subject to change
+            filenames = glob.glob(f"{folder}/*.dlm")
             # print(f"{len(filenames)} file(s) detected")
             if filenames:
                 print(f"In {folder_name}")
@@ -27,9 +27,10 @@ def main(root):
                 
 if __name__ == "__main__":
     args = sys.argv[1:]
+    # main("/Users/yunluzhu/Lab/! Lab2/Python VF/script/vertical_fish_analysis/tests/test_data")
     if len(args) == 1:
         main(args[0])
-        # main("/Users/yunluzhu/Lab/! Lab2/Python VF/script/vertical_fish_analysis/tests/test_data")
+        pass
     else:
         print('too many/few args, should just be the file path!')
         
