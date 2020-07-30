@@ -16,4 +16,5 @@ def main(folder):
     grab_fish_angle.run(filenames, folder)
                 
 if __name__ == "__main__":
-    main("/Users/yunluzhu/Lab/! Lab2/Python VF/script/vertical_fish_analysis/tests/200206 DD 7dpf NTau neg num6")
+    root = "/Users/yunluzhu/Lab/! Lab2/Data/VF/vf_data/combined_TTau_data/7dd_TTau/200709"
+    main(root)

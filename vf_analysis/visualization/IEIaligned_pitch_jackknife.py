@@ -1,19 +1,13 @@
 '''
-This version uses "propBoutIEIAligned_pitch" in the "prop_bout_IEI_aligned" dataframe from IEI_data.h5 file
+This version uses "propBoutIEIAligned_pitch" column in the "prop_bout_IEI_aligned" dataframe from IEI_data.h5 file
 which includes body angles at all frames between qualified bouts
-Folder structure:
-    root -|
-          |- xbb_condition
-          |- xbb_condition
-          |- xbb_condition
-          |- xbb_condition
-          |- xbb_condition
-          |- ...
-Notes 
-    - x: is the dpf, only support one character for now
-    - bb: is the light-dark condition. Ignored in plotting.
-    - condition: is the condition of the exp, such as control/leasion/tau... Flexible length
-    - the number of folders is also flexible 
+Output: plots of distribution of body angles across different conditioins
+
+Conditions and age (dpf) are soft-coded
+recognizable folder names (under root directory): xAA_abcdefghi
+conditions (tau/lesion/control/sibs) are taken from folder names after underscore (abcde in this case)
+age info is taken from the first character in folder names (x in this case, does not need to be number)
+AA represents light dark conditions (LD or DD or LL...), not used.
 '''
 
 #%%
@@ -34,12 +28,11 @@ import math
 # %%
 # CONSTANTS
 ITERATIONS = 100  # number of iterations
-root = "/Users/yunluzhu/Lab/! Lab2/Python VF/script/vertical_fish_analysis/tests/test_data"
+root = "/Users/yunluzhu/Lab/Lab2/Data/VF/vf_data/combined_TTau_data"
 
 # %%
 def defaultPlotting(): 
-    sns.set(rc={"xtick.labelsize":'large',"ytick.labelsize":'large', "axes.labelsize":'x-large'},style="whitegrid")
-
+    sns.set(rc={"xtick.labelsize":'large',"ytick.labelsize":'large', "axes.labelsize":'x-large'},style="ticks")
 
 # %%
 # main
@@ -62,6 +55,7 @@ for condition_idx, folder in enumerate(folder_paths):
         # if folder is not empty
         if subdir_list:
             all_angles = pd.DataFrame()
+            exp_date_match = pd.DataFrame()
             ang_std = []
             # loop through each sub-folder (experiment) under each condition
             for expNum, exp in enumerate(subdir_list):
@@ -71,37 +65,96 @@ for condition_idx, folder in enumerate(folder_paths):
                 # get pitch
                 body_angles = df.loc[:,['propBoutIEIAligned_pitch']].rename(columns={'propBoutIEIAligned_pitch':f'exp{expNum}'}).transpose()
                 all_angles = pd.concat([all_angles, body_angles])
+                exp_date_match = pd.concat([exp_date_match, pd.DataFrame( data= {'expNum':expNum,'date':[exp[0:6]]} )],ignore_index=True)
+
             # jackknife for the index
             jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
             # get the distribution of every jackknifed sample
             jack_y = pd.concat([pd.DataFrame(np.histogram(all_angles.iloc[idx_group].to_numpy().flatten(), bins=bins, density=True)) for idx_group in jackknife_idx], axis=1).transpose()
             jack_y_all = pd.concat([jack_y_all, jack_y.assign(age=all_conditions[condition_idx][0], condition=all_conditions[condition_idx][4:])], axis=0, ignore_index=True)
             # get the std of every jackknifed sample
-            for idx_group in jackknife_idx:
+            for excluded_exp, idx_group in enumerate(jackknife_idx):
                 ang_std.append(np.nanstd(all_angles.iloc[idx_group].to_numpy().flatten())) 
-            ang_std = pd.DataFrame(ang_std)
+            ang_std = pd.DataFrame(ang_std).assign(excluded_exp=exp_date_match['date'])
             ang_std_all = pd.concat([ang_std_all, ang_std.assign(age=all_conditions[condition_idx][0], condition=all_conditions[condition_idx][4:])], axis=0, ignore_index=True)
 
 jack_y_all.columns = ['Probability','Posture (deg)','dpf','condition']
 jack_y_all.sort_values(by=['condition'],inplace=True)
-ang_std_all.columns = ['std(posture)','dpf','condition']                
+ang_std_all.columns = ['std(posture)','excluded_exp','dpf','condition']                
 ang_std_all.sort_values(by=['condition'],inplace=True)
 
 # %%
+# Plot posture distribution and its standard deviation
+
 defaultPlotting()
 
-# setup 2 panels
-f, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
-plt.subplots_adjust(left=None, bottom=None, right=None, top=None,
-                wspace=0.3, hspace=None)
-# Plot distribution
-g = sns.lineplot(x='Posture (deg)',y='Probability', hue='condition', style='dpf', data=jack_y_all, ci='sd', err_style='band', ax=axes[0])
-g.set_xlim([-100,100])
+# Separate data by age.
+age_condition = set(jack_y_all['dpf'].values)
+age_cond_num = len(age_condition)
 
-# Plot std of body angles
-# sns.pointplot(x='condition', y='std(posture)',data=ang_std_all, ax=axes[1])
-sns.violinplot(x='dpf', y='std(posture)', hue='condition', data=ang_std_all, scale='area', ax=axes[1])
+# initialize a multi-plot, feel free to change the plot size
+f, axes = plt.subplots(nrows=2, ncols=age_cond_num, figsize=(2.5*(age_cond_num), 10), sharey='row')
+axes = axes.flatten()  # flatten if multidimenesional (multiple dpf)
+# setup color scheme for dot plots
+flatui = ["#D0D0D0"] * (ang_std_all.groupby('condition').size()[0])
+defaultPlotting()
+
+# loop through differrent age (dpf), plot parabola in the first row and sensitivy in the second.
+for i, age in enumerate(age_condition):
+    fitted = jack_y_all.loc[jack_y_all['dpf']==age]
+    g = sns.lineplot(x='Posture (deg)',y='Probability', hue='condition', style='dpf', data=fitted, ci='sd', err_style='band', ax=axes[i])
+    # g.set_yticks(np.arange(x,y,step))  # adjust y ticks
+    g.set_xticks(np.arange(-90,135,45))  # adjust x ticks
+
+    # plot std
+    std_plt = ang_std_all.loc[ang_std_all['dpf']==age]
+    # plot jackknifed paired data
+    p = sns.pointplot(x='condition', y='std(posture)', hue='excluded_exp',data=std_plt,
+                      palette=sns.color_palette(flatui), scale=0.5,
+                      ax=axes[i+age_cond_num],
+                   #   order=['Sibs','Tau','Lesion'],
+    )
+    # plot mean data
+    p = sns.pointplot(x='condition', y='std(posture)',hue='condition',data=std_plt, 
+                      linewidth=0,
+                      alpha=0.9,
+                      ci=None,
+                      markers='d',
+                      ax=axes[i+age_cond_num],
+                    #   order=['Sibs','Tau','Lesion'],
+    )
+    p.legend_.remove()
+    # p.set_yticks(np.arange(0.1,0.52,0.04))
+    sns.despine(trim=True)
+    
+    # Paired T Test for 2 conditions
+    # Separate data by condition.
+    condition_s = set(std_plt['condition'].values)
+    condition_s = list(condition_s)
+    cond_num = len(condition_s)
+    std_cond1 = std_plt.loc[std_plt['condition']==condition_s[0]].sort_values(by='excluded_exp')
+    std_cond2 = std_plt.loc[std_plt['condition']==condition_s[1]].sort_values(by='excluded_exp')
+    ttest_res, ttest_p = ttest_rel(std_cond1['std(posture)'],std_cond2['std(posture)'])
+    print(f'Age {age}: {condition_s[0]} v.s. {condition_s[1]} paired t-test p-value = {ttest_p}')
 
 plt.show()
 
 # %%
+# Other plots
+
+# defaultPlotting()
+
+# # setup 2 panels
+# f, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
+# plt.subplots_adjust(left=None, bottom=None, right=None, top=None,
+#                 wspace=0.3, hspace=None)
+# # Plot distribution
+# g = sns.lineplot(x='Posture (deg)',y='Probability', hue='condition', style='dpf', data=jack_y_all, ci='sd', err_style='band', ax=axes[0])
+# g.set_xlim([-100,100])
+
+# # Plot std of body angles
+# # sns.pointplot(x='condition', y='std(posture)',data=ang_std_all, ax=axes[1])
+# sns.swarmplot(x='dpf', y='std(posture)', hue='condition', data=ang_std_all, dodge=True, ax=axes[1])
+
+# plt.show()
+

@@ -2,19 +2,7 @@
 This version uses "propBoutAligned_angVel" in the "prop_bout_aligned" key of bout_data file
 which includes angular velocity during bouts
 Output: plots of distribution of angular velocity 31 frames around peak speed during bouts
-Folder structure:
-    root -|
-          |- abb_condition
-          |- abb_condition
-          |- abb_condition
-          |- abb_condition
-          |- abb_condition
-          |- ...
-Notes 
-    - a: is the dpf, only supports digits for now
-    - bb: is the light-dark condition. Ignored in plotting.
-    - condition: is the condition of the exp, such as control/leasion/tau... Flexible length
-    - the number of folders is also flexible 
+Conditions are soft-coded.
 '''
 
 #%%
@@ -35,7 +23,7 @@ from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 
 # %%
 # CONSTANTS
-root = "/Users/yunluzhu/Lab/! Lab2/Python VF/script/vertical_fish_analysis/tests/test_data"
+root = "/Users/yunluzhu/Lab/Lab2/Data/VF/vf_data/combined_TTau_data"
 HEADING_LIM = 90
 
 # %%
@@ -140,35 +128,19 @@ peak_data = peak_data.assign(atk_ang = peak_data['propBoutAligned_heading']-peak
 # %%
 # Plot attack angles across conditions
 defaultPlotting()
-g = sns.pointplot(x='dpf',y='atk_ang', hue='condition', data=peak_data)
+g = sns.pointplot(x='dpf',y='atk_ang', hue='condition', data=peak_data,ci='sd',dodge=True)
 plt.show()
 
 # %%
 # Peak speed
 defaultPlotting()
-g = sns.pointplot(x='dpf',y='propBoutAligned_speed', hue='condition', data=peak_data, ci='sd')
+g = sns.pointplot(x='dpf',y='propBoutAligned_speed', hue='condition', data=peak_data, ci='sd', dodge=True)
 plt.show()
 
 # %%
 # Peak linear acceleration
 defaultPlotting()
-g = sns.pointplot(x='dpf',y='linear_accel', hue='condition', data=peak_data, ci='sd')
-plt.show()
-
-# %%
-# Separate conditions
-aligned_4s = all_around_peak_data.loc[(all_around_peak_data['dpf']=='4') & (all_around_peak_data['condition']=='Sibs')]
-aligned_4t = all_around_peak_data.loc[(all_around_peak_data['dpf']=='4') & (all_around_peak_data['condition']=='Tau')]
-aligned_7s = all_around_peak_data.loc[(all_around_peak_data['dpf']=='7') & (all_around_peak_data['condition']=='Sibs')]
-aligned_7t = all_around_peak_data.loc[(all_around_peak_data['dpf']=='7') & (all_around_peak_data['condition']=='Tau')]
-
-# %%
-sns.distplot(aligned_4s['propBoutAligned_pitch'])
-sns.distplot(aligned_4t['propBoutAligned_pitch'])
-plt.show()
-
-sns.distplot(aligned_7s['propBoutAligned_pitch'])
-sns.distplot(aligned_7t['propBoutAligned_pitch'])
+g = sns.pointplot(x='dpf',y='linear_accel', hue='condition', data=peak_data, ci='sd', dodge=True)
 plt.show()
 
 # %%
@@ -183,6 +155,19 @@ sns.distplot(posture_chg_b)
 # plot a 2d-histogram
 sns.jointplot(posture_chg_b,peak_data['atk_ang'].values, kind="kde", height=7, space=0, xlim=(-12, 12), ylim=(-15, 25))
 
-
-
 # %%
+# Conditions below are hard-coded
+# # Separate conditions
+# aligned_4s = all_around_peak_data.loc[(all_around_peak_data['dpf']=='4') & (all_around_peak_data['condition']=='Sibs')]
+# aligned_4t = all_around_peak_data.loc[(all_around_peak_data['dpf']=='4') & (all_around_peak_data['condition']=='Tau')]
+# aligned_7s = all_around_peak_data.loc[(all_around_peak_data['dpf']=='7') & (all_around_peak_data['condition']=='Sibs')]
+# aligned_7t = all_around_peak_data.loc[(all_around_peak_data['dpf']=='7') & (all_around_peak_data['condition']=='Tau')]
+
+# # %%
+# sns.distplot(aligned_4s['propBoutAligned_pitch'])
+# sns.distplot(aligned_4t['propBoutAligned_pitch'])
+# plt.show()
+
+# sns.distplot(aligned_7s['propBoutAligned_pitch'])
+# sns.distplot(aligned_7t['propBoutAligned_pitch'])
+# plt.show()

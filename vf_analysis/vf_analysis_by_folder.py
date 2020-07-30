@@ -1,5 +1,5 @@
 '''
-20.07.28 VF analysis cli - by folders
+20.06.01 VF analysis cli - by folders
 Take one command line input as the directory containing subfolders with .dlm files
 Call grab_fish_angle and analysis .dlm files in the subfolders
 Store analyzed values of .dlm files in subfolders within subfolders 
@@ -26,11 +26,5 @@ def main(root):
                 grab_fish_angle.run(filenames, folder)
                 
 if __name__ == "__main__":
-    # if want to use Command Line Inputs
-    args = sys.argv[1:]
-    if len(args) == 1:
-        main(args[0])
-        pass
-    else:
-        print('too many/few args, should just be the file path!')
-        
+    root = '/Users/yunluzhu/Lab/! Lab2/Data/VF/vf_data/combined_TTau_data/7dd_TSibs'
+    main(root)

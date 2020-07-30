@@ -2,19 +2,6 @@
 This version uses "prop_bout_aligned" in the "propBoutAligned_speed" file
 which includes swim speed during bouts
 Output: plots of distribution of swim speed across different conditioins
-Folder structure:
-    root -|
-          |- abb_condition
-          |- abb_condition
-          |- abb_condition
-          |- abb_condition
-          |- abb_condition
-          |- ...
-Notes 
-    - a: is the dpf, only supports digits for now
-    - bb: is the light-dark condition. Ignored in plotting.
-    - condition: is the condition of the exp, such as control/leasion/tau... Flexible length
-    - the number of folders is also flexible 
 '''
 
 #%%
@@ -36,12 +23,12 @@ from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 
 # %%
 # CONSTANTS
-root = "/Users/yunluzhu/Lab/! Lab2/Python VF/script/vertical_fish_analysis/tests/test_data"
+root = "/Users/yunluzhu/Lab/Lab2/Data/VF/vf_data/combined_TTau_data"
 bins = list(range(1,30,1))
 
 # %%
 def defaultPlotting(): 
-    sns.set(rc={"xtick.labelsize":'large',"ytick.labelsize":'large', "axes.labelsize":'x-large'},style="whitegrid")
+    sns.set(rc={"xtick.labelsize":'large',"ytick.labelsize":'large', "axes.labelsize":'x-large'},style="ticks")
 
 
 # %%
@@ -91,5 +78,3 @@ defaultPlotting()
 g = sns.lineplot(x='swim_speed',y='Probability', hue='condition', style='dpf', data=jack_y_all, ci='sd', err_style='band')
 
 plt.show()
-
-# %%
