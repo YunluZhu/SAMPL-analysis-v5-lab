@@ -21,23 +21,26 @@ For more details, see the instructions section.
 ## Quick Start Guide
 
 0. Organize .dlm files. Each folder with .dlm files will be recognized as one "experiment (exp)" during jackknife analysis. Therefore, if you want to combine all data from a certain clutch, put them into the same folder. Required folder structure:
-	|- root
-	    |- 7dd_ctrl				# one digit/character (dpf) + two letters (light-dark condition) + _ + flexible (condition)
-	        |- 200607 xxx 		# start with 6 digits (exp date) + flexible
-				|- xxx.dlm
-				|- xxx.dlm
-				|- xxx.dlm
-			|- 200611 xxx
-				|- xxx.dlm
-				|- xxx.dlm
-		|- 7dd_condition
-			|- 200607 xxx 		# date must match to plot paired results 
-				|- ...
-			|- 200611 xxx
-				|- ...
-		|- 4dd_ctrl
+├─ root
+	├─ 7dd_ctrl
+		├─ 200607 xxx 
+			├─ xxx.dlm
+			├─ xxx.dlm
+			├─ xxx.dlm
+		├─ 200611 xxx 
+			├─ xxx.dlm
+			├─ xxx.dlm
+	├─ 7dd_condition
+		├─ 200611 xxx 
 			|- ...
+		├─ 200611 xxx 
+			|- ...
+	├─ 4dd_ctrl
+		|- ...
 
+Note: 
+7dd_ctrl: one digit/character (dpf) + two letters (light-dark condition) + _ + flexible (condition)
+200607 xxx: start with 6 digits (exp date) + flexible
 1. Get the root directory of .dlm files and run vf_analysis_by_folder_cli.py. It will go through all subfolders, find .dlm files, call the 2 functions in preprocessing, save analyzed results in .dlm folders.
     - alternatively, you may run the "vf_analysis_test.py" which only analyzes .dlm files under the given directory.
     - for both scripts, .dlm files with the same path (under the same folder) will be analyzed together. Results from all the .dlm files will be concatenated.
