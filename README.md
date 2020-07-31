@@ -66,6 +66,7 @@ For more details, see the instructions section.
     - these notebooks are well annotated with step-by-step instructions and additional code.
     - Analyze_VF includes all preprocessing code
     - Grab_Bouts includes grab_fish_angle code
+    - You may also paste preprocessing/grab_fish_angle scrip code into jupyter notebooks. Formats are compatible.
 
 2. The grab fish angle code
     - it was originally written by DEE. This code extracts lots of data but most of which are not used in visualization.

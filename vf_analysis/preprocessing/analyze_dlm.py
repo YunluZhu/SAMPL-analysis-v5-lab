@@ -28,7 +28,7 @@ from datetime import timedelta
 # Constants
 FRAM_RATE = 40      # Hz
 FRAME_INTERVAL = 1 / FRAM_RATE
-MIN_DUR = 100        # all epochs that are too short
+MIN_DUR = 2.5 * FRAM_RATE  # 2.5s, minimun duration of epochs 
 MAX_FISH = 1         # all epochs that have more than one fish
 MAX_INST_DISPL = 35  # epochs where fish# > 1 but appear as 1 fish will have improbably large instantaneous displacement.
 MAX_ANG_VEL = 100  # or an improbably large angular velocity
