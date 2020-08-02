@@ -9,9 +9,13 @@ Note: The depth of subfolders containing .dlm files does not matter
 
 import sys
 import os,glob
-from grab_fish_angle import grab_fish_angle
+from bout_analysis import grab_fish_angle
 import time
 
+# if run this script directly, paste the root directory here
+root = '/Users/yunluzhu/Lab/! Lab2/Data/VF/vf_data/combined_TTau_data/7dd_TSibs'
+
+# callable function
 def main(root):
     all_folders = os.walk(root)
     for path, dir_list, file_list in all_folders:
@@ -24,7 +28,7 @@ def main(root):
             if filenames:
                 print(f"In {folder_name}")
                 grab_fish_angle.run(filenames, folder)
-                
+
+# if run this script directly
 if __name__ == "__main__":
-    root = '/Users/yunluzhu/Lab/! Lab2/Data/VF/vf_data/combined_TTau_data/7dd_TSibs'
     main(root)

@@ -7,8 +7,10 @@ Return values with ALL .dlm files analyzed
 
 import sys
 import os,glob
-from grab_fish_angle import grab_fish_angle
+from bout_analysis import grab_fish_angle
 import time
+
+root = "/Users/yunluzhu/Lab/Lab2/Data/VF/vf_data/DD_data/4dd_Sibs/200106 DD 4dpf NTau neg ctrl"
 
 def main(folder):
     filenames = glob.glob(f"{folder}/*.dlm") # subject to change
@@ -16,5 +18,4 @@ def main(folder):
     grab_fish_angle.run(filenames, folder)
                 
 if __name__ == "__main__":
-    root = "/Users/yunluzhu/Lab/Lab2/Data/VF/vf_data/DD_data/4dd_Sibs/200106 DD 4dpf NTau neg ctrl"
     main(root)

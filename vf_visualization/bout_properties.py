@@ -22,8 +22,11 @@ import math
 from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 
 # %%
-# CONSTANTS
+# Paste root directory here
 root = "/Users/yunluzhu/Lab/Lab2/Data/VF/vf_data/combined_TTau_data"
+
+# %%
+# CONSTANTS
 HEADING_LIM = 90
 
 # %%
@@ -35,7 +38,7 @@ def day_night_split(df,time_col_name):
     df_day = df.loc[hour[(hour>9) & (hour<23)].index, :]
     return df_day
 # %%
-# main
+# main function
 all_conditions = []
 folder_paths = []
 # get the name of all folders under root

@@ -9,7 +9,7 @@ Note: The depth of subfolders containing .dlm files does not matter
 
 import sys
 import os,glob
-from grab_fish_angle import grab_fish_angle
+from bout_analysis import grab_fish_angle
 import time
 
 def main(root):

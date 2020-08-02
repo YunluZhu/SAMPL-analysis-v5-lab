@@ -45,7 +45,6 @@ All_Aligned_FRAMES = math.ceil(PRE_PEAK_FRAMES+POST_PEAK_FRAMES+1)
 IEI_tail = math.ceil(SAMPLE_RATE * 0.75)
 IEI_2_swim_buf = math.ceil(0.05 * SAMPLE_RATE)
 
-
 # %%
 # Define functions
 def grp_by_epoch(df):

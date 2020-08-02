@@ -35,8 +35,11 @@ from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 # from statannot import add_stat_annotation  # pip install only. if using conda env, run <conda install pip> first
 
 # %%
-# CONSTANTS
+# Paste root directory here
 root = "/Users/yunluzhu/Lab/Lab2/Data/VF/vf_data/combined_TTau_data"
+
+# %%
+# CONSTANTS
 HEADING_LIM = 90
 CLIMB_MIN = 20
 X_RANGE = np.arange(-20,40.01,0.01)
@@ -93,7 +96,7 @@ def sigmoid_fit_4free(df, x_range_to_fit):
     p_sigma = np.sqrt(np.diag(pcov))
     return output_coef, output_fitted, p_sigma
 # %%
-# main
+# main 
 all_conditions = []
 folder_paths = []
 # get the name of all folders under root

@@ -19,11 +19,12 @@ from datetime import datetime
 from datetime import timedelta
 import math
 from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
-
+# %%
+# Paste root directory here
+root = "/Users/yunluzhu/Lab/Lab2/Data/VF/vf_data/combined_TTau_data"
 
 # %%
 # CONSTANTS
-root = "/Users/yunluzhu/Lab/Lab2/Data/VF/vf_data/combined_TTau_data"
 bins = list(range(1,30,1))
 
 # %%
@@ -32,7 +33,7 @@ def defaultPlotting():
 
 
 # %%
-# main
+# main function
 all_conditions = []
 folder_paths = []
 # get the name of all folders under root
