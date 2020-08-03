@@ -14,11 +14,11 @@ For the current version (v1_0_200801), users need to run `vf_analysis_by_folder.
 ## Prerequisites and tips
 
 1. Conda environment is recommended. Download miniconda here: <https://docs.conda.io/en/latest/miniconda.html>
-2. To get packages required for running the code, try loading the `docs/yzvf.yml` file. If it failes, just create a new environment and install packages required according to the `docs/pkgs.txt`.
+2. To get required packages, try loading the `docs/yzvf.yml` YAML file. If this failes, create a new environment and install packages in the `docs/pkgs.txt`.
 3. Setting up conda envs can be the most time-consuming step. Be patient and google a lot.
 4. Visual Studio Code is a good IDE and is compatible with Jupyter Notebook
 5. VS code Python Extension supports Interactive Window
-    - You can create cells on a Python file by typing `#%%`
+    - You can create cells on a Python file by typing `# %%`
 	- Use `Shift`+`Enter` to run a cell, the output will be shown in the interactive window
 
 ## Analyze .dlm files
@@ -50,7 +50,8 @@ For the current version (v1_0_200801), users need to run `vf_analysis_by_folder.
             └── ****.dlm
 ```
 
-**Notes** 
+**Notes**
+
 - 7dd_ctrl: one digit/character (dpf) + two letters (light-dark condition) + _ + flexible (condition)
 - 200607 xxx: start with 6 digits (exp date) + flexible
 

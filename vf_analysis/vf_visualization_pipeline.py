@@ -4,7 +4,7 @@ Calls functions in the visualization folder and make plots
 Compatible with Python Interactive Console. Use Shift/Ctrl+Enter to run cell by cell, or click "Run Below" to run all functions
 atk_angle_fin_body_ratio plot is not included in the pipeline because it requires adjustment according to different data sets.
 '''
-#%%
+# %%
 from visualization.plt_bout_properties import bout_properties
 from visualization.plt_bout_speed import bout_speed_aligned_jacknife
 from visualization.plt_IEIpitch_mean import IEI_pitch_mean_jacknife

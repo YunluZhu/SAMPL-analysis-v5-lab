@@ -1,9 +1,0 @@
-from visualization.plt_bout_properties import bout_properties
-from visualization.plt_bout_speed import bout_speed_aligned_jacknife
-from visualization.plt_mean_IEIpitch import IEI_pitch_mean_jacknife
-from visualization.plt_aligned_IEIpitch import aligned_IEIpitch_jackknife
-from visualization.plt_parabola_sensitivity import sensitivity_jacknife_halfP
-
-
-root = "/Users/yunluzhu/Lab/Lab2/Data/VF/vf_data/combined_7DD_data"
-sensitivity_jacknife_halfP(root)
