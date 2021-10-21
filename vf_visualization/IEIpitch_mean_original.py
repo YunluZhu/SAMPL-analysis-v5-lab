@@ -32,7 +32,7 @@ from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 
 # %%
 # Paste root directory here
-root = "/Volumes/LabData/vf_tmp_plotting"
+root = "/Volumes/LabData/VF_data_in_use/resliced/combined_7DD_data_resliced"
 
 # %%
 def defaultPlotting(): 
@@ -72,7 +72,7 @@ for condition_idx, folder in enumerate(folder_paths):
                 exp_date_match = pd.concat([exp_date_match, pd.DataFrame( data= {'expNum':expNum,'date':[exp[0:6]]} )],ignore_index=True)
 
             # jackknife for the index
-            jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
+            jackknife_idx = np.array(list(range(expNum+1)))
             # get the distribution of every jackknifed sample for the current condition
             jack_y = pd.concat([pd.DataFrame(
                 np.histogram(all_angles.iloc[idx_group].to_numpy().flatten(), bins=bins, density=True)
@@ -162,75 +162,4 @@ for i, age in enumerate(age_condition):
     
 plt.show()
 
-# %% plot percentage changes
-for string in all_conditions:  # if has lesion data or not
-    if string.find("esion") != -1:
-        if_plt_percentage =1
-    else:
-        if_plt_percentage = 0
-        
-if if_plt_percentage == 1: # if contain lesion data    
-    all_conditions.sort()
-    ori_data = ang_std_all.loc[ang_std_all['dpf']==age]
-    tmp = ori_data.groupby('condition').mean()
-    lesion_mean = max(tmp.iloc[:,0])
-    cond0_plt =  ori_data.loc[ori_data['condition'].str.find('ib') !=-1,:]
-    cond1_plt =  ori_data.loc[ori_data['condition'].str.find('au') !=-1,:]
-
-    cond0_plt = cond0_plt.sort_values(by=['excluded_exp']).reset_index()
-    cond1_plt = cond1_plt.sort_values(by=['excluded_exp']).reset_index()
-
-    pltData_cond0 = cond0_plt.loc[:,'std(posture)']
-    pltData_cond1 = cond1_plt.loc[:,'std(posture)']
-    percentage_chg = (pltData_cond0-pltData_cond1).divide(pltData_cond0-lesion_mean) *100
-
-    percentage_chg = 100-percentage_chg
-    cond0_plt = cond0_plt.assign(y = [100] * len(percentage_chg))
-    cond1_plt = cond1_plt.assign(y = percentage_chg)
-    plt_data = pd.concat([cond0_plt,cond1_plt])
-    
-    defaultPlotting()
-
-    # Separate data by age.
-    age_condition = set(jack_y_all['dpf'].values)
-    age_cond_num = len(age_condition)
-
-    # initialize a multi-plot, feel free to change the plot size
-    f, axes = plt.subplots(nrows=2, ncols=age_cond_num, figsize=(2.5*(age_cond_num), 10), sharey='row')
-    axes = axes.flatten()  # flatten if multidimenesional (multiple dpf)
-    # setup color scheme for dot plots
-    flatui = ["#D0D0D0"] * (ang_std_all.groupby('condition').size()[0])
-    defaultPlotting()
-
-    # loop through differrent age (dpf), plot parabola in the first row and sensitivy in the second.
-    for i, age in enumerate(age_condition):
-        fitted = jack_y_all.loc[jack_y_all['dpf']==age]
-        g = sns.lineplot(x='Posture (deg)',y='Probability', hue='condition', style='dpf', data=fitted, ci='sd', err_style='band', ax=axes[i])
-        # g.set_yticks(np.arange(x,y,step))  # adjust y ticks
-        g.set_xticks(np.arange(-90,135,45))  # adjust x ticks
-
-        # plot std
-        std_plt = plt_data.loc[plt_data['dpf']==age]
-        # plot jackknifed paired data
-        p = sns.pointplot(x='condition', y='y', hue='excluded_exp',data=std_plt,
-                        palette=sns.color_palette(flatui), scale=0.5,
-                        ax=axes[i+age_cond_num],
-                    #   order=['Sibs','Tau','Lesion'],
-        )
-        # plot mean data
-        p = sns.pointplot(x='condition', y='y',hue='condition',data=std_plt, 
-                        linewidth=0,
-                        alpha=0.9,
-                        ci=None,
-                        markers='d',
-                        ax=axes[i+age_cond_num],
-                        #   order=['Sibs','Tau','Lesion'],
-        )
-        p.legend_.remove()
-        # p.set_yticks(np.arange(0.1,0.52,0.04))
-        p.set_ylim(0,100)
-        sns.despine(trim=False)
-        
-        
-    plt.show()
 # %%

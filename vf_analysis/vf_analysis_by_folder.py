@@ -13,7 +13,7 @@ from bout_analysis import grab_fish_angle
 import time
 
 # if run this script directly, paste the root directory here
-root = '/Users/yunluzhu/Lab/! Lab2/Data/VF/vf_data/combined_TTau_data/7dd_TSibs'
+root = '/Users/yunluzhu/Lab/Lab2/Data/VF/data_in_use/new_ana'
 
 # callable function
 def main(root):

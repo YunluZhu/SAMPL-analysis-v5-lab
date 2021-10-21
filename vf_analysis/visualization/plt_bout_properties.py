@@ -23,7 +23,7 @@ from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 
 # %%
 # CONSTANTS
-# root = "/Users/yunluzhu/Lab/Lab2/Data/VF/vf_data/combined_TTau_data"
+# root = "/Volumes/LabData/VF_Paige/for_ana"
 HEADING_LIM = 90
 
 # %%

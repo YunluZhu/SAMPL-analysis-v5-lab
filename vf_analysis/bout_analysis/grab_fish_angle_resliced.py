@@ -886,7 +886,7 @@ def run(filenames, folder):
  
     for i, file in enumerate(filenames):
         raw = read_dlm(i, file)
-        analyzed, fish_length = analyze_dlm(raw, i, file, folder)
+        analyzed, fish_length = analyze_dlm_resliced(raw, i, file, folder)
         res = grab_fish_angle(analyzed, fish_length)
         # transfer values to final var
         grabbed_all = pd.concat([grabbed_all, res['grabbed_all']], ignore_index=True)

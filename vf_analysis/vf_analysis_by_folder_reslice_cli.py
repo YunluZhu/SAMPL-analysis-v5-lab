@@ -10,6 +10,7 @@ Note: The depth of subfolders containing .dlm files does not matter
 import sys
 import os,glob
 from bout_analysis import grab_fish_angle
+from bout_analysis import grab_fish_angle_resliced
 import time
 
 def main(root):
@@ -23,8 +24,8 @@ def main(root):
             # print(f"{len(filenames)} file(s) detected")
             if filenames:
                 print(f"In {folder_name}")
-                grab_fish_angle.run(filenames, folder)
-                # grab_fish_angle_resliced.run(filenames, folder)
+                # grab_fish_angle.run(filenames, folder)
+                grab_fish_angle_resliced.run(filenames, folder)
 
                 
 if __name__ == "__main__":

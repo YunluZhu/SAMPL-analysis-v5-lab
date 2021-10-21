@@ -23,11 +23,11 @@ from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 
 # %%
 # Paste root directory here
-root = "/Volumes/LabData/VF_data_in_use/resliced/combined_7DD_hets_resliced/combined_7DD_NTau-hets_data"
+root = "/Volumes/LabData/VF_STau_in_use"
 
 # %%
 # CONSTANTS
-HEADING_LIM = 90
+HEADING_LIM = 180
 
 # %%
 def defaultPlotting(): 
@@ -36,8 +36,9 @@ def defaultPlotting():
 
 def day_night_split(df,time_col_name):
     hour = df[time_col_name].dt.strftime('%H').astype('int')
+    df_night = df.loc[hour[(hour<8) ].index, :]
     df_day = df.loc[hour[(hour>9) & (hour<23)].index, :]
-    return df_day
+    return df_night
 # %%
 # main function
 all_conditions = []

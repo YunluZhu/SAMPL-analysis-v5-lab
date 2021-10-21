@@ -2,9 +2,9 @@
 This version loads "prop_Bout_IEI2" from IEI_data.h5 and reads 'propBoutIEI', 'propBoutIEI_pitch', 'propBoutIEItime'
 conditions and age (dpf) are soft-coded
 recognizable folder names (under root directory): xAA_abcdefghi
-conditions (tau/lesion/control/sibs) are taken from folder names after underscore (abcde in this case)
-age info is taken from the first character in folder names (x in this case, does not need to be number)
-AA represents light dark conditions (LD or DD or LL...), not used.
+conditions (tau/lesion/control/sibs) are taken from folder names after underscore (abcdefghi in this case)
+age info is taken from the 3 characters in folder names (xAA in this case, does not need to be number) – UPDATED 210618
+AA represents light dark conditions (LD or DD or LL...) or whatever other condiitions. Does not need to be number
  
 outputs: 
     plots of fiitted parabola (jackknifed, FULL parabola), to make half parabola, run script parabola_sensitivity_half.py
@@ -38,7 +38,7 @@ from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 
 # %%
 # Paste root directory here
-root = "/Users/yunluzhu/Lab/Lab2/Data/VF/vf_data/combined_TTau_data"
+root = "/Volumes/LabData/VF_STau_in_use"
 
 # %%
 # CONSTANTS
@@ -77,7 +77,7 @@ def distribution_binned_average(df, bin_width, condition):
     df = df.assign(y_boutFreq = 1/df['propBoutIEI'])
     bins = pd.cut(df['propBoutIEI_pitch'], list(np.arange(-90,90,bin_width)))
     grp = df.groupby(bins)
-    df_out = grp[['propBoutIEI_pitch','y_boutFreq']].mean().assign(dpf=condition[0],condition=condition[4:])
+    df_out = grp[['propBoutIEI_pitch','y_boutFreq']].mean().assign(dpf=condition[0:2],condition=condition[4:])
     return df_out
     
 def ffunc1(x, a, b, c):
@@ -143,17 +143,17 @@ for condition_idx, folder in enumerate(folder_paths):
             
             # fit angles condition by condition and concatenate results
             coef, fitted_y = parabola_fit1(all_day_angles, X_RANGE_FULL)
-            coef_ori = pd.concat([coef_ori, coef.assign(dpf=all_conditions[condition_idx][0],condition=all_conditions[condition_idx][4:])])
-            fitted_y_ori = pd.concat([fitted_y_ori, fitted_y.assign(dpf=all_conditions[condition_idx][0],condition=all_conditions[condition_idx][4:])])
+            coef_ori = pd.concat([coef_ori, coef.assign(dpf=all_conditions[condition_idx][0:2],condition=all_conditions[condition_idx][4:])])
+            fitted_y_ori = pd.concat([fitted_y_ori, fitted_y.assign(dpf=all_conditions[condition_idx][0:2],condition=all_conditions[condition_idx][4:])])
             
             # jackknife for the index
             jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
             for excluded_exp, idx_group in enumerate(jackknife_idx):
                 coef, fitted_y = parabola_fit1(all_day_angles.loc[all_day_angles['expNum'].isin(idx_group)], X_RANGE_FULL)
-                jackknifed_coef = pd.concat([jackknifed_coef, coef.assign(dpf=all_conditions[condition_idx][0],
+                jackknifed_coef = pd.concat([jackknifed_coef, coef.assign(dpf=all_conditions[condition_idx][0:2],
                                                                         condition=all_conditions[condition_idx][4:],
                                                                         excluded_exp=all_day_angles.loc[all_day_angles['expNum']==excluded_exp,'date'].iloc[0])])
-                jackknifed_y = pd.concat([jackknifed_y, fitted_y.assign(dpf=all_conditions[condition_idx][0],
+                jackknifed_y = pd.concat([jackknifed_y, fitted_y.assign(dpf=all_conditions[condition_idx][0:2],
                                                                         condition=all_conditions[condition_idx][4:],
                                                                         excluded_exp=all_day_angles.loc[all_day_angles['expNum']==excluded_exp,'date'].iloc[0])])
             # Finish the current condition, enter next condition

@@ -31,7 +31,7 @@ from scipy.stats import ttest_rel
 from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 # %%
 # Paste root directory here
-root = "/Users/yunluzhu/Lab/Lab2/Data/VF/vf_data/combined_TTau_data"
+root = "/Volumes/LabData/vf_tmp_plotting"
 
 # %%
 def defaultPlotting(): 
@@ -128,7 +128,7 @@ for i, age in enumerate(age_condition):
     )
     p.legend_.remove()
     # p.set_yticks(np.arange(0.1,0.52,0.04))
-    sns.despine(trim=True)
+    sns.despine(trim=False)
     
     condition_s = set(std_plt['condition'].values)
     condition_s = list(condition_s)
@@ -147,4 +147,5 @@ for i, age in enumerate(age_condition):
     else:
         pass
 plt.show()
+
 

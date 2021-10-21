@@ -13,7 +13,7 @@ from visualization.plt_parabola_sensitivity_half import sensitivity_jacknife_hal
 from visualization.plt_parabola_3free_full import sensitivity_jacknife_fullP
 # %%
 # First, paste your root directory below
-root = "/Users/yunluzhu/Lab/Lab2/Data/VF/vf_data/combined_7DD_data"
+root = "/Users/yunluzhu/Lab/Lab2/Data/VF/data_in_use/combined_7DD_NTau-hets_data"
 
 # %%
 # Mean inter event pitch (pitch angle between bouts) distribution plot and std

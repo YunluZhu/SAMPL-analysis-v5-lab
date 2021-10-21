@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"jupyter.jupyterServerType": "local",
+		"python.pythonPath": "/Users/yunluzhu/opt/miniconda3/envs/YZVF/bin/python"
+	}
+}

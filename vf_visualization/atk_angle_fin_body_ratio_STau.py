@@ -10,6 +10,16 @@ Will make it softcoded in future versions.
 This analysis only takes one variable condition, either experimental groups (sibs, tau, lesion, etc.) or age (dpf, wpf...)
 
 DEE's originial MATLAB code can be helpful
+
+How to calculate attack angles:
+0. Plot Posture change - attack angle KDE joint plot to determine whether the distribution is good enough for sigmoid fits
+1. to get the max and min for the atk_angle - posture_chg sigmoid, fit the data using 4 free parameter sigmoid fit. You may decide to combine all the conditions or exclude certain conditions.
+2. get the c and d coefs, which are min and max values of the fitted sigmoid, respectivelly. You should now reach the STOP warning
+3. replace the max and min values in sigfunc_2free(). Continue after the STOP warning
+4. adapt the conditions in the plot code to your the conditions of your dataset.
+
+UPDATE 210505
+add filtering. excluded data with posture_change > 0 & atk_ang < 0
 '''
 
 #%%
@@ -36,13 +46,19 @@ from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 
 # %%
 # Paste root directory here
-root = "/Users/yunluzhu/Lab/Lab2/Data/VF/vf_data/combined_TTau_data"
+root = "/Volumes/LabData/VF_STau_in_use"
 
 # %%
 # CONSTANTS
 HEADING_LIM = 90
 CLIMB_MIN = 20
-X_RANGE = np.arange(-20,40.01,0.01)
+
+FIN_BODY_LOW_LIM = -10  # lower pitch change limit to plot fin_body sigmoid fit and binned data
+FIN_BODY_UP_LIM = 15  # 
+
+X_RANGE = np.arange(-10,15.01,0.01)
+BIN_WIDTH = 0.8  
+AVERAGE_BIN = np.arange(-10,15,BIN_WIDTH)
 # %%
 def defaultPlotting(): 
     sns.set(rc={"xtick.labelsize":'large',"ytick.labelsize":'large', "axes.labelsize":'x-large'},style="ticks")
@@ -54,41 +70,47 @@ def day_night_split(df,time_col_name):
 
 def sigfunc_2free(x, a, b, c, d):
     # sigmoid fit for 2 free parameters. Used for getting the slope value 
-    return   -1.470026 + (16.65836+1.470026)/(1 + np.exp(-(a*(x + b)))) 
+    # same equation as 4free:
+    # c + (d-c)/(1 + np.exp(-(a*(x + b))))
+    return   -1.998216 + (25+1.998216)/(1 + np.exp(-(a*(x + b)))) 
 
-def sigfunc_2free_lesion(x, a, b, c, d):
-    # sigmoid fit for 2 free parameters. Used for getting the slope value 
-    return   -1.470026 + (8.353048+1.470026)/(1 + np.exp(-(a*(x + b)))) 
+
+
+
+# def sigfunc_2free_lesion(x, a, b, c, d):
+#     # sigmoid fit for 2 free parameters. Used for getting the slope value 
+#     return   -1.470026 + (8.353048+1.470026)/(1 + np.exp(-(a*(x + b)))) 
 
 
 def sigfunc_4free(x, a, b, c, d):
     # sigmoid fit for all 4 free parameters.
-    locY = c
-    atk_max = d
-    one_nth = 8
-    posX = b
-    A = a
-    y = locY+ (atk_max)/(1 + np.exp(-A*(x- (A * (posX) + np.log(-(locY-(one_nth-1)*atk_max)/(locY+atk_max)))/A )))
+    # locY = c
+    # atk_max = d
+    # one_nth = 8
+    # posX = b
+    # A = a
+    # y = locY+ (atk_max)/(1 + np.exp(-A*(x- (A * (posX) + np.log(-(locY-(one_nth-1)*atk_max)/(locY+atk_max)))/A )))
+    y = c + (d-c)/(1 + np.exp(-(a*(x + b))))
+
     return y
-    # return  -1.470026 + (d+1.470026)/(1 + np.exp(-(a*(x + b)))) 
 
 def sigmoid_fit(df, x_range_to_fit):
-    popt, pcov = curve_fit(sigfunc_2free, df['posture_chg'], df['atk_ang'],maxfev=1500,p0=(1, -1, -1,1), bounds=([0,-20,-5,0],[5,20,5,50]))
+    popt, pcov = curve_fit(sigfunc_2free, df['posture_chg'], df['atk_ang'],maxfev=1500,p0=(1, -1, -1,1), bounds=([0,-20,-5,0],[2,20,0,50]))
     y = sigfunc_2free(x_range_to_fit,*popt)
     output_coef = pd.DataFrame(data=popt).transpose()
     output_fitted = pd.DataFrame(data=y).assign(x=x_range_to_fit)
     return output_coef, output_fitted
 
-def sigmoid_fit_lesion(df, x_range_to_fit):
-    popt, pcov = curve_fit(sigfunc_2free, df['posture_chg'], df['atk_ang'],maxfev=1500,p0=(1, -1, -1,1), bounds=([0,-20,-5,0],[5,20,5,50]))
-    y = sigfunc_2free_lesion(x_range_to_fit,*popt)
-    output_coef = pd.DataFrame(data=popt).transpose()
-    output_fitted = pd.DataFrame(data=y).assign(x=x_range_to_fit)
-    return output_coef, output_fitted
+# def sigmoid_fit_lesion(df, x_range_to_fit):
+#     popt, pcov = curve_fit(sigfunc_2free, df['posture_chg'], df['atk_ang'],maxfev=1500,p0=(1, -1, -1,1), bounds=([0,-20,-5,0],[5,20,5,50]))
+#     y = sigfunc_2free_lesion(x_range_to_fit,*popt)
+#     output_coef = pd.DataFrame(data=popt).transpose()
+#     output_fitted = pd.DataFrame(data=y).assign(x=x_range_to_fit)
+#     return output_coef, output_fitted
 
 def sigmoid_fit_4free(df, x_range_to_fit):
     # popt, pcov = curve_fit(sigfunc_4free, df['posture_chg'], df['atk_ang'],maxfev=1500,p0=(1, -1, -1,1), bounds=([0,-20,-5,0],[5,20,5,50]))
-    popt, pcov = curve_fit(sigfunc_4free, df['posture_chg'], df['atk_ang'],maxfev=1500,p0=(1, -0.2, -1,20), bounds=([0.1,-20,-5,1],[5,20,5,50]))
+    popt, pcov = curve_fit(sigfunc_4free, df['posture_chg'], df['atk_ang'],maxfev=1500,p0=(1, -0.2, -1,20), bounds=([0.1,-20,-5,1],[5,20,0,25]))
 
     y = sigfunc_4free(x_range_to_fit,*popt)
     output_coef = pd.DataFrame(data=popt).transpose()
@@ -96,7 +118,7 @@ def sigmoid_fit_4free(df, x_range_to_fit):
     p_sigma = np.sqrt(np.diag(pcov))
     return output_coef, output_fitted, p_sigma
 # %%
-# main 
+# Fit with 4 free parameters 
 all_conditions = []
 folder_paths = []
 # get the name of all folders under root
@@ -177,6 +199,11 @@ for condition_idx, folder in enumerate(folder_paths):
 
 steep_data = all_data_cond.loc[all_data_cond['heading']>20,:]
 
+# %% Filtering!!!! excluding attack angle < 0 & posture change > 0
+
+all_data_cond.drop(all_data_cond[(all_data_cond['posture_chg'] > 0) & (all_data_cond['atk_ang'] < 0)].index, inplace = True)
+
+
 # rename and sort
 # jackknifed_coef.columns = ['slope','locX','minY','maxY','dpf','condition','excluded_exp']
 # jackknifed_coef.sort_values(by=['condition','dpf','excluded_exp'],inplace=True, ignore_index=True)            
@@ -187,15 +214,24 @@ mean_data_cond.sort_values(by=['condition','dpf'],inplace=True, ignore_index=Tru
 # %%
 # master fit = fit with ALL data from ALL conditions other than lesion
 # to reduce free parameters, use c (min y) and d (max y) from master fit for jackknifed results
-df = all_data_cond.loc[all_data_cond['condition']=='Sibs']
+df = all_data_cond.loc[all_data_cond['atk_ang']>= 0]
 coef_master, fitted_y_master, sigma_master = sigmoid_fit_4free(df, X_RANGE)
 g = sns.lineplot(x='x',y=fitted_y_master[0],data=fitted_y_master)
 
 print(coef_master)  # a, b, c, d
-# Lesion    d   8.353048
-# Sibs/Tau  d   16.65836
-atk_max_lesion = 8.353048
-atk_max_other = 16.65836
+# Lesion    d   8.353048  # 7dd data for reference
+# Sibs/Tau  d   16.65836  # 7dd data for reference
+# hets 0.150809  9.195434 -1.115009e-09  10.186126
+# STau and sibs 0.146281  11.669741 -1.137783e-11  8.706166 ????
+
+print('*–––––––––STOP! Read annotations––––––––*')
+
+# %%
+# previous step should print out fitted results for 4 degree of freedoms.
+# locate the sigfunc_2free() function defined above, replace c and d with the coefs above
+ 
+# atk_max_lesion = 8.353048
+atk_max_other = 27  # also paste d value here for atk_angle calculation
 # %%
 jackknifed_coef = pd.DataFrame()  # coef results calculated with jackknifed pitch data
 jackknifed_y = pd.DataFrame()  # fitted y using jackknifed pitch data
@@ -234,10 +270,15 @@ jackknifed_coef.sort_values(by=['condition','dpf','excluded_exp'],inplace=True, 
 
 # %%
 # plot fitted sigmoid and coef
+# plot code need to be personalized according to the conditions you have
+
+# hue_order = list(set(all_data_cond['condition']))  # use hue orders to define the order of conditions in the plots
+hue_order=['Sibs','Tau']  # you may personalize the order of conditions
+
 defaultPlotting()
 
 g = sns.lineplot(x='x',y=jackknifed_y[0],data=jackknifed_y, hue='condition',style='dpf',ci='sd',
-                 hue_order=['Sibs','Tau','Lesion'])
+                 hue_order = hue_order)
 plt.show()
 # g = sns.lineplot(x='x',y=raw_y[0],data=raw_y, hue='condition',style='dpf',ci='sd')
 
@@ -246,39 +287,39 @@ flatui = ["#D0D0D0"] * (jackknifed_coef.groupby('condition').size().max())
 
 g1 = sns.pointplot(y='slope',x='condition', hue='excluded_exp', data=jackknifed_coef,ax=axes[0,0],
                    palette=sns.color_palette(flatui), scale=0.5,
-                   order=['Sibs','Tau','Lesion'])
+                   order = hue_order)
 g1 = sns.pointplot(y='slope',x='condition', hue='condition', data=jackknifed_coef,ax=axes[0,0],
                    linewidth=0,
                    alpha=0.9,
                    ci=None,
-                   order=['Sibs','Tau','Lesion'],
+                   order=hue_order,
                    markers='d',)
 # g1.set_yticks(np.arange(0.12,0.24,0.02))
 
 g2 = sns.pointplot(y='locX',x='condition', hue='excluded_exp', data=jackknifed_coef,ax=axes[0,1],
                    palette=sns.color_palette(flatui), scale=0.5,                  
-                   order=['Sibs','Tau','Lesion'])
+                   order=hue_order)
 g3 = sns.pointplot(y='minY',x='condition', hue='excluded_exp', data=jackknifed_coef,ax=axes[1,0],
                    palette=sns.color_palette(flatui), scale=0.5,
-                   order=['Sibs','Tau','Lesion'])
+                   order=hue_order)
 g4 = sns.pointplot(y='maxY',x='condition', hue='excluded_exp', data=jackknifed_coef,ax=axes[1,1],
                    palette=sns.color_palette(flatui), scale=0.5,
-                   order=['Sibs','Tau','Lesion'])
+                   order=hue_order)
 g1.legend_.remove()
 g2.legend_.remove()
 g3.legend_.remove()
 g4.legend_.remove()
 sns.despine(trim=True)
 
-ttest_res, ttest_p = ttest_rel(jackknifed_coef.loc[jackknifed_coef['condition']=='Sibs','slope'],
-                               jackknifed_coef.loc[jackknifed_coef['condition']=='Tau','slope'])
+ttest_res, ttest_p = ttest_rel(jackknifed_coef.loc[jackknifed_coef['condition']==hue_order[0],'slope'],
+                               jackknifed_coef.loc[jackknifed_coef['condition']==hue_order[1],'slope'])
 print(f'slope: Sibs v.s. Tau: paired t-test p-value = {ttest_p}')
 
 
 
-ttest_res, ttest_p = scipy.stats.ttest_ind(jackknifed_coef.loc[jackknifed_coef['condition']=='Sibs','slope'],
-                                           jackknifed_coef.loc[jackknifed_coef['condition']=='Lesion','slope'])
-print(f'slope: Sibs v.s. Lesion: paired t-test p-value = {ttest_p}')
+# ttest_res, ttest_p = scipy.stats.ttest_ind(jackknifed_coef.loc[jackknifed_coef['condition']==hue_order[0],'slope'],
+#                                            jackknifed_coef.loc[jackknifed_coef['condition']==hue_order[1],'slope'])
+# print(f'slope: Sibs v.s. Lesion: paired t-test p-value = {ttest_p}')
 plt.show()
 
 # %%
@@ -291,10 +332,10 @@ plt.show()
 # This is the joint plot
 df = all_data_cond
 
-plt_condition = ['Sibs','Lesion','Sibs','Tau']
-plt_dpf = ['4','7','7','7']
+plt_condition = hue_order
+plt_dpf = ['7','7']
 
-for i in range(4):
+for i in range(2):
     df_to_plot = df.loc[(df['dpf']==plt_dpf[i]) & (df['condition']==plt_condition[i]),:]
     print(f'* {plt_dpf[i]} dpf | {plt_condition[i]}')
     sns.jointplot(df_to_plot['posture_chg'], df_to_plot['atk_ang'], kind="kde", height=5, space=0, xlim=(-12, 12), ylim=(-20, 25))
