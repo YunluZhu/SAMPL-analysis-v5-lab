@@ -1,0 +1,43 @@
+def get_data_dir(pick_data):
+    if pick_data == '7dd_40':
+        root = "/Volumes/LabData/VF_data_in_use/40hz_data/7dd"
+        fr = 40
+    # elif pick_data == 'hets':
+    #     root = "/Volumes/LabData/VF_data_in_use/NefmaV3/7DD_hets_v3"
+    #     fr = 40
+    elif pick_data == '7ld_40':
+        root = "/Volumes/LabData/VF_data_in_use/40hz_data/7dd"
+        fr = 40
+    elif pick_data =='4dd_40':
+        root = "/Volumes/LabData/VF_data_in_use/40hz_data/4DD"
+        fr = 40
+    # elif pick_data == 'master':
+    #     root = "/Volumes/LabData/VF_data_in_use/NefmaV3/7dd_master_v3"
+    #     fr = 40
+    elif pick_data == 's':
+        root = "/Volumes/LabData/VF_data_in_use/STauV3"
+        fr = 40
+    elif pick_data =='hc':
+        root = '/Volumes/LabData/VF_data_in_use/VF_HairCell_V3'
+        fr = 40
+    elif pick_data == 'lesion':
+        root = "/Volumes/LabData/VF_data_in_use/40hz_data/LesionV4"
+        fr = 40
+    elif pick_data =='hc4':
+        root = '/Volumes/LabData/VF_data_in_use/HC_highFR/HC_organized 220429'
+        fr = 166
+    elif pick_data =='tau_long':
+        root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Longitudinal/long_organized'
+        fr = 166
+    elif pick_data =='sf':
+        root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF quantified'
+        fr = 166
+    elif pick_data == 'lddd':
+        root = '/Volumes/LabData/VF_data_in_use/40hz_data/LD DD'
+        fr = 40
+        
+    elif pick_data == 'tmp':
+        root = input("Dir? ")
+        fr = int(input("Frame rate? "))
+        
+    return root, fr
