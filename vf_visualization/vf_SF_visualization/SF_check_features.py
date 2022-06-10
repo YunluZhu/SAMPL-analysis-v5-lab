@@ -13,23 +13,25 @@ import pandas as pd # pandas library
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
-from astropy.stats import jackknife_resampling
-from astropy.stats import jackknife_stats
-from collections import defaultdict
-from datetime import datetime
-from datetime import timedelta
-import math
-from scipy.stats import ttest_rel
-from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
-
+# from astropy.stats import jackknife_resampling
+# from astropy.stats import jackknife_stats
+# from collections import defaultdict
+# from datetime import datetime
+# from datetime import timedelta
+# import math
+# from scipy.stats import ttest_rel
+# from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
-from plot_functions.get_data_dir import get_data_dir
-from plot_functions.get_index import get_index
-from plot_functions.plt_tools import day_night_split
-from plot_functions.plt_v3 import (extract_bout_features_v3,get_kinetics,jackknife_kinetics)
 
+from plot_functions.get_data_dir import (get_data_dir,get_figure_dir)
+from plot_functions.get_index import get_index
+from plot_functions.get_bout_features import extract_bout_features_v4
+from plot_functions.get_bout_kinetics import get_kinetics
+from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_split)
+
+set_font_type()
 # %%
 # Paste root directory here
 pick_data = 'sf'
@@ -37,7 +39,7 @@ root, FRAME_RATE = get_data_dir(pick_data)
 peak_idx, total_aligned = get_index(FRAME_RATE)
 
 folder_name = f'{pick_data}_working'
-folder_dir = '/Users/yunluzhu/Documents/Lab2/Data/VF_ana/Figures/SF'
+folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
 try:
@@ -98,14 +100,10 @@ for fish_idx, folder in enumerate(folder_paths):
     this_fish_id = int(os.path.basename(folder))
     
     df = pd.read_hdf(f"{folder}/IEI_data.h5", key='prop_bout_IEI2')
-    df = day_night_split(df,'propBoutIEItime')
+    df = day_night_split(df,'propBoutIEItime',)
     # get pitch
     this_body_angles = df.loc[:,['propBoutIEI_pitch']].rename(columns={'propBoutIEI_pitch':'IEIpitch'})
 
-    # this is for aligned pitch
-    # df = pd.read_hdf(f"{folder}/IEI_data.h5", key='prop_bout_IEI_aligned')               
-    # this_body_angles = df.loc[:,['propBoutIEIAligned_pitch']].rename(columns={'propBoutIEIAligned_pitch':f'IEIpitch'})    
-    
     this_body_angles = this_body_angles.assign(fish_id = this_fish_id,
                                             #    fish_idx = fish_idx,
                                                condition = 'tau',
@@ -117,7 +115,7 @@ for fish_idx, folder in enumerate(folder_paths):
         idx=int(len(angles)/total_aligned)*list(range(0,total_aligned)),
         bout_num = list(np.arange(len(angles))//total_aligned),
         )
-    this_exp_features = extract_bout_features_v3(angles, peak_idx,FRAME_RATE)
+    this_exp_features = extract_bout_features_v4(angles, peak_idx,FRAME_RATE)
 
 
     peak_angles = angles.loc[angles['idx']==peak_idx]

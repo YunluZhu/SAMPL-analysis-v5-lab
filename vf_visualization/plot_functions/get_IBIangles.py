@@ -45,8 +45,7 @@ def get_IBIangles(root, FRAME_RATE,**kwargs):
                     exp_path = os.path.join(subpath, exp)
                     # get pitch                
                     exp_data = pd.read_hdf(f"{exp_path}/IEI_data.h5", key='prop_bout_IEI2')
-                    exp_data_ztime, day_index, night_index = day_night_split(exp_data,'propBoutIEItime',ztime=which_zeitgeber)
-                    
+                    exp_data_ztime = day_night_split(exp_data,'propBoutIEItime',ztime=which_zeitgeber)
                     exp_data_ztime = exp_data_ztime.assign(
                         expNum = expNum
                     )                 

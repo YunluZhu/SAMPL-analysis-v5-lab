@@ -23,25 +23,22 @@ def jackknife_mean(df):
 
 def day_night_split(df,time_col_name,**kwargs):
     hour = df[time_col_name].dt.strftime('%H').astype('int')
-    day_index = hour[(hour>=9) & (hour<23)].index
-    night_index = hour[(hour<9) | (hour>=23)].index
-
-    df = df.assign(ztime = 'day')
+    # day_index = hour[(hour>=9) & (hour<23)].index
+    # night_index = hour[(hour<9) | (hour>=23)].index
+    day_night_idx = pd.cut(hour,[-1,8,22,24],labels=['night','day','night2']) # pd.cut() doesn't support duplicated labels
+    day_night_idx.loc[day_night_idx=='night2'] = 'night'
+    df = df.assign(ztime = list(day_night_idx))
     which_ztime = 'day'
     
     for key, value in kwargs.items():
         if key == 'ztime':
             which_ztime = value
     
-    if which_ztime == 'day':
-        df_out = df.loc[day_index, :]
-    elif which_ztime == 'night':
-        df_out = df.loc[night_index, :]
-        df_out.loc[night_index,'ztime'] = 'night'
-    elif which_ztime == 'all':
+    if which_ztime == 'all':
         df_out = df
-        df_out.loc[night_index,'ztime'] = 'night'
-    return df_out, day_index, night_index
+    else:
+        df_out = df.loc[df['ztime']==which_ztime, :]
+    return df_out#, day_index, night_index
 
 def distribution_binned_average(df, by_col, bin_col, bin):
     df = df.sort_values(by=by_col)

@@ -42,8 +42,6 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
     idx_post_phase = np.arange(idx_post_bout,idx_end)
     
     this_exp_features = pd.DataFrame(data={
-        'ztime': bout_data.loc[bout_data['idx']==peak_idx,'ztime'].values,
-        
         'pitch_initial':bout_data.loc[bout_data['idx']==idx_initial,'propBoutAligned_pitch'].values, 
         'pitch_pre_bout':bout_data.loc[bout_data['idx']==idx_pre_bout,'propBoutAligned_pitch'].values, 
         'pitch_peak':bout_data.loc[bout_data['idx']==peak_idx,'propBoutAligned_pitch'].values, 
@@ -68,6 +66,7 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
         # 'spd_mid_decel':bout_data.loc[bout_data['idx']==idx_mid_accel,'propBoutAligned_speed'].values, 
         # 'bout_num':bout_data.loc[bout_data['idx']==peak_idx,'bout_num'].values, 
     })
+    
     # calculate attack angles
     # bout trajectory is the same as (bout_data.h5, key='prop_bout2')['epochBouts_trajectory']
     yy = (bout_data.loc[bout_data['idx']==idx_post_bout,'propBoutAligned_y'].values - bout_data.loc[bout_data['idx']==idx_pre_bout,'propBoutAligned_y'].values)
@@ -139,41 +138,26 @@ def get_bout_features(root, FRAME_RATE,**kwargs):
                     exp_data = exp_data.assign(idx=int(len(exp_data)/total_aligned)*list(range(0,total_aligned)),
                                                expNum = expNum)
                     # - get the index of the rows in exp_data to keep (for each bout, there are range(0:51) frames. keep range(20:41) frames)
-                    bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,['aligned_time']]
+                    bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,'aligned_time']
                     
-                    # day night split.
-                    df_timed, day_index, night_index = day_night_split(bout_time,'aligned_time',ztime=which_zeitgeber)
+                    # truncate first, just incase some aligned bouts aren't complete
+                    for i in bout_time.index:
+                        rows.extend(list(range(i*total_aligned+int(idxRANGE[0]),i*total_aligned+int(idxRANGE[1]))))
                     
-                    if which_zeitgeber == 'all':
-                        for i in df_timed.index:
-                            rows.extend(list(range(i*total_aligned+int(idxRANGE[0]),i*total_aligned+int(idxRANGE[1]))))
-                        for i in night_index:
-                            night_rows.extend(list(range(i*total_aligned+int(idxRANGE[0]),i*total_aligned+int(idxRANGE[1]))))
-                        trunc_ztime_exp_data = exp_data.loc[rows,:]
-                        trunc_ztime_exp_data = trunc_ztime_exp_data.assign(
-                            ztime = 'day'
-                        )
-                        trunc_ztime_exp_data.loc[night_rows,'ztime'] = 'night'
-
-                    else: 
-                        for i in df_timed.index:
-                            rows.extend(list(range(i*total_aligned+int(idxRANGE[0]),i*total_aligned+int(idxRANGE[1]))))
-                        trunc_ztime_exp_data = exp_data.loc[rows,:]
-                        trunc_ztime_exp_data = trunc_ztime_exp_data.assign(
-                            ztime = which_zeitgeber
-                        )
-                        
-                    trunc_ztime_exp_data = trunc_ztime_exp_data.assign(
-                        bout_num = trunc_ztime_exp_data.groupby(np.arange(len(trunc_ztime_exp_data))//(idxRANGE[1]-idxRANGE[0])).ngroup()
-                        )
-                    num_of_bouts = len(trunc_ztime_exp_data.loc[trunc_ztime_exp_data['idx'] == peak_idx])
-                    
-                    this_exp_features = extract_bout_features_v4(trunc_ztime_exp_data,peak_idx,FRAME_RATE)
+                    # assign bout numbers
+                    trunc_exp_data = exp_data.loc[rows,:]
+                    trunc_exp_data = trunc_exp_data.assign(
+                        bout_num = trunc_exp_data.groupby(np.arange(len(trunc_exp_data))//(idxRANGE[1]-idxRANGE[0])).ngroup()
+                    )
+                    this_exp_features = extract_bout_features_v4(trunc_exp_data,peak_idx,FRAME_RATE)
                     this_exp_features = this_exp_features.assign(
-                        expNum = [expNum]*num_of_bouts,
-                        )        
-                     
-                    bout_features = pd.concat([bout_features,this_exp_features])
+                        bout_time = bout_time.values,
+                        expNum = expNum,
+                    )
+                    # day night split. also assign ztime column
+                    this_ztime_exp_features = day_night_split(this_exp_features,'bout_time',ztime=which_zeitgeber)
+                    
+                    bout_features = pd.concat([bout_features,this_ztime_exp_features])
                 # combine data from different conditions
                 cond1 = all_conditions[condition_idx].split("_")[0]
                 cond2 = all_conditions[condition_idx].split("_")[1]

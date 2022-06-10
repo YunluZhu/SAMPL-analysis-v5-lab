@@ -121,48 +121,38 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
                     exp_data = exp_data.assign(idx=int(len(exp_data)/total_aligned)*list(range(0,total_aligned)))
 
                     # - get the index of the rows in exp_data to keep (for each bout, there are range(0:51) frames. keep range(20:41) frames)
-                    bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,['aligned_time']]
-                    exp_data = exp_data.assign(expNum = exp)
-
-                    # for i in bout_time.index:
-                    df_timed, day_index, night_index = day_night_split(bout_time,'aligned_time',ztime=which_zeitgeber)
-                        
-                    if which_zeitgeber == 'all':
-                        for i in df_timed.index:
-                            rows.extend(list(range(i*total_aligned+int(idxRANGE[0]),i*total_aligned+int(idxRANGE[1]))))
-                        for i in night_index:
-                            night_rows.extend(list(range(i*total_aligned+int(idxRANGE[0]),i*total_aligned+int(idxRANGE[1]))))
-                        trunc_ztime_exp_data = exp_data.loc[rows,:]
-                        trunc_ztime_exp_data = trunc_ztime_exp_data.assign(
-                            ztime = 'day'
-                        )
-                        trunc_ztime_exp_data.loc[night_rows,'ztime'] = 'night'
-
-                    else: 
-                        for i in df_timed.index:
-                            rows.extend(list(range(i*total_aligned+int(idxRANGE[0]),i*total_aligned+int(idxRANGE[1]))))
-                        trunc_ztime_exp_data = exp_data.loc[rows,:]
-                        trunc_ztime_exp_data = trunc_ztime_exp_data.assign(
-                            ztime = which_zeitgeber
-                        )
-                    trunc_ztime_exp_data = trunc_ztime_exp_data.assign(
-                        bout_num = trunc_ztime_exp_data.groupby(np.arange(len(trunc_ztime_exp_data))//(idxRANGE[1]-idxRANGE[0])).ngroup()
+                    bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,'aligned_time']
+                    
+                    # truncate first, just incase some aligned bouts aren't complete
+                    for i in bout_time.index:
+                        rows.extend(list(range(i*total_aligned+int(idxRANGE[0]),i*total_aligned+int(idxRANGE[1]))))
+                    
+                    # assign bout numbers
+                    trunc_exp_data = exp_data.loc[rows,:]
+                    trunc_exp_data = trunc_exp_data.assign(
+                        bout_num = trunc_exp_data.groupby(np.arange(len(trunc_exp_data))//(idxRANGE[1]-idxRANGE[0])).ngroup()
                     )
-                    this_exp_features = extract_bout_features_v4(trunc_ztime_exp_data,peak_idx,FRAME_RATE)
+                    this_exp_features = extract_bout_features_v4(trunc_exp_data,peak_idx,FRAME_RATE)
                     this_exp_features = this_exp_features.assign(
+                        bout_time = bout_time.values,
                         expNum = expNum,
-                        direction = pd.cut(this_exp_features['pitch_peak'],[-80,0,80],labels=['dive','climb'])
+                    )
+                    # day night split. also assign ztime column
+                    this_ztime_exp_features = day_night_split(this_exp_features,'bout_time',ztime=which_zeitgeber)
+                    
+                    this_ztime_exp_features = this_ztime_exp_features.assign(
+                        direction = pd.cut(this_ztime_exp_features['pitch_peak'],[-80,0,80],labels=['dive','climb'])
                         )
                     
-                    tsp_filter = pd.cut(this_exp_features['tsp_peak'],TSP_THRESHOLD,labels=['too_neg','select','too_pos'])
-                    this_exp_features = this_exp_features.loc[tsp_filter=='select',:].reset_index(drop=True)
+                    tsp_filter = pd.cut(this_ztime_exp_features['tsp_peak'],TSP_THRESHOLD,labels=['too_neg','select','too_pos'])
+                    this_ztime_exp_features = this_ztime_exp_features.loc[tsp_filter=='select',:].reset_index(drop=True)
                     
-                    this_exp_kinetics = this_exp_features.groupby('ztime').apply(
+                    this_exp_kinetics = this_ztime_exp_features.groupby('ztime').apply(
                         lambda x: get_kinetics(x)
                     ).reset_index()
                     this_exp_kinetics = this_exp_kinetics.assign(expNum = expNum)
                     
-                    bout_features = pd.concat([bout_features,this_exp_features])
+                    bout_features = pd.concat([bout_features,this_ztime_exp_features])
                     bout_kinetics = pd.concat([bout_kinetics,this_exp_kinetics], ignore_index=True)
                 
             # combine data from different conditions

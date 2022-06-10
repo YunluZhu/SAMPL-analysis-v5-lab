@@ -24,14 +24,11 @@ from plot_functions.get_data_dir import (get_data_dir,get_figure_dir)
 from plot_functions.get_bout_features import get_bout_features
 from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlotting,distribution_binned_average)
 
-import matplotlib as mpl
-
 set_font_type()
-# mpl.rc('figure', max_open_warning = 0)
 
 # %%
-pick_data = 'hc4'
-
+pick_data = 'tau_long'
+which_zeitgeber = 'all'
 # %%
 def sigmoid_fit(df, x_range_to_fit,func,**kwargs):
     lower_bounds = [0.1,-20,-100,1]
@@ -80,7 +77,7 @@ X_RANGE = np.arange(-5,10.01,0.01)
 BIN_WIDTH = 0.3
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
-folder_name = f'B_fin_body'
+folder_name = f'B_fin_body_z{which_zeitgeber}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -91,7 +88,7 @@ except:
     print('Notes: re-writing old figures')
 
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE)
+all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime = which_zeitgeber)
 
 # %% tidy data
 all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
@@ -103,7 +100,7 @@ all_y = pd.DataFrame()
 all_binned_average = pd.DataFrame()
 
 
-for (cond_abla,cond_dpf), for_fit in all_feature_cond.groupby(['condition','dpf']):
+for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['condition','dpf','ztime']):
     expNum = for_fit['expNum'].max()
     jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
     for excluded_exp, idx_group in enumerate(jackknife_idx):
@@ -116,36 +113,45 @@ for (cond_abla,cond_dpf), for_fit in all_feature_cond.groupby(['condition','dpf'
             dpf=cond_dpf,
             condition=cond_abla,
             excluded_exp = excluded_exp,
+            ztime=cond_ztime,
             )])
         all_coef = pd.concat([all_coef, coef.assign(
             slope=slope,
             dpf=cond_dpf,
             condition=cond_abla,
             excluded_exp = excluded_exp,
+            ztime=cond_ztime,
             )])
     binned_df = distribution_binned_average(for_fit,by_col='rot_pre_bout',bin_col='atk_ang',bin=AVERAGE_BIN)
     binned_df.columns=['Pre-bout rotation','atk_ang']
     all_binned_average = pd.concat([all_binned_average,binned_df.assign(
         dpf=cond_dpf,
         condition=cond_abla,
+        ztime=cond_ztime,
         )],ignore_index=True)
     
 all_y = all_y.reset_index(drop=True)
 all_coef = all_coef.reset_index(drop=True)
+
+all_ztime = list(set(all_coef['ztime']))
+all_ztime.sort()
 # %%
 plt.close()
 
-    
 g = sns.relplot(x='Pre-bout rotation',y='Attack angle', data=all_y, 
                 kind='line',
                 col='dpf', col_order=all_cond1,
+                row = 'ztime', row_order=all_ztime,
                 hue='condition', hue_order = all_cond2,ci='sd',
                 )
-for i , ax in enumerate(g.axes.flatten()):
-    sns.lineplot(data=all_binned_average.loc[all_binned_average['dpf']==all_cond1[i],:], 
-                 x='Pre-bout rotation', y='atk_ang', 
-                 hue='condition',alpha=0.5,
-                 ax=ax)
+for i , g_row in enumerate(g.axes):
+    for j, ax in enumerate(g_row):
+        sns.lineplot(data=all_binned_average.loc[
+            (all_binned_average['dpf']==all_cond1[j]) & (all_binned_average['ztime']==all_ztime[i]),:
+                ], 
+                    x='Pre-bout rotation', y='atk_ang', 
+                    hue='condition',alpha=0.5,
+                    ax=ax)
     
 filename = os.path.join(fig_dir,"attack angle vs pre-bout rotation.pdf")
 plt.savefig(filename,format='PDF')
@@ -153,11 +159,13 @@ plt.savefig(filename,format='PDF')
 plt.show()
 
 # %%
+# plot slope
 plt.close()
 
 p = sns.catplot(
     data = all_coef, y='slope',x='dpf',kind='point',join=False,
     col_order=all_cond1,ci='sd',
+    row = 'ztime', row_order=all_ztime,
     # units=excluded_exp,
     hue='condition', dodge=True,
     hue_order = all_cond2,

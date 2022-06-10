@@ -17,16 +17,12 @@ from plot_functions.get_index import get_index
 
 from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_split)
 from tqdm import tqdm
-
-
-
-import matplotlib as mpl
-mpl.rcParams['pdf.fonttype'] = 42
+set_font_type()
 
 # %%
 # Paste root directory here
 if_plot_by_speed = False
-pick_data = 'tau_long'
+pick_data = 'hc4'
 root, FRAME_RATE= get_data_dir(pick_data)
 
 folder_name = f'B1_timed_features'
@@ -76,12 +72,6 @@ all_features = [
 # CONSTANTS
 HEADING_LIM = 90
 
-# %%
-
-set_font_type()
-# defaultPlotting()
-
-# %%
 all_conditions = []
 folder_paths = []
 # get the name of all folders under root

@@ -34,7 +34,7 @@ def get_data_dir(pick_data):
         root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Longitudinal/long_organized'
         fr = 166
     elif pick_data =='sf':
-        root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF quantified'
+        root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF quantified'
         fr = 166
     elif pick_data == 'lddd':
         root = '/Volumes/LabData/VF_data_in_use/40hz_data/LD DD'
