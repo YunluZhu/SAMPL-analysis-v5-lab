@@ -965,7 +965,7 @@ def run(filenames, folder, frame_rate):
         
     total_bouts_aligned = metadata_from_bouts['aligned_bout'].sum()
     # %%    
-    output_dir = f"{folder}"
+    output_dir = folder
     grabbed_all.to_hdf(f'{output_dir}/all_data.h5', key='grabbed_all', mode='w', format='table')
     baseline_angVel.to_hdf(f'{output_dir}/all_data.h5', key='baseline_angVel', format='table')
     bout_attributes.to_hdf(f'{output_dir}/bout_data.h5', key='bout_attributes', mode='w', format='table')
