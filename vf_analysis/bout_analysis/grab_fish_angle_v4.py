@@ -241,9 +241,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
             current_epoch = pd.DataFrame(next(grouped_epoch)[1])
         # assign a bout index to the new bout window. index = i. start from 0
         # bout indices are only assigned to rows within the current epoch
-        spd_bout_window = spd_bout_window.append(
-            current_epoch.loc[start:end].assign(boutIDX = i)
-        )
+        spd_bout_window = pd.concat([spd_bout_window,current_epoch.loc[start:end].assign(boutIDX = i)])
     spd_bout_window = spd_bout_window.reset_index(drop=False)
 
     # Note, at this point, spd_bout_window has duplicated rows assigned to adjacent bouts because the MIN_SWIM_INTERVAL is 100 ms but bout windows are 625 ms.

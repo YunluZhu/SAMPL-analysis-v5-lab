@@ -67,8 +67,8 @@ def main(root):
     tau = 'tau'
     path_uq_sibs = os.path.join(root_unquantified[0],sibs)
     path_uq_tau = os.path.join(root_unquantified[0],tau)
-    # path_q_sibs = os.path.join(root_quantified[0],sibs)
-    # path_q_tau = os.path.join(root_quantified[0],tau)
+    path_q_sibs = os.path.join(root_quantified[0],sibs)
+    path_q_tau = os.path.join(root_quantified[0],tau)
     
     new_exp_folders = glob.glob(os.path.join(root_unquantified[0], ('[0-9]' * 6) + ' SF*'))
 
@@ -140,6 +140,7 @@ def main(root):
                 # copy and paste files
                 for exp in new_exp_folders:
                     exp_name = os.path.basename(exp)
+                    date = exp_name[0:6]
                     exp_metadata = pd.read_csv(f"{exp}/{date} dlm metadata.csv", index_col=0)
                     metadata_by_fish = pd.read_csv(f"{exp}/{date} metadata_byFish.csv", index_col=0)
                     # filter metadata for condition and save metadata
@@ -149,9 +150,9 @@ def main(root):
                     # generate folders for each fish using fish_id
                     for index, fish in metadata_by_fish.iterrows():
                         if fish['genotype'] == 'tau':
-                            path = path_uq_tau
+                            path = path_q_tau
                         else:
-                            path = path_uq_sibs
+                            path = path_q_sibs
                         this_fish_path = os.path.join(path,str(fish['fish_id']))
                         os.makedirs(this_fish_path, exist_ok=True)
                         # save dlm metadata for this fish
@@ -161,9 +162,9 @@ def main(root):
                     # move dlm files
                     for index, row in exp_metadata.iterrows():
                         if row['genotype'] == 'tau':
-                            path = path_uq_tau
+                            path = path_q_tau
                         else:
-                            path = path_uq_sibs
+                            path = path_q_sibs
                         dest = os.path.join(path,str(row['fish_id']),f"{row['filename']}.dlm")
                         shutil.copyfile(row['dlm_loc'],dest)
                 print("new data organized. please to archive ori data files!")
@@ -172,9 +173,9 @@ def main(root):
                 confirm = input("- Proceed? (y/n): ")
 
 if __name__ == "__main__":
-    dir_confirm = input("- Is this the correct root dir?\n  /Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish (y/n): ")
-    if dir_confirm == 'y':
-        root = "/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish"
-    else:
+    root = "/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD"
+    
+    dir_confirm = input(f"- Is this the correct root dir?\n {root} (y/n): ")
+    if dir_confirm == 'n':
         root = input("- Paste root dir here: ")
     main(root)
