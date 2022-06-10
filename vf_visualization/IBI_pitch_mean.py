@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 from astropy.stats import jackknife_resampling
 from scipy.stats import ttest_rel
 from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
-from plot_functions.get_data_dir import get_data_dir
+from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
 from plot_functions.plt_tools import (day_night_split,defaultPlotting, set_font_type, jackknife_mean, distribution_binned_average)
 from plot_functions.get_IBIangles import get_IBIangles
 set_font_type()
@@ -40,8 +40,8 @@ ztime = 'all'
 
 root, FRAME_RATE = get_data_dir(pick_data)
 
-folder_name = f'{pick_data}_pitchSTD'
-folder_dir = f'/Users/yunluzhu/Documents/Lab2/Data/VF_ana/Figures/{pick_data}_z{ztime}'
+folder_name = f'IBI_pitch_{ztime}'
+folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
 try:

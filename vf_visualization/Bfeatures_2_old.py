@@ -38,7 +38,7 @@ from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 
 
 from plot_functions.bout_properties_2_plt import (plt_KDE, plt_meanData)
-from plot_functions.get_data_dir import get_data_dir
+from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
 from plot_functions.get_index import get_index
 
 # from vf_visualization.bout_properties_1_timed_spd_diveVclimb import FRAME_RATE
@@ -49,8 +49,8 @@ pick_data = 'tau_long'
 root, FRAME_RATE = get_data_dir(pick_data)
 peak_idx , total_aligned = get_index(FRAME_RATE)
 
-folder_name = f'{pick_data}_boutProperties2_features'
-folder_dir = f'/Users/yunluzhu/Documents/Lab2/Data/VF_ana/Figures/{pick_data}'
+folder_name = f'B2_features'
+folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
 try:

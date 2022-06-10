@@ -10,7 +10,7 @@ Run `vf_analysis/vf_analysis_....py` to analyze .dlm files. Then, run individual
 
 ## Version notes
 
-**UPDATE log** v4.1.220610
+**UPDATE log** (v4.1.220610)
 
 1. Shortened aligned bout duration
 2. Added arrangement scripts
@@ -18,7 +18,7 @@ Run `vf_analysis/vf_analysis_....py` to analyze .dlm files. Then, run individual
 4. New Fin-Body algorithm
 5. Visualization code now takes zeitgeber time (ztime) as a second input (other than `root`). Legal inputs are: `'day'`, `'night'`, and `'all'`.
 
-**To dos** 220610
+**To dos** (220610)
 
 - a table describing parameters
 - streamline IBI timing scripts
@@ -99,7 +99,8 @@ All the extracted swim bouts under `bout_data.h5` are aligned at the time of the
 
 ### Make figures
 
-1. Run individual script under `vf_visualization/`.
+1. **IMPORTANT** Update `vf_visualization/plot_functions/get_data_dir.py` to specify the names of your datasets and the directory of it. `get_data_dir(pick_data)` is called by every *visualization script*. Therefore, instead of typing directories for different datasets to plot everytime, specifying the name of your dataset in *visualization scripts* `pick_data = '<NAME OF YOUR DATASET>'` tells the script which data to plot. Also update the `get_figure_dir()` function in `get_data_dir.py`. This should be the root folder to save all plotted figures. Subfolders named by the name of your datadsets (input to `pick_data`) will be created under your `get_figure_dir(pick_data)` directory.
+2. Run individual script under `vf_visualization/`.
     - each visualization script takes a root directory including all analyzed data, which should be same as the one fed to the analysis code
     - all visualization scripts get metadata (experimental conditions and age info) from folder names
     - jackknife is used for statistical analyses in some scripts

@@ -27,7 +27,7 @@ from datetime import datetime
 from datetime import timedelta
 import math
 # from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
-from plot_functions.get_data_dir import get_data_dir
+from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
 from plot_functions.get_bout_features import get_bout_features
 from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlotting)
 from tqdm import tqdm
@@ -41,8 +41,8 @@ mpl.rc('figure', max_open_warning = 0)
 pick_data = 'tau_long'
 root, FRAME_RATE = get_data_dir(pick_data)
 
-folder_name = f'{pick_data}_boutV4_byTSP_features'
-folder_dir = f'/Users/yunluzhu/Documents/Lab2/Data/VF_ana/Figures/{pick_data}/'
+folder_name = f'B4_byTSP_features'
+folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
 try:

@@ -20,7 +20,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from astropy.stats import jackknife_resampling
 from scipy.optimize import curve_fit
-from plot_functions.get_data_dir import get_data_dir
+from plot_functions.get_data_dir import (get_data_dir,get_figure_dir)
 from plot_functions.get_bout_features import get_bout_features
 from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlotting,distribution_binned_average)
 
@@ -81,7 +81,7 @@ BIN_WIDTH = 0.3
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
 folder_name = f'B_fin_body'
-folder_dir = f'/Users/yunluzhu/Documents/Lab2/Data/VF_ana/Figures/{pick_data}/'
+folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
 try:

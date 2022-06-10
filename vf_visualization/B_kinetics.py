@@ -26,7 +26,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import math
 # from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
-from plot_functions.get_data_dir import get_data_dir
+from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
 from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_split)
 from plot_functions.get_index import get_index
 from plot_functions.get_bout_kinetics import get_bout_kinetics
@@ -43,8 +43,8 @@ peak_idx , total_aligned = get_index(FRAME_RATE)
 # TSP_THRESHOLD = [-np.Inf,-50,50,np.Inf]
 # spd_bins = np.arange(3,24,3)
 
-folder_name = f'B_kinetics_ztime'
-folder_dir = f'/Users/yunluzhu/Documents/Lab2/Data/VF_ana/Figures/{pick_data}'
+folder_name = f'B_kinetics_{which_zeitgeber}'
+folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
 try:

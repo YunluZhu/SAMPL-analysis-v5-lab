@@ -19,7 +19,7 @@ import pandas as pd # pandas library
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
-from plot_functions.get_data_dir import get_data_dir
+from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
 from plot_functions.get_bout_features import get_bout_features
 from plot_functions.get_IBIangles import get_IBIangles
 from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlotting)
@@ -35,8 +35,8 @@ root, FRAME_RATE = get_data_dir(pick_data)
 # spd_bins = [5,10,15,20,25]
 # posture_bins = [-50,-20,-10,-5,0,5,10,15,20,25,50]
 
-folder_name = f'{pick_data}_boutPropertiesV4_probability'
-folder_dir = f'/Users/yunluzhu/Documents/Lab2/Data/VF_ana/Figures/{pick_data}/'
+folder_name = f'B3_feature_distribution'
+folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
 try:

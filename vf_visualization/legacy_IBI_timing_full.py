@@ -17,37 +17,26 @@ NOTE: bounds in parabola_fit1() confines the upper and lower limites of the para
 '''
 
 #%%
-import sys
-import os,glob
-import time
+import os
 import pandas as pd # pandas library
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
-from scipy import stats
 from astropy.stats import jackknife_resampling
-from astropy.stats import jackknife_stats
-from numpy.polynomial import polynomial
-from collections import defaultdict
-from datetime import datetime
-from datetime import timedelta
-import math
 from scipy.stats import ttest_rel
 from scipy.optimize import curve_fit
 from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
-from plot_functions.get_data_dir import get_data_dir
+from plot_functions.get_data_dir import (get_data_dir,get_figure_dir)
 from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_split)
-import matplotlib as mpl
-mpl.rcParams['pdf.fonttype'] = 42
 
+set_font_type()
 # %%
-# Paste root directory here
-# Paste root directory here
 pick_data = 'hc4'
+
 root, FRAME_RATE = get_data_dir(pick_data)
 
-folder_name = f'{pick_data}_sensitivity'
-folder_dir = f'/Users/yunluzhu/Documents/Lab2/Data/VF_ana/Figures/{pick_data}'
+folder_name = f'IBI_timing'
+folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
 try:

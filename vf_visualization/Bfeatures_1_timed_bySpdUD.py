@@ -12,7 +12,7 @@ import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
 import math
-from plot_functions.get_data_dir import get_data_dir
+from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
 from plot_functions.get_index import get_index
 
 from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_split)
@@ -29,8 +29,8 @@ if_plot_by_speed = False
 pick_data = 'tau_long'
 root, FRAME_RATE= get_data_dir(pick_data)
 
-folder_name = f'{pick_data}_boutPropertiesV4_time'
-folder_dir = f'/Users/yunluzhu/Documents/Lab2/Data/VF_ana/Figures/{pick_data}'
+folder_name = f'B1_timed_features'
+folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
 try:

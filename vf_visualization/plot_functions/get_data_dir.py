@@ -1,3 +1,7 @@
+def get_figure_dir(pick_data):
+    save_figures_to = f'/Users/yunluzhu/Documents/Lab2/Data/VF_ana/Figures/{pick_data}'
+    return save_figures_to
+
 def get_data_dir(pick_data):
     if pick_data == '7dd_40':
         root = "/Volumes/LabData/VF_data_in_use/40hz_data/7dd"

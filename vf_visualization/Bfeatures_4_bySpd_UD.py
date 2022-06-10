@@ -27,7 +27,7 @@ from datetime import datetime
 from datetime import timedelta
 import math
 # from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
-from plot_functions.get_data_dir import get_data_dir
+from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
 from plot_functions.get_bout_features import get_bout_features
 from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlotting)
 from tqdm import tqdm
@@ -44,8 +44,8 @@ root, FRAME_RATE = get_data_dir(pick_data)
 spd_bins = [5,10,15,20,25]
 posture_bins = [-50,-20,-10,-5,0,5,10,15,20,25,50]
 
-folder_name = f'{pick_data}_boutV4_bySpd_UD_features'
-folder_dir = f'/Users/yunluzhu/Documents/Lab2/Data/VF_ana/Figures/{pick_data}/'
+folder_name = f'B4_bySpd_UD_features'
+folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
 try:
