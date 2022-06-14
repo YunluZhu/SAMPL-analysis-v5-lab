@@ -10,7 +10,7 @@ def get_data_dir(pick_data):
     #     root = "/Volumes/LabData/VF_data_in_use/NefmaV3/7DD_hets_v3"
     #     fr = 40
     elif pick_data == '7ld_40':
-        root = "/Volumes/LabData/VF_data_in_use/40hz_data/7dd"
+        root = "/Volumes/LabData/VF_data_in_use/40hz_data/7LD"
         fr = 40
     elif pick_data =='4dd_40':
         root = "/Volumes/LabData/VF_data_in_use/40hz_data/4DD"
@@ -36,10 +36,13 @@ def get_data_dir(pick_data):
     elif pick_data =='sf':
         root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF quantified'
         fr = 166
+    elif pick_data == 'sf_24h':
+        root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF quantified 7-9 only'
+        fr = 166
     elif pick_data == 'lddd':
         root = '/Volumes/LabData/VF_data_in_use/40hz_data/LD DD'
         fr = 40
-        
+    
     elif pick_data == 'tmp':
         root = input("Dir? ")
         fr = int(input("Frame rate? "))

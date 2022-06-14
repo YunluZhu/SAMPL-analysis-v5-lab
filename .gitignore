@@ -1,3 +1,6 @@
 
 *.json
 *.code-workspace
+vf_analysis/bout_analysis/__pycache__/grab_fish_angle_v4.cpython-38.pyc
+*.pyc
+*.pyc

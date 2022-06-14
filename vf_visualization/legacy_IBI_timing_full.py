@@ -31,7 +31,7 @@ from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_
 
 set_font_type()
 # %%
-pick_data = 'hc4'
+pick_data = 'tau_long'
 
 root, FRAME_RATE = get_data_dir(pick_data)
 

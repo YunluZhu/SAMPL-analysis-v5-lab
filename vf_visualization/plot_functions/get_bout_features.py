@@ -131,7 +131,7 @@ def get_bout_features(root, FRAME_RATE,**kwargs):
                     night_rows = []
                     # for each sub-folder, get the path
                     exp_path = os.path.join(subpath, exp)
-                    # get pitch                
+                    # get pitch            
                     exp_data = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout_aligned')#.loc[:,['propBoutAligned_angVel','propBoutAligned_speed','propBoutAligned_accel','propBoutAligned_heading','propBoutAligned_pitch']]
                     exp_data = exp_data.assign(ang_speed=exp_data['propBoutAligned_angVel'].abs())
                     # assign frame number, total_aligned frames per bout
