@@ -2,6 +2,8 @@
 Plot bout features at different peak speeds (use BIN_NUM to specify bin numbers) as a function of time (index range specified by idxRANGE)
 with posture neg and posture pos bouts separated
 Change all_features for the features to plot
+
+zeitgeber time? No
 '''
 
 #%%
@@ -22,10 +24,10 @@ set_font_type()
 # %%
 # Paste root directory here
 if_plot_by_speed = False
-pick_data = 'hc4'
+pick_data = 'tau_long'
 root, FRAME_RATE= get_data_dir(pick_data)
 
-folder_name = f'B1_timed_features'
+folder_name = f'B1_features_Tseries'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 

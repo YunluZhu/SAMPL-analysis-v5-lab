@@ -1,6 +1,0 @@
-,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21
-grabbed_all,oriIndex,absTime,epochNum,ang,absy,deltaT,x,y,headx,heady,centeredAng,xvel,yvel,dist,displ,angVel,angVelSmoothed,angAccel,fishLen,swimSpeed,velocity,swimWindow
-epoch_attributes,index,mean_bl_angVel,epoch_absTime,epoch_mean_angVel,epoch_pause_yvel,epoch_bout_yvel,x_dir,,,,,,,,,,,,,,,
-baseline_angVel,angVel,epochNum,,,,,,,,,,,,,,,,,,,,
-heading_matched,dfIdx,epochNum,moveAngle,headingMatched_ang,headingMatched_speed,headingMatched_angVel,headingMatched_angAccel,headingMathced_time,headingMatched_yvel,,,,,,,,,,,,,
-epoch_pitch_heading_RMS,epochPitch,epochHeading,RMS_pitch,RMS_speed,,,,,,,,,,,,,,,,,,

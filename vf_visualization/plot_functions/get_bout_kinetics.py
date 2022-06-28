@@ -31,14 +31,26 @@ def jackknife_kinetics(df,col):
 
 def get_kinetics(df):
     righting_fit = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_l_decel'], deg=1)
-    steering_fit = np.polyfit(x=df['pitch_peak'], y=df['traj_peak'], deg=1)
+    righting_fit_early = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_early_decel'], deg=1)
+    righting_fit_late = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_late_decel'], deg=1)
 
-    # righting_fit_dn = np.polyfit(x=df.loc[df['direction']=='dive','pitch_pre_bout'], 
-    #                             y=df.loc[df['direction']=='dive','rot_l_decel'], 
-    #                             deg=1)
-    # righting_fit_up = np.polyfit(x=df.loc[df['direction']=='climb','pitch_pre_bout'], 
-    #                             y=df.loc[df['direction']=='climb','rot_l_decel'], 
-    #                             deg=1)
+    steering_fit = np.polyfit(x=df['pitch_peak'], y=df['traj_peak'], deg=1)
+    if 'direction' in df.columns:
+        righting_fit_dn = np.polyfit(x=df.loc[df['direction']=='dive','pitch_pre_bout'], 
+                                    y=df.loc[df['direction']=='dive','rot_l_decel'], 
+                                    deg=1)
+        righting_fit_up = np.polyfit(x=df.loc[df['direction']=='climb','pitch_pre_bout'], 
+                                    y=df.loc[df['direction']=='climb','rot_l_decel'], 
+                                    deg=1)
+        corr_rot_lateAccel_decel_up = pearsonr(
+            x=df.loc[df['direction']=='climb','rot_late_accel'],
+            y=df.loc[df['direction']=='climb','rot_l_decel'])
+    angvel_correct_fit_dn = np.polyfit(x=df.loc[df['angvel_initial_phase']<0,'angvel_initial_phase'],
+                                        y=df.loc[df['angvel_initial_phase']<0,'angvel_chg'], 
+                                        deg=1)
+    angvel_correct_fit_up = np.polyfit(x=df.loc[df['angvel_initial_phase']>0,'angvel_initial_phase'],
+                                        y=df.loc[df['angvel_initial_phase']>0,'angvel_chg'], 
+                                        deg=1)   
     # posture_deviation = np.polyfit(x=df['pitch_peak'], y=df['tsp'], deg=1)
     set_point = np.polyfit(x=df['rot_total'], y=df['pitch_initial'], deg=1)
 
@@ -46,6 +58,7 @@ def get_kinetics(df):
                                     y=df['rot_l_decel'])
     corr_rot_lateAccel_decel = pearsonr(x=df['rot_late_accel'],
                             y=df['rot_l_decel'])
+
     # corr_rot_earlyAccel_decel = pearsonr(x=df['rot_early_accel'],
     #                         y=df['rot_l_decel'])
     corr_rot_preBout_decel = pearsonr(x=df['rot_pre_bout'],
@@ -55,17 +68,29 @@ def get_kinetics(df):
     
     kinetics = pd.Series(data={
         'righting_gain': -1 * righting_fit[0],
-        # 'righting_gain_dn': -1 * righting_fit_dn[0],
-        # 'righting_gain_up': -1 * righting_fit_up[0],
+        'righting_gain_early': -1 * righting_fit_early[0],
+        'righting_gain_late': -1 * righting_fit_late[0],
+
         'steering_gain': steering_fit[0],
         'corr_rot_accel_decel': corr_rot_accel_decel[0],
         'corr_rot_lateAccel_decel': corr_rot_lateAccel_decel[0],
+
         # 'corr_rot_earlyAccel_decel': corr_rot_earlyAccel_decel[0],
         'corr_rot_preBout_decel': corr_rot_preBout_decel[0],
         # 'posture_deviation_slope': posture_deviation[0],
         # 'posture_deviation_y': posture_deviation[1],
         'set_point':set_point[1],
+        'angvel_gain_neg': -1 * angvel_correct_fit_dn[0],
+        'angvel_gain_pos': -1 * angvel_correct_fit_up[0],
     })
+    if 'direction' in df.columns:
+        direction_kinetics = pd.Series(data={
+            'righting_gain_dn':  -1 * righting_fit_dn[0],
+            'righting_gain_up':  -1 * righting_fit_up[0],
+            'corr_rot_lateAccel_decel_up': corr_rot_lateAccel_decel_up[0],
+            
+        })
+        kinetics = pd.concat([kinetics, direction_kinetics])
     return kinetics
 
 def get_bout_kinetics(root, FRAME_RATE,**kwargs):
@@ -141,7 +166,7 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
                     this_ztime_exp_features = day_night_split(this_exp_features,'bout_time',ztime=which_zeitgeber)
                     
                     this_ztime_exp_features = this_ztime_exp_features.assign(
-                        direction = pd.cut(this_ztime_exp_features['pitch_peak'],[-80,0,80],labels=['dive','climb'])
+                        direction = pd.cut(this_ztime_exp_features['pitch_peak'],[-90,10,90],labels=['dive','climb'])
                         )
                     
                     tsp_filter = pd.cut(this_ztime_exp_features['tsp_peak'],TSP_THRESHOLD,labels=['too_neg','select','too_pos'])
@@ -178,7 +203,7 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
         speed_bins = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1)),
     )
     
-    # calculate kinetics
+    # calculate jackknifed kinetics
     kinetics_jackknife = pd.DataFrame()
     for name, group in all_feature_cond.groupby(['condition','dpf','ztime']):
         this_group_kinetics = jackknife_kinetics(group,'expNum')
@@ -192,7 +217,7 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
     kinetics_jackknife.rename(columns={c:c+'_jack' for c in kinetics_jackknife.columns if c not in cat_cols},inplace=True)
     kinetics_jackknife = kinetics_jackknife.sort_values(by=['condition','jackknife_group','dpf']).reset_index(drop=True)
 
-    # calculate kinetics by speed bins
+    # calculate jackknifed kinetics by speed bins
     kinetics_bySpd_jackknife = pd.DataFrame()
     for name, group in all_feature_cond.groupby(['condition','dpf','ztime']):
         kinetics_all_speed = pd.DataFrame()
@@ -209,6 +234,7 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
             )   
         kinetics_bySpd_jackknife = pd.concat([kinetics_bySpd_jackknife, kinetics_all_speed],ignore_index=True)
     kinetics_bySpd_jackknife = kinetics_bySpd_jackknife.sort_values(by=['condition','jackknife_group','dpf']).reset_index(drop=True)
+   
    
     return all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond1, all_cond2
 

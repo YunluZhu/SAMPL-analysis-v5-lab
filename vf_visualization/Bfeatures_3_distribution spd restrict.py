@@ -1,5 +1,6 @@
 '''
-Very useful new function!
+Test code... identical to Bfeatures_3_distribution but with options to segment data by speed
+
 Plots histogram/kde of bout/IBI features. Plots 2D distribution of features.
 
 If there are specific features you're interested in, just change the x and y in the plot functions
@@ -30,11 +31,13 @@ mpl.rc('figure', max_open_warning = 0)
 # Select data and create figure folder
 pick_data = 'tau_long'
 which_ztime = 'day'
+
+
 root, FRAME_RATE = get_data_dir(pick_data)
 # spd_bins = [5,10,15,20,25]
 # posture_bins = [-50,-20,-10,-5,0,5,10,15,20,25,50]
 
-folder_name = f'B3_feature_distribution_z{which_ztime}'
+folder_name = f'B3_feature_distribution_z{which_ztime}_selSpd'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -70,23 +73,14 @@ for key, group in all_feature_cond.groupby(['dpf']):
                                 labels=['dn','up'])
     all_feature_UD = pd.concat([all_feature_UD,group])
     
-    
-
-# # %% histogram
-# toplt = all_feature_UD
-# feature_to_plt = 'pitch_initial'
-# sns.displot(data=toplt,x=feature_to_plt, kde=True, 
-#             col="dpf", row="condition",col_order=all_cond1,hue='condition',
-#             facet_kws={'sharey':False})
-# plt.savefig(fig_dir+f"/{feature_to_plt} distribution.pdf",format='PDF')
-
+all_feature_sel = all_feature_UD.loc[(all_feature_UD['spd_peak']>7)&(all_feature_UD['spd_peak']<21),:]
+# all_feature_sel = all_feature_UD.loc[(all_feature_UD['spd_peak']>15),:]
 
 # %%
 # Plots
 
-
 # %% kde, separate up dn
-toplt = all_feature_UD
+toplt = all_feature_sel
 feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','bout_traj']
 
 for feature in feature_to_plt:
@@ -96,9 +90,7 @@ for feature in feature_to_plt:
                 )
     g.map(sns.kdeplot,feature)
     plt.savefig(fig_dir+f"/{feature} distribution.pdf",format='PDF')
-    
-toplt = all_feature_UD
-feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','bout_traj']
+
 # %%
 # IBI posture
 g = sns.FacetGrid(data=all_ibi_cond, 
@@ -112,7 +104,7 @@ g.set(xlim=(-30, 40))
 plt.savefig(fig_dir+f"/propBoutIEI_pitch distribution.pdf",format='PDF')
 # %%
 #mean
-toplt = all_feature_UD
+toplt = all_feature_sel
 feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','bout_traj']
 
 for feature in feature_to_plt:
@@ -129,46 +121,14 @@ for feature in feature_to_plt:
 
 #%%
 # 2D distribution plot
-
-# %%
-# TEST MODULE
-# 'pitch_initial', 'pitch_pre_bout', 'pitch_peak', 'pitch_post_bout',
+# # ['pitch_initial', 'pitch_pre_bout', 'pitch_peak', 'pitch_post_bout',
 #        'pitch_end', 'traj_initial', 'traj_pre_bout', 'traj_peak',
-#        'traj_post_bout', 'traj_end', 'spd_peak', 'angvel_initial_phase',
-#        'angvel_prep_phase', 'pitch_prep_phase', 'angvel_post_phase',
-#        'rot_total', 'rot_pre_bout', 'rot_l_accel', 'rot_l_decel',
-#        'rot_early_accel', 'rot_late_accel', 'rot_early_decel',
-#        'rot_late_decel', 'bout_traj', 'atk_ang', 'tsp_pre', 'tsp_peak',
-#        'angvel_chg',
-toplt = all_feature_UD
+#        'traj_post_bout', 'traj_end', 'spd_peak', 'angvel_prep_phase',
+#        'pitch_prep_phase', 'rot_total', 'rot_pre_bout', 'rot_l_accel',
+#        'rot_l_decel', 'rot_early_accel', 'rot_late_accel', 'rot_early_decel',
+#        'rot_late_decel', 'bout_traj', 'atk_ang', 'expNum', 'dpf', 'condition'],
 
-# toplt = toplt.loc[(toplt['rot_pre_bout']>-2) & (toplt['rot_pre_bout']<1),:]
-xname = 'bout_traj'
-yname = 'atk_ang'
-g = sns.displot(data=toplt.sample(n=10000), 
-                y=yname,x=xname,
-                col="dpf", row="condition",col_order=all_cond1,hue='condition')
-plt.savefig(fig_dir+f"/{yname} v {xname}.pdf",format='PDF')
-
-# %%
-# p = sns.lmplot(
-#     data = toplt.sample(n=10000),
-#     col='dpf',col_order=all_cond1,
-#     hue='condition',
-#     x = xname, y = yname,
-#     x_bins=8,
-#      robust=True,
-#     #   ci=95,
-#     scatter_kws={"s": 10,},
-#     )
-# p.set(
-#     ylim=(-5,10),
-#     xlim=(-10,25)
-#     )
-# plt.savefig(fig_dir+f"/{yname} v {xname} fit.pdf",format='PDF')
-
-# %%
-toplt = all_feature_cond
+toplt = all_feature_sel
 # steering
 g = sns.displot(data=toplt, 
                 y='traj_peak',x='pitch_peak',
@@ -217,7 +177,6 @@ g = sns.jointplot(data=toplt.loc[toplt['dpf']=='07',:],
                 )
 plt.savefig(fig_dir+"/atk_ang v pitch_initial 7dpf.pdf",format='PDF')
 
-
 # %%
 # angvel change
 toplt = all_feature_UD
@@ -253,7 +212,7 @@ g.set(ylim=(-30,30),
       xlim=(-25,40))
 plt.savefig(fig_dir+"/angvel_post_phase v pitch_initial.pdf",format='PDF')
 
-# post angvel vs prepp pitch
+# post angvel vs end pitch
 toplt = all_feature_UD
 
 g = sns.displot(data=toplt, 
@@ -285,7 +244,23 @@ p.set(ylim=(-1,8),
       xlim=(-12,30))
 plt.savefig(fig_dir+"/angvel_post_phase v pitch_end fit.pdf",format='PDF')
 
+# %%
+# toplt = all_feature_UD
 
+# # p = sns.FacetGrid(
+# #     data = toplt,
+# #     col='dpf',col_order=all_cond1,
+# #     hue='condition',
+# # )
+# p = sns.jointplot(data=toplt.loc[toplt['dpf']=='04',:],
+#                   x="pitch_initial", 
+#                   y="angvel_post_phase",
+#                   hue='condition',
+#                     # scatter_kws={"s": 10,},
+#                   kind='kde',
+#                   xlim=[-30,50],
+#                   ylim=[-20,20]
+#                   )
 
 #---
   # %%

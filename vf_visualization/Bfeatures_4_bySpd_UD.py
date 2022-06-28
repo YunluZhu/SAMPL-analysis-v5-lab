@@ -1,15 +1,10 @@
 '''
-Plot averaged features (pitch, inst_traj...) categorized bt pitch up/down and speed bins
-Results are jackknifed mean results across experiments (expNum)
+Do not rely on Bfeatures_4 plots, 2D histogram plots are superior
 
-Change all_features for the features to plot
+plot mean binned bout features vs. speed & segmented by up dn pitch
 
-Definition of time duration picked for averaging:
-prep: bout preperation phase, -200 to -100 ms before peak speed
-dur: during bout, -25 to 25 ms
-post: +100 to 200 ms 
-see idx_bins
-
+zeitgeber time? No
+jackknifed? Yes, but not calculated properly
 '''
 
 #%%
@@ -34,7 +29,7 @@ from tqdm import tqdm
 
 import matplotlib as mpl
 
-mpl.rcParams['pdf.fonttype'] = 42
+set_font_type()
 mpl.rc('figure', max_open_warning = 0)
 
 # %%
@@ -63,7 +58,7 @@ all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset
 
 
 all_feature_cond = all_feature_cond.assign(
-    direction = pd.cut(all_feature_cond['pitch_peak'],[-80,0,80],labels=['dive','climb']),
+    direction = pd.cut(all_feature_cond['pitch_initial'],[-80,10,80],labels=['dive','climb']),
     speed_bins = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1)),
 )
 

@@ -1,16 +1,10 @@
 '''
-Plot averaged features (pitch, inst_traj...) categorized bt pitch up/down and speed bins
-Results are jackknifed mean results across experiments (expNum)
+New function!
+Plots clustered heatmap of correlations among bout features
 
-Change all_features for the features to plot
-
-Definition of time duration picked for averaging:
-prep: bout preperation phase, -200 to -100 ms before peak speed
-dur: during bout, -25 to 25 ms
-post: +100 to 200 ms 
-see idx_bins
-
+z time? Yes
 '''
+
 
 #%%
 # import sys

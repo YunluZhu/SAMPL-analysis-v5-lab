@@ -21,6 +21,7 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
     T_PREP_150 = -0.15
     T_PRE_BOUT = -0.10 #s
     T_POST_BOUT = 0.1 #s
+    T_post_150 = 0.15
     T_END = 0.2
     T_MID_ACCEL = -0.05
     T_MID_DECEL = 0.05
@@ -35,11 +36,13 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
     
     idx_prep_200 = int(peak_idx + T_PREP_200 * FRAME_RATE)
     idx_prep_150 = int(peak_idx + T_PREP_150 * FRAME_RATE)
-
+    idx_post_150 = int(peak_idx + T_post_150 * FRAME_RATE)
+    
+    idx_initial_phase = np.arange(idx_initial,idx_pre_bout)
     idx_prep_phase = np.arange(idx_prep_200,idx_prep_150)
     idx_accel_phase = np.arange(idx_pre_bout,peak_idx)
     idx_decel_phase = np.arange(peak_idx,idx_post_bout)
-    idx_post_phase = np.arange(idx_post_bout,idx_end)
+    idx_post_phase = np.arange(idx_post_150,idx_end)
     
     this_exp_features = pd.DataFrame(data={
         'pitch_initial':bout_data.loc[bout_data['idx']==idx_initial,'propBoutAligned_pitch'].values, 
@@ -56,8 +59,10 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
 
         'spd_peak':bout_data.loc[bout_data['idx']==peak_idx,'propBoutAligned_speed'].values, 
         
+        'angvel_initial_phase': bout_data.loc[bout_data['idx'].isin(idx_initial_phase),:].groupby('bout_num')['propBoutAligned_angVel'].mean().values, 
         'angvel_prep_phase': bout_data.loc[bout_data['idx'].isin(idx_prep_phase),:].groupby('bout_num')['propBoutAligned_angVel'].mean().values, 
         'pitch_prep_phase': bout_data.loc[bout_data['idx'].isin(idx_prep_phase),:].groupby('bout_num')['propBoutAligned_pitch'].mean().values, 
+        'angvel_post_phase': bout_data.loc[bout_data['idx'].isin(idx_post_phase),:].groupby('bout_num')['propBoutAligned_angVel'].mean().values, 
 
         # 'angvel_accel_phase':
         # 'angvel_decel_phase':
@@ -76,7 +81,8 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
     pitch_mid_accel = bout_data.loc[bout_data['idx']==idx_mid_accel,'propBoutAligned_pitch'].reset_index(drop=True)
     pitch_mid_decel = bout_data.loc[bout_data['idx']==idx_mid_decel,'propBoutAligned_pitch'].reset_index(drop=True)
     
-    this_exp_features = this_exp_features.assign(rot_total=this_exp_features['pitch_post_bout']-this_exp_features['pitch_initial'],
+    this_exp_features = this_exp_features.assign(rot_total=this_exp_features['pitch_end']-this_exp_features['pitch_initial'],
+                                                 rot_bout = this_exp_features['pitch_post_bout']-this_exp_features['pitch_pre_bout'],
                                                 rot_pre_bout=this_exp_features['pitch_pre_bout']-this_exp_features['pitch_initial'],
                                                 rot_l_accel=this_exp_features['pitch_peak']-this_exp_features['pitch_pre_bout'],
                                                 rot_l_decel=this_exp_features['pitch_post_bout']-this_exp_features['pitch_peak'],
@@ -88,6 +94,7 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
                                                 atk_ang = epochBouts_trajectory - this_exp_features['pitch_pre_bout'],
                                                 tsp_pre = this_exp_features['traj_pre_bout'] - this_exp_features['pitch_pre_bout'],
                                                 tsp_peak = this_exp_features['traj_peak'] - this_exp_features['pitch_peak'],
+                                                angvel_chg = this_exp_features['angvel_post_phase'] - this_exp_features['angvel_initial_phase'] 
                                                 )  
     return this_exp_features
 

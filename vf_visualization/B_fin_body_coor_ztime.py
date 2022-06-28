@@ -1,15 +1,9 @@
 '''
-Plot averaged features (pitch, inst_traj...) categorized bt pitch up/down and speed bins
-Results are jackknifed mean results across experiments (expNum)
+Fin-body ratio with new definitions slightly different from eLife 2019. Works well.
 
-Change all_features for the features to plot
+plot attack angle vs. pre bout rotation, fit with a sigmoid w/ 4-free parameters
 
-Definition of time duration picked for averaging:
-prep: bout preperation phase, -200 to -100 ms before peak speed
-dur: during bout, -25 to 25 ms
-post: +100 to 200 ms 
-see idx_bins
-
+zeitgeber time? Yes
 '''
 
 #%%
@@ -29,6 +23,7 @@ set_font_type()
 # %%
 pick_data = 'tau_long'
 which_zeitgeber = 'all'
+
 # %%
 def sigmoid_fit(df, x_range_to_fit,func,**kwargs):
     lower_bounds = [0.1,-20,-100,1]

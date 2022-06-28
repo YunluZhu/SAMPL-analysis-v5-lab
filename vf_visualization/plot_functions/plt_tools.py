@@ -21,6 +21,14 @@ def jackknife_mean(df):
             mean().to_frame().T])
     return output
 
+def jackknife_mean_by_col(df,col):
+    output = pd.DataFrame()
+    all_repeats = list(set(df[col]))
+    for i in all_repeats:
+        this_mean = df.loc[df[col] != i,:].mean(numeric_only=True).to_frame().T
+        output = pd.concat([output, this_mean.assign(jackknife_idx=i)])
+    return output
+
 def day_night_split(df,time_col_name,**kwargs):
     hour = df[time_col_name].dt.strftime('%H').astype('int')
     # day_index = hour[(hour>=9) & (hour<23)].index

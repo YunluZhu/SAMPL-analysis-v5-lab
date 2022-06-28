@@ -1,16 +1,13 @@
 '''
-This version uses "prop_Bout_IEI2" in the "prop_bout_IEI_pitch" file
-which includes mean of body angles during IEI
-Output: plots of distribution of body angles across different conditioins
+plot mean IBI body angle distribution and standard deviation.
 
-paired T test results for standard deviation of posture  if number of conditions per age == 2
-multiple comparison results for standard deviation of posture if number of conditions per age > 2
-
-Conditions and age (dpf) are soft-coded
-recognizable folder names (under root directory): xAA_abcdefghi
-conditions (tau/lesion/control/sibs) are taken from folder names after underscore (abcde in this case)
-age info is taken from the first character in folder names (x in this case, does not need to be number)
-AA represents light dark conditions (LD or DD or LL...), not used.
+zeitgeber time? Yes
+Jackknife? Yes
+Sampled? Yes - separated sample number for day and night
+- change the var DAY_RESAMPLE & NIGHT_RESAMPLE to select the number of bouts sampled per condition per repeat. 
+- to disable sampling, change them to 0 
+- If ztime == all, day and night count as 2 conditions
+- for the pd.sample function, replace = True
 '''
 
 #%%
@@ -21,6 +18,8 @@ import pandas as pd # pandas library
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
+from astropy.stats import jackknife_resampling
+
 from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
 from plot_functions.plt_tools import (day_night_split,defaultPlotting, set_font_type, jackknife_mean, distribution_binned_average)
 from plot_functions.get_IBIangles import get_IBIangles
@@ -29,6 +28,8 @@ set_font_type()
 # Paste root directory here
 pick_data = 'tau_long'
 which_zeitgeber = 'all'
+DAY_RESAMPLE = 500
+NIGHT_RESAMPLE = 300
 
 # %%
 # ztime_dict = {}
@@ -57,13 +58,82 @@ for folder in os.listdir(root):
 
 bins = list(range(-90,95,5))
 
-IBI_angles_cond, cond1, cond2 = get_IBIangles(root, FRAME_RATE, ztime=which_zeitgeber)
-IBI_angles_cond = IBI_angles_cond.loc[:,['propBoutIEI_pitch','ztime','expNum','dpf','condition']]
-IBI_angles_cond.columns = ['IBI_pitch','ztime','expNum','dpf','condition']
+IBI_angles, cond1, cond2 = get_IBIangles(root, FRAME_RATE, ztime=which_zeitgeber)
+IBI_angles_cond = IBI_angles.loc[:,['propBoutIEI_pitch','ztime','expNum','dpf','condition','exp']]
+IBI_angles_cond.columns = ['IBI_pitch','ztime','expNum','dpf','condition','exp']
 IBI_angles_cond.reset_index(drop=True,inplace=True)
 cond_cols = ['ztime','dpf','condition']
 all_ztime = list(set(IBI_angles_cond.ztime))
 all_ztime.sort()
+
+# Calculate std:
+# std_jackknife v= IBI_std_cond.groupby(cond_cols).apply(
+    #     lambda x: jackknife_mean(x)
+    # )
+    # std_jackknife = std_jackknife.loc[:,'IBI_pitch'].reset_index()
+    
+# %%
+# sanity check
+cat_cols = ['dpf','condition','ztime','exp']
+check_df = IBI_angles.groupby(cat_cols).size().reset_index()
+check_df.columns = ['dpf','condition','ztime','exp','bout_num']
+sns.catplot(data=check_df,x='exp',y='bout_num',col='ztime',row='dpf',hue='condition',kind='bar')
+
+# %% jackknife for day bouts
+# not the best code - jackknife and resample to be wrapped into a function
+
+jackknifed_night_std = pd.DataFrame()
+jackknifed_day_std = pd.DataFrame()
+
+if which_zeitgeber != 'night':
+    IBI_angles_day_resampled = IBI_angles_cond.loc[
+        IBI_angles_cond['ztime']=='day',:
+            ].groupby(
+                ['dpf','condition','exp']
+                )
+    if DAY_RESAMPLE != 0:  # if resampled
+        IBI_angles_day_resampled = IBI_angles_day_resampled.sample(
+                        n=DAY_RESAMPLE,
+                        replace=True
+                        )
+    cat_cols = ['condition','dpf','ztime']
+    for (this_cond, this_dpf, this_ztime), group in IBI_angles_day_resampled.groupby(cat_cols):
+        jackknife_idx = jackknife_resampling(np.array(list(range(IBI_angles_day_resampled['expNum'].max()+1))))
+        for excluded_exp, idx_group in enumerate(jackknife_idx):
+            this_std = group.loc[group['expNum'].isin(idx_group),['IBI_pitch']].std().to_frame(name='jackknifed_std')
+            jackknifed_day_std = pd.concat([jackknifed_day_std, this_std.assign(dpf=this_dpf,
+                                                                    condition=this_cond,
+                                                                    excluded_exp=excluded_exp,
+                                                                    ztime=this_ztime)])
+    jackknifed_day_std = jackknifed_day_std.reset_index(drop=True)
+
+
+if which_zeitgeber != 'day':
+    IBI_angles_night_resampled = IBI_angles_cond.loc[
+        IBI_angles_cond['ztime']=='night',:
+            ].groupby(
+                ['dpf','condition','exp']
+                )
+    if NIGHT_RESAMPLE != 0:  # if resampled
+        IBI_angles_night_resampled = IBI_angles_night_resampled.sample(
+                        n=NIGHT_RESAMPLE,
+                        replace=True
+                        )
+    cat_cols = ['condition','dpf','ztime']
+    for (this_cond, this_dpf, this_ztime), group in IBI_angles_night_resampled.groupby(cat_cols):
+        jackknife_idx = jackknife_resampling(np.array(list(range(IBI_angles_night_resampled['expNum'].max()+1))))
+        for excluded_exp, idx_group in enumerate(jackknife_idx):
+            this_std = group.loc[group['expNum'].isin(idx_group),['IBI_pitch']].std().to_frame(name='jackknifed_std')
+            jackknifed_night_std = pd.concat([jackknifed_night_std, this_std.assign(dpf=this_dpf,
+                                                                    condition=this_cond,
+                                                                    excluded_exp=excluded_exp,
+                                                                    ztime=this_ztime)])
+    jackknifed_night_std = jackknifed_night_std.reset_index(drop=True)
+
+jackknifed_std = pd.concat([jackknifed_day_std,jackknifed_night_std]).reset_index(drop=True)
+IBI_std_cond = IBI_angles_cond.groupby(['ztime','dpf','condition','exp','expNum']).std().reset_index()
+IBI_std_day_resampled = IBI_angles_day_resampled.groupby(['ztime','dpf','condition','expNum']).std().reset_index()
+
 # %%
 # plot kde of all
 g = sns.FacetGrid(IBI_angles_cond, 
@@ -77,18 +147,62 @@ filename = os.path.join(fig_dir,"IBI pitch kde.pdf")
 plt.savefig(filename,format='PDF')
 
 # %% 
-# jackknife std
-plt.close()
-IBI_std_cond = IBI_angles_cond.groupby(['ztime','dpf','condition','expNum']).std().reset_index()
-std_jackknife = IBI_std_cond.groupby(cond_cols).apply(
-    lambda x: jackknife_mean(x)
-)
-std_jackknife = std_jackknife.loc[:,'IBI_pitch'].reset_index()
+# raw std day vs night
 
-g = sns.catplot(data=std_jackknife,
-                col='condition',
-                x='ztime', y='IBI_pitch',
-                hue='dpf',
-                kind='point')
+if which_zeitgeber == 'all':
+    plt.close()
+    g = sns.catplot(data=IBI_std_cond,
+                    col='dpf',row='condition',
+                    x='ztime', y='IBI_pitch',
+                    hue='dpf',
+                    ci='sd',
+                    kind='point')
+    g.map(sns.lineplot,'ztime','IBI_pitch',estimator=None,
+      units='expNum',
+      data = IBI_std_cond,
+      alpha=0.2,)
+    filename = os.path.join(fig_dir,"std of IBI pitch day-night.pdf")
+    plt.savefig(filename,format='PDF')
+
+# %%
+# std cond vs ctrl
+
+plt.close()
+g = sns.catplot(data=IBI_std_cond,
+                col='dpf',
+                row='ztime',
+                x='condition', y='IBI_pitch',
+                hue='condition',
+                ci=None, markers=['d','d'],
+                kind='point',
+                aspect=.5
+                )
+g.map(sns.lineplot,'condition','IBI_pitch',estimator=None,
+      units='expNum',
+      data = IBI_std_cond,
+      alpha=0.2,)
 filename = os.path.join(fig_dir,"std of IBI pitch.pdf")
 plt.savefig(filename,format='PDF')
+# %%
+# jackknifed resampled 500 per repeat
+# std cond vs ctrl
+
+plt.close()
+g = sns.catplot(data=jackknifed_std,
+                col='dpf',
+                row='ztime',
+                x='condition', y='jackknifed_std',
+                hue='condition',
+                ci='sd', markers=['d','d'],
+                kind='point',
+                aspect=.4
+                )
+g.map(sns.lineplot,'condition','jackknifed_std',estimator=None,
+      units='excluded_exp',
+      data = jackknifed_std,
+      color='grey',
+      alpha=0.2,)
+sns.despine(offset=10, trim=True)
+filename = os.path.join(fig_dir,"std of IBI pitch - jackknifed resasmpled.pdf")
+plt.savefig(filename,format='PDF')
+# %%

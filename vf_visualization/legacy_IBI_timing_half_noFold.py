@@ -1,4 +1,10 @@
 '''
+legacy code
+
+
+
+
+
 This version loads "prop_Bout_IEI2" from IEI_data.h5 and reads 'propBoutIEI', 'propBoutIEI_pitch', 'propBoutIEItime'
 conditions and age (dpf) are soft-coded
 recognizable folder names (under root directory): xAA_abcdefghi

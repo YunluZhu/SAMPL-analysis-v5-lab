@@ -1,15 +1,10 @@
 '''
-Plot averaged features (pitch, inst_traj...) categorized bt pitch up/down and speed bins
-Results are jackknifed mean results across experiments (expNum)
+Do not rely on Bfeatures_4 plots, 2D histogram plots are superior
 
-Change all_features for the features to plot
+plot mean binned bout features vs. speed & segmented by up dn traj
 
-Definition of time duration picked for averaging:
-prep: bout preperation phase, -200 to -100 ms before peak speed
-dur: during bout, -25 to 25 ms
-post: +100 to 200 ms 
-see idx_bins
-
+zeitgeber time? No
+jackknifed? Yes, but not calculated properly
 '''
 
 #%%

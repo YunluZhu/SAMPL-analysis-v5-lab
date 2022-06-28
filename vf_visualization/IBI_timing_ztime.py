@@ -1,24 +1,18 @@
 '''
-This version loads "prop_Bout_IEI2" from IEI_data.h5 and reads 'propBoutIEI', 'propBoutIEI_pitch', 'propBoutIEItime'
-conditions and age (dpf) are soft-coded
-recognizable folder names (under root directory): xAA_abcdefghi
-conditions (tau/lesion/control/sibs) are taken from folder names after underscore (abcdefghi in this case)
-age info is taken from the 3 characters in folder names (xAA in this case, does not need to be number) – UPDATED 210618
-AA represents light dark conditions (LD or DD or LL...) or whatever other condiitions. Does not need to be number
- 
-outputs: 
-    plots of fiitted parabola (jackknifed, FULL parabola), to make half parabola, run script parabola_sensitivity_half.py
-    plots of fiitted coefs of function y = a * ((x-b)**2) + c (jackknifed)
-    plots of paired sensitivities (jackknifed)
-    paired T test results for sensitivities if number of conditions per age == 2
-    multiple comparison results for sensitiivity if number of conditions per age > 2
+plot mean IBI bout frequency vs. IBI pitch and fit with a parabola
+UP DN separated
 
-NOTE: bounds in parabola_fit1() confines the upper and lower limites of the parameters. These may need to be changed according to your own data sets.
+zeitgeber time? Yes
+Jackknife? Yes
+Sampled? Yes - ONE sample number for day and night
+- change the var RESAMPLE to select the number of bouts sampled per condition per repeat. 
+- to disable sampling, change it to 0 
+- If ztime == all, day and night count as 2 conditions
+- for the pd.sample function, replace = True
 '''
 
 #%%
 import os
-from this import d
 import pandas as pd # pandas library
 import numpy as np # numpy
 import seaborn as sns
@@ -34,7 +28,9 @@ from plot_functions.get_IBIangles import get_IBIangles
 set_font_type()
 # %%
 pick_data = 'tau_long'
-which_ztime = 'all'
+which_ztime = 'day'
+
+RESAMPLE = 1000  # how many bouts to take per  exp/ztime/condition
 
 root, FRAME_RATE = get_data_dir(pick_data)
 
@@ -76,7 +72,7 @@ def parabola_fit1(df, X_RANGE_to_fit = X_RANGE_FULL):
     '''
     popt, pcov = curve_fit(ffunc1, df['propBoutIEI_pitch'], df['y_boutFreq'], 
                            p0=(0.005,3,0.5) , 
-                           bounds=((0, -10, 0),(10, 15, 10)))
+                           bounds=((0, -5, 0),(10, 15, 10)))
     # output = pd.DataFrame(data=popt,columns=['sensitivity','x_inter','y_inter'])
     # output = output.assign(condition=condition)
     y = []
@@ -90,11 +86,21 @@ def parabola_fit1(df, X_RANGE_to_fit = X_RANGE_FULL):
 IBI_angles, cond1_all, cond2_all= get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
 IBI_angles = IBI_angles.assign(y_boutFreq=1/IBI_angles['propBoutIEI'])
 # %%
+
+
 jackknifed_coef = pd.DataFrame()
 jackknifed_y = pd.DataFrame()
 binned_angles = pd.DataFrame()
 cat_cols = ['condition','dpf','ztime']
-for (this_cond, this_dpf, this_ztime), group in IBI_angles.groupby(cat_cols):
+
+if RESAMPLE == 0:
+    IBI_sampled = IBI_angles
+else:
+    IBI_sampled = IBI_angles.groupby(['condition','dpf','ztime','exp']).sample(
+        n=RESAMPLE,
+        replace=True,
+        )
+for (this_cond, this_dpf, this_ztime), group in IBI_sampled.groupby(cat_cols):
     jackknife_idx = jackknife_resampling(np.array(list(range(IBI_angles['expNum'].max()+1))))
     for excluded_exp, idx_group in enumerate(jackknife_idx):
         this_df_toFit = group.loc[group['expNum'].isin(idx_group),['propBoutIEI_pitch','y_boutFreq','propBoutIEI']].reset_index(drop=True)
@@ -143,12 +149,13 @@ for i , g_row in enumerate(g.axes):
 g.set(xlim=(-40, 40),
       ylim=(0,4))
     
-filename = os.path.join(fig_dir,"IEI timing.pdf")
+filename = os.path.join(fig_dir,f"IEI timing sample{RESAMPLE}.pdf")
 plt.savefig(filename,format='PDF')
-plt.show()
 
 # %%
-# plot slope
+# plot all coef
+jackknifed_coef['sensitivity'] = jackknifed_coef['sensitivity']*1000
+
 plt.close()
 col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
 for i in np.arange(len(coef.columns)):
@@ -166,9 +173,75 @@ for i in np.arange(len(coef.columns)):
         hue='condition',
         alpha=0.2,
         data=jackknifed_coef)
-    filename = os.path.join(fig_dir,f"IBI coef {i}.pdf")
+    filename = os.path.join(fig_dir,f"IBI coef{i} sample{RESAMPLE}.pdf")
     plt.savefig(filename,format='PDF')
 
-plt.show()
 
+# %%
+# plot sensitivity
+plt.close()
+col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
+p = sns.catplot(
+    data = jackknifed_coef, y='sensitivity',x='condition',
+    kind='point',join=False,
+    col='dpf', col_order=cond1_all,
+    ci='sd',
+    row = 'ztime', row_order=all_ztime,
+    hue='condition', 
+    hue_order = cond2_all,sharey=True,
+    aspect=.5, markers=['d','d'],
+)
+p.map(sns.lineplot,'condition','sensitivity',estimator=None,
+    units='jackknife num',
+    color='grey',
+    alpha=0.2,
+    data=jackknifed_coef)
+filename = os.path.join(fig_dir,f"IBI sensitivity sample{RESAMPLE}.pdf")
+plt.savefig(filename,format='PDF')
+
+# %%
+# plot x intersect
+plt.close()
+col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
+p = sns.catplot(
+    data = jackknifed_coef, y='x intersect',x='condition',
+    kind='point',join=False,
+    col='dpf', col_order=cond1_all,
+    ci='sd',
+    row = 'ztime', row_order=all_ztime,
+    hue='condition',
+    hue_order = cond2_all,sharey=True,
+    aspect=.5, markers=['d','d']
+
+)
+p.map(sns.lineplot,'condition','x intersect',estimator=None,
+    units='jackknife num',
+    color='grey',
+    alpha=0.2,
+    data=jackknifed_coef)
+filename = os.path.join(fig_dir,f"IBI base posture sample{RESAMPLE}.pdf")
+plt.savefig(filename,format='PDF')
+
+# %%
+# plot baseline bout rate
+plt.close()
+col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
+p = sns.catplot(
+    data = jackknifed_coef, y='y intersect',x='condition',
+    kind='point',join=False,
+    col='dpf', col_order=cond1_all,
+    ci='sd',
+    row = 'ztime', row_order=all_ztime,
+    hue='condition',
+    hue_order = cond2_all,sharey=True,
+    aspect=.5, markers=['d','d']
+
+)
+p.map(sns.lineplot,'condition','y intersect',estimator=None,
+    units='jackknife num',
+    color='grey',
+    alpha=0.2,
+    data=jackknifed_coef)
+filename = os.path.join(fig_dir,f"IBI baseline rate sample{RESAMPLE}.pdf")
+plt.savefig(filename,format='PDF')
 # %%

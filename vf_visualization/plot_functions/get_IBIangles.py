@@ -47,7 +47,8 @@ def get_IBIangles(root, FRAME_RATE,**kwargs):
                     exp_data = pd.read_hdf(f"{exp_path}/IEI_data.h5", key='prop_bout_IEI2')
                     exp_data_ztime = day_night_split(exp_data,'propBoutIEItime',ztime=which_zeitgeber)
                     exp_data_ztime = exp_data_ztime.assign(
-                        expNum = expNum
+                        expNum = expNum,
+                        exp = exp,
                     )                 
                     ibi_features = pd.concat([ibi_features,exp_data_ztime])
                 # combine data from different conditions

@@ -1,5 +1,0 @@
-,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
-prop_bout_IEI_aligned,propBoutIEIAligned_angVel,propBoutIEIAligned_pitch,propBoutIEIAligned_yvel,,,,,,,,,,,,,
-prop_bout_IEI2,boutNum,epochNum,propBoutIEI,propBoutIEItime,propBoutIEI_pitchFirst,propBoutIEI_pitchLast,propBoutIEI_angVel_postBout,propBoutIEI_angVel_preNextBout,propBoutIEI_pitch,propBoutIEI_angVel,propBoutIEI_angAcc,propBoutIEI_pauseDur,propBoutIEI_yvel,IEI_matchIndex,rowsInRes,propBoutIEI_heading
-prop_bout_IEI_timed,propBoutIEI_timedHeading,propBoutIEI_timedPitch,propBoutIEI_timedHeadingPre,propBoutIEI_timedPitchPre,,,,,,,,,,,,
-wolpert_IEI,IEI_matchIndex,wolpert_IEI,wolpert_preIEI_pitch,wolpert_postIEI_netRot,wolpert_Time,,,,,,,,,,,

@@ -1,19 +1,15 @@
 '''
-Plot averaged features (pitch, inst_traj...) categorized bt pitch up/down and speed bins
-Results are jackknifed mean results across experiments (expNum)
+Plot jackknifed kinetics
 
-Change all_features for the features to plot
+righting gain
+set point
+steering gain
+correlation of accel & decel rotation
+angvel gain (new)
 
-Definition of time duration picked for averaging:
-prep: bout preperation phase, -200 to -100 ms before peak speed
-dur: during bout, -25 to 25 ms
-post: +100 to 200 ms 
-see idx_bins
-
-Todo: bin by initial posture
-
-NOTE
-righting rotation: 0-100ms!
+zeitgeber time? Yes
+jackknife? Yes
+resampled? No
 '''
 
 #%%
@@ -35,7 +31,7 @@ defaultPlotting()
 # %%
 pick_data = 'tau_long' # all or specific data
 # for day night split
-which_zeitgeber = 'all'
+which_zeitgeber = 'day'
 
 # %%
 # def main(pick_data):
@@ -59,20 +55,21 @@ all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond1, all_c
 
 # %%
 #plot ztime
-cat_cols = ['jackknife_group','condition','expNum','dpf','ztime']
+if which_zeitgeber == 'all':
+    cat_cols = ['jackknife_group','condition','expNum','dpf','ztime']
 
-toplt = kinetics_jackknife
-all_features = [c for c in toplt.columns if c not in cat_cols]
-for feature_toplt in (all_features):
-    sns.catplot(data = kinetics_jackknife,
-                x = 'dpf',
-                row = 'condition',
-                hue='ztime',
-                y = feature_toplt,
-                kind='point'
-                )
-    filename = os.path.join(fig_dir,f"{feature_toplt}_z{which_zeitgeber}.pdf")
-    plt.savefig(filename,format='PDF')
+    toplt = kinetics_jackknife
+    all_features = [c for c in toplt.columns if c not in cat_cols]
+    for feature_toplt in (all_features):
+        sns.catplot(data = kinetics_jackknife,
+                    x = 'dpf',
+                    row = 'condition',
+                    hue='ztime',
+                    y = feature_toplt,
+                    kind='point'
+                    )
+        filename = os.path.join(fig_dir,f"{feature_toplt}_z{which_zeitgeber}.pdf")
+        plt.savefig(filename,format='PDF')
 
 # %%
 # by speed bins
@@ -196,3 +193,5 @@ for feature_toplt in (all_features):
 #     plt.savefig(fig_dir+f"/{pick_data}__spd_{feature_toplt}.pdf",format='PDF')
 #     # plt.clf()
 
+
+# %%
