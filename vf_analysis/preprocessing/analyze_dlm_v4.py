@@ -20,8 +20,6 @@ Analyze Free Vertical (YZ 2021.06.18)
     
     
 To be changed:
-Scale - adapte to new boxes
-initiate Max Fish filter
 '''
 # %%
 # Import Modules and functions
@@ -38,7 +36,7 @@ MAX_FISH = 1         # all epochs that have more than one fish
 MAX_INST_DISPL = 35  # epochs where fish# > 1 but appear as 1 fish will have improbably large instantaneous displacement.
 MAX_ANG_VEL = 100  # or an improbably large angular velocity
 MAX_ANG_ACCEL = 32000  # or an improbably large angular accel.
-XY_SM_WSZ = 9  # smooth window size for x and y coordinates
+XY_SM_WSZ = 11  # smooth window size for x and y coordinates
 
 MIN_VERTICLE_VEL = -7 # (mm/s) max verdical displacement difference. Used to exclude fish bout downwards.
 
