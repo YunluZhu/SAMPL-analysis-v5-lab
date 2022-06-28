@@ -110,11 +110,14 @@ All the extracted swim bouts under `bout_data.h5` are aligned at the time of the
 **Visualization scripts and function** explained
 
 - `Bfeatures_1_timed_bySpdUD.py` plots bout features as a function of time (time series). Bouts are segmented by peak swim speed & separated by pitch up vs down.
-- `Bfeatures_2_old.py` is a legacy script that plots individual bout features.
+- `Bfeatures_2_features.py` plots individual bout features.
 - `Bfeatures_3_distribution.py` looks at distribution of features. Also allows you to plot one feature against another in 2D histogram.
 - `Bfeatures_4_byPitch.py` calculates binned average features by pitch and plots the mean as a function of pitch. `Bfeatures_3_distribution` is a better way to plot in most of the time.
 - `Bfeatures_4_by....py`. Similarly, all other plot-by-feature scripts plot binned average of one feature against another.
-- `IBI_pitch_mean.py` plots pitch distribution and its std() during inter bout interval (IBI).
-- `IBI_timing_full.py` plots bout frequency (reverse of IBI duration) as a function of pitch and fits it with a parabola.
-- `B_kinetics.py` plots bout kinetics.
-- `B_fin_body_coor.py` plots fin-body coordination.
+- `IBI_pitch_mean_ztime.py` plots pitch distribution and its std() during inter bout interval (IBI).
+- `IBI_timing_ztime.py` plots bout frequency (reverse of IBI duration) as a function of pitch and fits it with a parabola.
+- `B_kinetics_ztime.py` plots bout kinetics.
+- `B_fin_body_coor_ztime.py` plots fin-body coordination.
+- `B_righting_fit.py` plots pre-pitch vs. decel rotation and fit with a sigmoid
+- `Bfeatures_corr.py` clusterred/correlation/heatmap for bout features
+ 
