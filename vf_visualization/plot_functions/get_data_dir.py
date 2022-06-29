@@ -42,7 +42,9 @@ def get_data_dir(pick_data):
     elif pick_data == 'lddd':
         root = '/Volumes/LabData/VF_data_in_use/40hz_data/LD DD'
         fr = 40
-    
+    elif pick_data == 'wt_daylight':
+        root = '/Volumes/LabData/VF_data_in_use/wt_daylight/organized'
+        fr = 166
     elif pick_data == 'tmp':
         root = input("Dir? ")
         fr = int(input("Frame rate? "))

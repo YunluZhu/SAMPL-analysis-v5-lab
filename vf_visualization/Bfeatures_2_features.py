@@ -31,9 +31,9 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'tau_long'
+pick_data = 'wt_daylight'
 which_ztime = 'day'
-DAY_RESAMPLE = 300
+DAY_RESAMPLE = 0
 
 
 
@@ -89,14 +89,16 @@ feature_to_plt = ['rot_early_decel','rot_late_decel']
 # feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','bout_traj']
 feature_for_comp = feature_to_plt + ['expNum']
 # jackknife
-all_feature_sampled = all_feature_UD.groupby(
-            ['dpf','condition','expNum','direction']
-            )
+all_feature_sampled = all_feature_UD
+
 if DAY_RESAMPLE != 0:
-    all_feature_sampled = all_feature_sampled.sample(
+    all_feature_sampled = all_feature_sampled.groupby(
+            ['dpf','condition','expNum','direction']
+            ).sample(
                     n=DAY_RESAMPLE,
                     replace=True
                     )
+
 cat_cols = ['dpf','condition','direction']
 
 mean_data_jackknife = all_feature_sampled.groupby(cat_cols)[feature_for_comp].apply(
@@ -115,7 +117,7 @@ for feature in feature_to_plt:
                     col="dpf", row="direction",col_order=all_cond1,hue='condition',
                     sharey=False,
                     kind='point', marker=['d','d'],
-                    aspect=.4,
+                    aspect=.8,
                 )
     (g.map(sns.lineplot,'condition',feature,
           estimator=None,

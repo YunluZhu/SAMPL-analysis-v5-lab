@@ -21,7 +21,7 @@ from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlott
 set_font_type()
 
 # %%
-pick_data = 'tau_long'
+pick_data = 'wt_daylight'
 which_zeitgeber = 'all'
 
 # %%

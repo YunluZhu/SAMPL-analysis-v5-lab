@@ -92,9 +92,9 @@ jackknifed_y = pd.DataFrame()
 binned_angles = pd.DataFrame()
 cat_cols = ['condition','dpf','ztime']
 
-IBI_sampled = IBI_angles.groupby(cat_cols)
+IBI_sampled = IBI_angles
 if RESAMPLE != 0:
-    IBI_sampled = IBI_sampled.sample(
+    IBI_sampled = IBI_sampled.groupby(cat_cols).sample(
         n=RESAMPLE,
         replace=True,
         )

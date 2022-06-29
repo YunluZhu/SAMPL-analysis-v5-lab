@@ -29,7 +29,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'tau_long'
+pick_data = 'wt_daylight'
 which_ztime = 'all'
 RESAMPLE = 0
 

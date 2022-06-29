@@ -26,7 +26,7 @@ from plot_functions.get_IBIangles import get_IBIangles
 set_font_type()
 # %%
 # Paste root directory here
-pick_data = 'tau_long'
+pick_data = 'wt_daylight'
 which_zeitgeber = 'all'
 DAY_RESAMPLE = 500
 NIGHT_RESAMPLE = 300
@@ -88,11 +88,11 @@ jackknifed_day_std = pd.DataFrame()
 if which_zeitgeber != 'night':
     IBI_angles_day_resampled = IBI_angles_cond.loc[
         IBI_angles_cond['ztime']=='day',:
-            ].groupby(
-                ['dpf','condition','exp']
-                )
+            ]
     if DAY_RESAMPLE != 0:  # if resampled
-        IBI_angles_day_resampled = IBI_angles_day_resampled.sample(
+        IBI_angles_day_resampled = IBI_angles_day_resampled.groupby(
+                ['dpf','condition','exp']
+                ).sample(
                         n=DAY_RESAMPLE,
                         replace=True
                         )
@@ -111,11 +111,11 @@ if which_zeitgeber != 'night':
 if which_zeitgeber != 'day':
     IBI_angles_night_resampled = IBI_angles_cond.loc[
         IBI_angles_cond['ztime']=='night',:
-            ].groupby(
-                ['dpf','condition','exp']
-                )
+            ]
     if NIGHT_RESAMPLE != 0:  # if resampled
-        IBI_angles_night_resampled = IBI_angles_night_resampled.sample(
+        IBI_angles_night_resampled = IBI_angles_night_resampled.groupby(
+                ['dpf','condition','exp']
+                ).sample(
                         n=NIGHT_RESAMPLE,
                         replace=True
                         )
@@ -139,10 +139,11 @@ IBI_std_day_resampled = IBI_angles_day_resampled.groupby(['ztime','dpf','conditi
 g = sns.FacetGrid(IBI_angles_cond, 
                   row="ztime", row_order=all_ztime,
                   col='dpf', col_order=cond1,
-                  hue='condition',
+                  hue='condition', hue_order=cond2,
                   )
 g.map(sns.kdeplot, "IBI_pitch",alpha=0.5,
       )
+g.add_legend()
 filename = os.path.join(fig_dir,"IBI pitch kde.pdf")
 plt.savefig(filename,format='PDF')
 
@@ -193,15 +194,17 @@ g = sns.catplot(data=jackknifed_std,
                 row='ztime',
                 x='condition', y='jackknifed_std',
                 hue='condition',
-                ci='sd', markers=['d','d'],
+                ci='sd', 
+                # markers=['d','d'],
                 kind='point',
-                aspect=.4
+                aspect=.8
                 )
 g.map(sns.lineplot,'condition','jackknifed_std',estimator=None,
       units='excluded_exp',
       data = jackknifed_std,
       color='grey',
       alpha=0.2,)
+g.add_legend()
 sns.despine(offset=10, trim=True)
 filename = os.path.join(fig_dir,"std of IBI pitch - jackknifed resasmpled.pdf")
 plt.savefig(filename,format='PDF')

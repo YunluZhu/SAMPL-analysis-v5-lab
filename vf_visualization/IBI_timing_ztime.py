@@ -27,10 +27,10 @@ from plot_functions.get_IBIangles import get_IBIangles
 
 set_font_type()
 # %%
-pick_data = 'tau_long'
-which_ztime = 'day'
+pick_data = 'wt_daylight'
+which_ztime = 'all'
 
-RESAMPLE = 1000  # how many bouts to take per  exp/ztime/condition
+RESAMPLE = 0  # how many bouts to take per  exp/ztime/condition
 
 root, FRAME_RATE = get_data_dir(pick_data)
 
@@ -93,10 +93,9 @@ jackknifed_y = pd.DataFrame()
 binned_angles = pd.DataFrame()
 cat_cols = ['condition','dpf','ztime']
 
-if RESAMPLE == 0:
-    IBI_sampled = IBI_angles
-else:
-    IBI_sampled = IBI_angles.groupby(['condition','dpf','ztime','exp']).sample(
+IBI_sampled = IBI_angles
+if RESAMPLE !=0:
+    IBI_sampled = IBI_sampled.groupby(['condition','dpf','ztime','exp']).sample(
         n=RESAMPLE,
         replace=True,
         )
@@ -131,6 +130,9 @@ binned_angles = binned_angles.reset_index(drop=True)
 
 all_ztime = list(set(jackknifed_coef['ztime']))
 all_ztime.sort()
+
+jackknifed_coef['sensitivity'] = jackknifed_coef['sensitivity']*1000
+
 # %% plot
 g = sns.relplot(x='IBI pitch',y='bout frequency', data=jackknifed_y, 
                 kind='line',
@@ -154,7 +156,6 @@ plt.savefig(filename,format='PDF')
 
 # %%
 # plot all coef
-jackknifed_coef['sensitivity'] = jackknifed_coef['sensitivity']*1000
 
 plt.close()
 col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
@@ -163,7 +164,6 @@ for i in np.arange(len(coef.columns)):
         data = jackknifed_coef, y=col_to_plt[i],x='dpf',kind='point',join=False,
         col_order=cond1_all,ci='sd',
         row = 'ztime', row_order=all_ztime,
-        # units=excluded_exp,
         hue='condition', dodge=True,
         hue_order = cond2_all,sharey=False
     
@@ -176,6 +176,29 @@ for i in np.arange(len(coef.columns)):
     filename = os.path.join(fig_dir,f"IBI coef{i} sample{RESAMPLE}.pdf")
     plt.savefig(filename,format='PDF')
 
+# %%
+# plot all coef compare day night
+plt.close()
+col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
+for i in np.arange(len(coef.columns)):
+    p = sns.catplot(
+        data = jackknifed_coef, y=col_to_plt[i],x='condition',
+        kind='point',join=False,
+        col='dpf',
+        ci='sd',
+        hue = 'ztime',
+        # units=excluded_exp,
+        dodge=True,
+        # hue_order = cond1_all,
+        sharey=False
+    )
+    p.map(sns.lineplot,'condition',col_to_plt[i],estimator=None,
+        units='jackknife num',
+        hue='ztime',
+        alpha=0.2,
+        data=jackknifed_coef)
+    filename = os.path.join(fig_dir,f"IBI coef{i} day-night sample{RESAMPLE}.pdf")
+    plt.savefig(filename,format='PDF')
 
 # %%
 # plot sensitivity
@@ -189,7 +212,8 @@ p = sns.catplot(
     row = 'ztime', row_order=all_ztime,
     hue='condition', 
     hue_order = cond2_all,sharey=True,
-    aspect=.5, markers=['d','d'],
+    aspect=.8, 
+    # markers=['d','d'],
 )
 p.map(sns.lineplot,'condition','sensitivity',estimator=None,
     units='jackknife num',
@@ -211,7 +235,8 @@ p = sns.catplot(
     row = 'ztime', row_order=all_ztime,
     hue='condition',
     hue_order = cond2_all,sharey=True,
-    aspect=.5, markers=['d','d']
+    aspect=.8, 
+    # markers=['d','d']
 
 )
 p.map(sns.lineplot,'condition','x intersect',estimator=None,
@@ -234,7 +259,8 @@ p = sns.catplot(
     row = 'ztime', row_order=all_ztime,
     hue='condition',
     hue_order = cond2_all,sharey=True,
-    aspect=.5, markers=['d','d']
+    aspect=.8, 
+    # markers=['d','d']
 
 )
 p.map(sns.lineplot,'condition','y intersect',estimator=None,
