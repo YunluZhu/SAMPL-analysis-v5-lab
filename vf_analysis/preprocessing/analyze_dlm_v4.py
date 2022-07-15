@@ -32,16 +32,16 @@ import math
 # %%
 # Constants
 
-MAX_FISH = 1         # all epochs that have more than one fish
+# MAX_FISH = 1         # all epochs that have more than one fish
 MAX_INST_DISPL = 35  # epochs where fish# > 1 but appear as 1 fish will have improbably large instantaneous displacement.
 MAX_ANG_VEL = 100  # or an improbably large angular velocity
 MAX_ANG_ACCEL = 32000  # or an improbably large angular accel.
-XY_SM_WSZ = 11  # smooth window size for x and y coordinates
+XY_SM_WSZ = 9  # smooth window size for x and y coordinates
 
 MIN_VERTICLE_VEL = -7 # (mm/s) max verdical displacement difference. Used to exclude fish bout downwards.
 
 # Other parameters
-SCALE = 60           #(pix/mm) ofr BlackFly verticle fish rigs 1-6
+SCALE = 60           #(pix/mm) 
 SM_WINDOW_FOR_FILTER = 9     # smoothing
 SM_WINDOW_FOR_ANGVEL = 3
 
@@ -146,7 +146,8 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
     # However, in analyzeFreeVerticalGrouped2, line epochDex:epochStop(i):epochStop(i+1) incorrectly truncated the beginning of the epoch by 1 and the end by 3. 
 
     # reslice epochs, generating new epoch numbers
-    resliced = epoch_reslice(raw)
+    # resliced = epoch_reslice(raw) # disabled, gen 2 boxes only include fish num == 0
+    resliced = raw
     # Smooth x and y coordinates
     resliced['absx'] = smooth_series_ML(resliced.loc[:,'absx'],XY_SM_WSZ)
     resliced['absy'] = smooth_series_ML(resliced.loc[:,'absy'],XY_SM_WSZ)
