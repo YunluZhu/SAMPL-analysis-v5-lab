@@ -5,14 +5,16 @@ Functions:
     2. Select qualified bouts
     3. Extract bout properties, align by peak speed
     4. Calculate other properties, such as speed, displacement, acceleration...
-    
+
 Output:
     1. 3 hdf5 files, including all dataframes.
     2. 1 catalog csv file.
-    
+
 To use, run the grab_fish_angle.run() , which calls grab_fish_angle.grab_fish_angle()
+
 NOTE
 220505: shortened bout align window
+220718: IEI detection changed to 100ms after and 100ms before speed passes speed threshold. Speed threshold set to 3.5mm/s
 
 '''
 # %%
@@ -29,9 +31,8 @@ from datetime import timedelta
 import math
 from preprocessing.read_dlm import read_dlm
 from preprocessing.analyze_dlm_v4 import analyze_dlm_resliced
-# from vf_visualization.boutV3_kinetics import FRAME_RATE
 global program_version
-program_version = 'V4.220505'
+program_version = 'V4.220718'
 # %%
 # Define functions
 def grp_by_epoch(df):
@@ -49,7 +50,7 @@ def smooth_series_ML(a,WSZ):
     WSZ: smoothing window size needs, which must be odd number,
     as in the original MATLAB implementation
     '''
-    out0 = np.convolve(a,np.ones(WSZ,dtype=int),'valid')/WSZ    
+    out0 = np.convolve(a,np.ones(WSZ,dtype=int),'valid')/WSZ
     r = np.arange(1,WSZ-1,2)
     start = np.cumsum(a[:WSZ-1])[::2]/r
     stop = (np.cumsum(a[:-WSZ:-1])[::2]/r)[::-1]
@@ -64,7 +65,7 @@ def smooth_ML(a,WSZ):
     WSZ: smoothing window size needs, which must be odd number,
     as in the original MATLAB implementation
     '''
-    out0 = np.convolve(a,np.ones(WSZ,dtype=int),'valid')/WSZ    
+    out0 = np.convolve(a,np.ones(WSZ,dtype=int),'valid')/WSZ
     r = np.arange(1,WSZ-1,2)
     start = np.cumsum(a[:WSZ-1])[::2]/r
     stop = (np.cumsum(a[:-WSZ:-1])[::2]/r)[::-1]
@@ -76,7 +77,7 @@ def smooth_ML(a,WSZ):
 
 # # subjected to change
 # file_path = os.getcwd() # need to be defined/entered when calling as a function or use command line input
-# filenames = glob.glob(f"{output_dir}/*_analyzed_epochs.pkl") # subject to change 
+# filenames = glob.glob(f"{output_dir}/*_analyzed_epochs.pkl") # subject to change
 # file_i = 0 # get 1 file for testing
 
 # analyzed = pd.read_pickle(filenames[file_i])
@@ -89,7 +90,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     '''
     # %%
     # Constants
-    PROPULSION_THRESHOLD = 3  # mm/s, speed threshold above which samples are considered propulsion
+    PROPULSION_THRESHOLD = 3.5  # mm/s, speed threshold above which samples are considered propulsion
     BASELINE_THRESHOLD = 2  # mm/s, speed threshold below which samples are considered at baseline (not propelling)
     SAMPLE_RATE = sample_rate  # Hz
     MIN_SWIM_INTERVAL = 0.1  # s, minimum swim interval duration
@@ -99,7 +100,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     # SM_WINDOW = math.ceil((3/40) * SAMPLE_RATE)  # 3 for 40hz
     SM_WINDOW = 3
     SPD_SM_WINDOW = math.ceil((1/40) * SAMPLE_RATE) # smooth speed for bout detection
-    
+
     # correct smooth windows, must be odd
     SM_WINDOW = SM_WINDOW-1+SM_WINDOW%2
     SPD_SM_WINDOW = SPD_SM_WINDOW-1+SPD_SM_WINDOW%2
@@ -111,8 +112,8 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     POST_PEAK_FRAMES = math.ceil(SAMPLE_RATE * 0.3)  # s, Only align bouts with extra frames after peak speed
     All_Aligned_FRAMES = PRE_PEAK_FRAMES+POST_PEAK_FRAMES+1
     IEI_tail = math.ceil(SAMPLE_RATE * 0.5)
-    IEI_2_swim_buf = math.ceil(0.05 * SAMPLE_RATE)
-    
+    IEI_2_swim_buf = math.ceil(0.1 * SAMPLE_RATE)
+
 
 
     # bout index for aligned bouts
@@ -121,14 +122,14 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     frame_number100 = int(0.1*SAMPLE_RATE) # 100ms, 4 at 40Hz
     frame_number250 = int(0.25*SAMPLE_RATE) # 250ms, 10 at 40Hz
     frame_number125 = int(0.125*SAMPLE_RATE) # 125ms, 5 at 40Hz
-    
+
     # find epochs with max speed above threshold
     df = grp_by_epoch(analyzed).filter(
         lambda g: np.nanmax(g['swimSpeed'].values) >= PROPULSION_THRESHOLD
     ).reset_index(drop=True)
 
     grouped_df = grp_by_epoch(df)
-    
+
     # calculate smoothed x and y velocity for heading calculation later. Save into a new dataaframe, which will be chopped for heading matched calculations later
     df_chopped = df.assign(
         # because SM_WINDOW = 3 and the first vel of each epoch is NA
@@ -152,7 +153,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     # end = time.time()
     # ```
     # Therefore, an alternative method is used here in order to directly apply all calculations to the whole data frame:
-    # 
+    #
     # 1. assign a boolean column 'ifSwim'. True if swim speed excede the threshold
     # 2. convert boolean to int., True = 1, False = 0. Assign to a new column 'swimIndicator'
     # 3. to separate swim windoes between different epochs, set the start of each epoch to swimIndicator = 0
@@ -192,10 +193,10 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     loco_idx_adj_calculator = fast_win_ed[['locoIDX']]
     # calculate swim delays (bout intervals).
     loco_idx_adj_calculator = loco_idx_adj_calculator.assign(swimDelay = fast_win_st_shift['absTime'] - fast_win_ed['absTime'])
-    #  In the matlab code, each speed window ends at the first frame when swim speed drops below threshold. 
+    #  In the matlab code, each speed window ends at the first frame when swim speed drops below threshold.
     #  Here, the fast_win_ed is the last frame above threshold.
     # loco_idx_adj_calculator['swimDelay'] = loco_idx_adj_calculator['swimDelay'] - timedelta(seconds=1/SAMPLE_RATE)
-    # only keep bouts with delay > 0.1 
+    # only keep bouts with delay > 0.1
     loco_idx_adj = loco_idx_adj_calculator.loc[loco_idx_adj_calculator['swimDelay'] < timedelta(seconds=MIN_SWIM_INTERVAL),'locoIDX']
     # get locomotion indices of the slow windows to adjust
     loco_idx_adj = loco_idx_adj + 1
@@ -203,7 +204,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     spd_window_adj = spd_window.copy()
     for window_idx in loco_idx_adj:
         spd_window_adj.loc[spd_window_adj.locoIDX==window_idx,'swimIndicator']=1
-        
+
     spd_window_adj = spd_window_adj.assign(
         locoIDXadj = spd_window_adj['swimIndicator'].diff().abs().cumsum()
     )
@@ -220,14 +221,14 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     swim_spd_peak_idx = grp_by_swim(spd_window_adj,'locoIDXadj')['swimSpeed'].idxmax().swimSpeed  # added .swimSpeed for pandas 1.2 to drop the first col which is group keys
     # calculate the starts and ends of bout windows
     bout_window = pd.concat({
-        'start':swim_spd_peak_idx-BOUT_WINDOW_HALF, 
-        'end':swim_spd_peak_idx+BOUT_WINDOW_HALF, 
+        'start':swim_spd_peak_idx-BOUT_WINDOW_HALF,
+        'end':swim_spd_peak_idx+BOUT_WINDOW_HALF,
         'peak':swim_spd_peak_idx
     }, axis=1)
 
     # Then, check bout windows for every bouts within each epoch. Assign bout indices for grouping bouts
 
-    # to avoid the new bout windows from crossing epochs, first, make an epoch generator 
+    # to avoid the new bout windows from crossing epochs, first, make an epoch generator
     grouped_epoch = iter(grp_by_epoch(spd_window_adj))
     # initialize a new dataframe
     spd_bout_window = pd.DataFrame()
@@ -283,7 +284,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
         peakSpeed = df.loc[swim_spd_peak_idx,'swimSpeed'].values,
         # unsmoothed angVel.abs().max() in SWIM windows
         maxAbsRawAngVel = grp_by_swim(df, 'swimWindow')['angVel'].apply(
-            lambda x: np.nanmax(np.absolute(x))).angVel, 
+            lambda x: np.nanmax(np.absolute(x))).angVel,
         # unsmoothed peak angVel in SWIM windows
         peakRawAngVel = grp_by_swim(df, 'swimWindow')['angVel'].apply(
             lambda x: np.nanmax(np.absolute(x)) * (
@@ -294,7 +295,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
         propBoutDispl = np.linalg.norm(bout_start_loc.values - bout_end_loc.values, axis=1),
         # SWIM window Duration
         propBoutDur = grp_by_swim(df, 'swimWindow').size()['size']/SAMPLE_RATE,
-        # cumulative bout heading of SWIM windows in degrees. 
+        # cumulative bout heading of SWIM windows in degrees.
         # NOTE the swim windows here ends 1 frame earlier than that in the matlab code
         IEIheadings = np.degrees(
             np.arctan(((swim_window_loc_diff['y'])/(swim_window_loc_diff['x'].abs())).values)
@@ -314,8 +315,8 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
         if_align_long = False,
         boutInflectAlign = np.nan,
         boutAccAlign = np.nan,
-    )        
-    
+    )
+
     # decide which bouts to "align".
     # if window is far enough from epoch edge to allow alignment & spd during pre/post peak window are sufficiently low
     # YZ add code to get rid of bouts with only 0.025s above speed threshold
@@ -331,19 +332,19 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
                 # For inflection alignment, find the index of the frame with max speed inflection from boutWindowStart to boutWindowPeak
                 bout_attributes.loc[i,'boutInflectAlign'] = df.loc[bout['bout_start_idx']:bout['peak_idx'],['swimSpeed']].diff().diff().idxmax().values
                 # for alignment to max acceleration
-                # in the Matlab code, since the smooth function doesn't actually smooth the first few values, this index is not accurate 
+                # in the Matlab code, since the smooth function doesn't actually smooth the first few values, this index is not accurate
                 bout_attributes.loc[i,'boutAccAlign'] = smooth_series_ML(df.loc[bout['bout_start_idx']+frame_number250:bout['peak_idx'],'swimSpeed'], SM_WINDOW).diff().idxmax()
-        
+
             # get bout number for longer duration alignment (20 extra frames for 40hz)
             if bout['peak_idx'] < (df.loc[df['epochNum']== bout['epochNum']].index.max() - BOUT_LONG_TAIL):
                 bout_attributes.loc[i,'if_align_long'] = True
-    
+
     # %% [markdown]
     # ## Extract values
-    # Unlike the original Matlab code where different values are stored in their own variables, most multi-frame values extracted from all bouts will be stored in one multi-indexed dataframe (bout_res) for convenience. Other 1-value-per-bout data will be stored in another dataframe (bout_res2)    
-    # 
+    # Unlike the original Matlab code where different values are stored in their own variables, most multi-frame values extracted from all bouts will be stored in one multi-indexed dataframe (bout_res) for convenience. Other 1-value-per-bout data will be stored in another dataframe (bout_res2)
+    #
     # Note: All the acceleration aligned results are skipped & All the bout pairs results are skipped
-    # 
+    #
     #     'propBoutAccAligned_speed'
     #     'propBoutAccAligned_pitch'
     #     PropBoutHeadingPairsFirst
@@ -358,9 +359,9 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     #     PropBoutHeadingPairsIEI
     #     PropBoutHeadingPairsIEIyVel
     #     PropBoutHeadingPairsSecondAlignedPitch
-    #     PropBoutHeadingPairsSecondAlignedHeading      
+    #     PropBoutHeadingPairsSecondAlignedHeading
     # %%
-    # now, all the information we need to extract bouts are stored in bout_attributes. Get bouts to align and re_index for upcoming analysis 
+    # now, all the information we need to extract bouts are stored in bout_attributes. Get bouts to align and re_index for upcoming analysis
     bout_aligned = bout_attributes.loc[bout_attributes['if_align']].reset_index(drop=True)
 
     if bout_aligned.empty:
@@ -379,7 +380,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
                 'propBoutAligned_angVel_flat',
                 'propBoutAligned_speed_flat',
                 'propBoutAligned_pitch_flat',
-            ] 
+            ]
     bout_res = pd.DataFrame(index=index, columns=column)
 
     # set up idx for easy multi-indexing
@@ -443,7 +444,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
             'absy',
             'x',
             'y']
-        ].assign(bout_i=[i]*All_Aligned_FRAMES, frame_i=range(All_Aligned_FRAMES))  # assign bout_i for each bout, assign frame_i for each row  
+        ].assign(bout_i=[i]*All_Aligned_FRAMES, frame_i=range(All_Aligned_FRAMES))  # assign bout_i for each bout, assign frame_i for each row
         for i, bout in bout_aligned.iterrows()  # loop through bouts
     ]).set_index(['bout_i','frame_i']).rename(columns={  # reset index
             'oriIndex':'oriIndex',
@@ -463,9 +464,9 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
             'angVelSmoothed',
             'swimSpeed',
             'angAccel']
-        ].assign(bout_i=[i]*All_Aligned_FRAMES, frame_i=range(All_Aligned_FRAMES)) 
+        ].assign(bout_i=[i]*All_Aligned_FRAMES, frame_i=range(All_Aligned_FRAMES))
         for i, bout in bout_aligned.iterrows()  # loop through bouts
-        # add a condition for inflect alignment 
+        # add a condition for inflect alignment
         if bout['boutInflectAlign'] > PRE_PEAK_FRAMES and bout['boutInflectAlign'] < df.loc[df['epochNum']==bout['epochNum']].index.max()-POST_PEAK_FRAMES
     ]).set_index(['bout_i','frame_i']).rename(columns={
         'angVelSmoothed':'propBoutInflAligned_angVel',
@@ -483,9 +484,9 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
                 'swimSpeed',
                 'angAccel',
                 'ang']
-            ].assign(bout_i=i, frame_i=range(BOUT_LONG_TAIL+PRE_PEAK_FRAMES+1)) 
-            for i, bout in bout_aligned.iterrows() 
-            # add a condition for long bout tail alignment 
+            ].assign(bout_i=i, frame_i=range(BOUT_LONG_TAIL+PRE_PEAK_FRAMES+1))
+            for i, bout in bout_aligned.iterrows()
+            # add a condition for long bout tail alignment
             if bout['if_align_long']
         ]).set_index(['bout_i','frame_i']).rename(columns={
             'angVelSmoothed':'propBoutAlignedLong_angVel',
@@ -493,27 +494,27 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
             'angAccel':'propBoutAlignedLong_accel',
             'ang':'propBoutAlignedLong_pitch'
         })
-    except:     
+    except:
         bout_long_res = pd.DataFrame()
 
     # %%
     # calculate heading values using (unchopped) df_chopped (Modified 2020.06.11)
     # for: each epoch
-    #     if: x[-1] > x[1]  # >> 
+    #     if: x[-1] > x[1]  # >>
     #         then: move_angle = np.arctan2(yvel,xvel)
     #     if: x[-1] < x[1]  # <<
     #         then: flip x axis
     #               move_angle = np.arctan2(yvel,-xvel)
-    
+
     bout_heading = pd.concat([
         df_chopped.loc[bout['peak_idx']-PRE_PEAK_FRAMES:bout['peak_idx']+POST_PEAK_FRAMES,[  # select rows to concat
             'xvel_sm',  # select columns to concat
             'yvel_sm',
             'x_dir',]
-        ].assign(bout_i=[i]*All_Aligned_FRAMES, frame_i=range(All_Aligned_FRAMES))  # assign bout_i for each bout, assign frame_i for each row  
+        ].assign(bout_i=[i]*All_Aligned_FRAMES, frame_i=range(All_Aligned_FRAMES))  # assign bout_i for each bout, assign frame_i for each row
         for i, bout in bout_aligned.iterrows()  # loop through bouts
     ]).set_index(['bout_i','frame_i'])
-    
+
     # get the heading in -180:180 deg, which is the same unit/range as the original PropBoutAlignedHeading after U_D/R_L modifications
     # bout_res = bout_res.assign(
     #     propBoutAligned_instHeading = np.degrees(np.arctan2(
@@ -527,7 +528,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
             bout_heading['yvel_sm'], np.absolute(bout_heading['xvel_sm'])
         ))
     )
-    
+
     # %%
     # for rest of the values, let's do it bout by bout!
     for i, bout in bout_aligned.iterrows():
@@ -547,11 +548,11 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
         # put 1-per-bout values into res2
         bout_res2.loc[i, 'propBout_initPitch'] = df.loc[aligned_peak-frame_number250:aligned_peak-frame_number125, 'ang'].mean()
         bout_res2.loc[i, 'propBout_initYPos'] = df.loc[aligned_peak-frame_number250:aligned_peak-frame_number125, 'y'].mean()
-        bout_res2.loc[i, 'propBout_deltaY'] = df.loc[aligned_peak+frame_number125:aligned_peak+frame_number250, 'y'].mean() - bout_res2.loc[i, 'propBout_initYPos'] 
+        bout_res2.loc[i, 'propBout_deltaY'] = df.loc[aligned_peak+frame_number125:aligned_peak+frame_number250, 'y'].mean() - bout_res2.loc[i, 'propBout_initYPos']
         bout_res2.loc[i, 'propBout_netPitchChg'] = df.loc[aligned_peak+frame_number125:aligned_peak+frame_number250, 'ang'].mean() - bout_res2.loc[i, 'propBout_initPitch']
-        
 
-        # if the current (alignable) bout is not the last bout in the epoch 
+
+        # if the current (alignable) bout is not the last bout in the epoch
         if bout['boutNum'] < bout_attributes.loc[bout_attributes['epochNum']==bout['epochNum'],'boutNum'].max():
             swim_start = bout['swim_start_idx']
             swim_start_next = bout_attributes.loc[bout['boutNum']+1,'swim_start_idx']
@@ -568,24 +569,24 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
         if bout['peakRawAngVel'] > 0:
             aligned_headUp_counter += 1
             bout_res.loc[idx[i,:], 'propBoutAligned_angVel_hUp'] = bout_res.loc[idx[i,:], 'propBoutAligned_angVel']
-            bout_res.loc[idx[i,:], 'propBoutAligned_speed_hUp'] = bout_res.loc[idx[i,:], 'propBoutAligned_speed'] 
-            bout_res.loc[idx[i,:], 'propBoutAligned_pitch_hUp'] = bout_res.loc[idx[i,:], 'propBoutAligned_pitch'] 
+            bout_res.loc[idx[i,:], 'propBoutAligned_speed_hUp'] = bout_res.loc[idx[i,:], 'propBoutAligned_speed']
+            bout_res.loc[idx[i,:], 'propBoutAligned_pitch_hUp'] = bout_res.loc[idx[i,:], 'propBoutAligned_pitch']
             bout_res2.loc[i, 'aligned_time_hUp'] = bout_res2.loc[i,'aligned_time']
         else:
             aligned_headDn_counter += 1
             bout_res.loc[idx[i,:], 'propBoutAligned_angVel_hDn'] = bout_res.loc[idx[i,:], 'propBoutAligned_angVel']
-            bout_res.loc[idx[i,:], 'propBoutAligned_speed_hDn'] = bout_res.loc[idx[i,:], 'propBoutAligned_speed'] 
-            bout_res.loc[idx[i,:], 'propBoutAligned_pitch_hDn'] = bout_res.loc[idx[i,:], 'propBoutAligned_pitch'] 
+            bout_res.loc[idx[i,:], 'propBoutAligned_speed_hDn'] = bout_res.loc[idx[i,:], 'propBoutAligned_speed']
+            bout_res.loc[idx[i,:], 'propBoutAligned_pitch_hDn'] = bout_res.loc[idx[i,:], 'propBoutAligned_pitch']
             bout_res2.loc[i, 'aligned_time_hDn'] = bout_res2.loc[i,'aligned_time']
 
         # collect data for flat bouts: net rotation less than 3 deg
         if np.absolute(bout_res2.loc[i, 'propBout_netPitchChg']) <= 3:
             aligned_flat_counter += 1
             bout_res.loc[idx[i,:], 'propBoutAligned_angVel_flat'] = bout_res.loc[idx[i,:], 'propBoutAligned_angVel']
-            bout_res.loc[idx[i,:], 'propBoutAligned_speed_flat'] = bout_res.loc[idx[i,:], 'propBoutAligned_speed'] 
-            bout_res.loc[idx[i,:], 'propBoutAligned_pitch_flat'] = bout_res.loc[idx[i,:], 'propBoutAligned_pitch'] 
+            bout_res.loc[idx[i,:], 'propBoutAligned_speed_flat'] = bout_res.loc[idx[i,:], 'propBoutAligned_speed']
+            bout_res.loc[idx[i,:], 'propBoutAligned_pitch_flat'] = bout_res.loc[idx[i,:], 'propBoutAligned_pitch']
             bout_res2.loc[i, 'aligned_time_flat'] = bout_res2.loc[i,'aligned_time']
-            
+
         # long bout tail alignment  - see the cell above
 
         if bout['if_align_long']:
@@ -623,7 +624,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     # bout_res2, which will be saved as prop_bout2 in bout_data.h5, contains parameters that are one/bout
     bout_res2 = bout_res2.assign(
         epochBouts_indices = bout_aligned['peak_idx'],
-        propBout_maxSpd = bout_aligned['peakSpeed'],  # modified 06.17.20 
+        propBout_maxSpd = bout_aligned['peakSpeed'],  # modified 06.17.20
         epochBouts_heading = bout_res.loc[idx[:,bout_idx_peak],'propBoutAligned_instHeading'].values,
         epochBouts_preBoutPitch = bout_res.loc[idx[:,bout_idx_peak-frame_number100],'propBoutAligned_pitch'].values,
         # calculation of values below is done in plotting scripts, which gives more flexibility in trying different things
@@ -648,11 +649,11 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     bout_attributes = bout_attributes.assign(
         fisn_length = bout_attributes['epochNum'].map(fish_length.set_index('epochNum').to_dict()['fishLenEst'])
     )
-    
+
     print(".", end="")
     # %% [markdown]
     # ## Extract IEI values
-    # 
+    #
 
     # %%
     # calculate corresponding pitch and angular velocity for IEIs. include window from SpdWindEnd to next SpdWindStart padded with 0.1s
@@ -660,7 +661,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     # post_peak_buf = math.ceil(0.3 * SAMPLE_RATE)
     # pre_peak_buf = math.ceil(0.1 * SAMPLE_RATE)
 
-    # Initialize IEI attributes 
+    # Initialize IEI attributes
     IEI_attributes = bout_attributes[['boutNum','epochNum','swim_start_idx','swim_end_idx']]
     IEI_attributes = IEI_attributes.assign(
         # shift the end of each bout down by 1 row for easy iteration
@@ -711,13 +712,13 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
                 'propBoutIEI_timedPitch',
                 'propBoutIEI_timedHeadingPre',
                 'propBoutIEI_timedPitchPre',
-            ] 
+            ]
     IEI_res3 = pd.DataFrame(index=index, columns=column, dtype=np.float64)
 
     # %%
     # extract data
     for i, row in IEI_attributes.iterrows():
-        # get some index calculation done 
+        # get some index calculation done
         bout_end_post = row['swim_end_shift'] + 1 + POST_BOUT_BUF  # where last bout ends. to match the swim end in Matlab, +1
         bout_start_pre = row['swim_start_idx'] - IEI_2_swim_buf  # where next bout starts
         bout_end_5frames = row['swim_end_shift'] + 1 + math.ceil(0.05*SAMPLE_RATE)  # why use 0.05 but not POST_BOUT_BUF for duration calculation???????
@@ -753,7 +754,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
                      (df.loc[swim_end:swim_end+IEI_tail,'x'].diff().abs().dropna().values)  # use abs() to get rid of x directionality
                 ))
                 IEI_res3.loc[idx[i,:],'propBoutIEI_timedPitch'] = df.loc[swim_end:swim_end+IEI_tail-1,'ang'].values
-            else: 
+            else:
                 IEI_res3.loc[idx[i,:],'propBoutIEI_timedHeading'] = 500
                 IEI_res3.loc[idx[i,:],'propBoutIEI_timedPitch'] = 500
 
@@ -762,7 +763,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
                 IEI_res3.loc[idx[i,:],'propBoutIEI_timedHeadingPre'] = np.degrees(np.arctan2(
                     (df.loc[swim_start-IEI_tail:swim_start,'y'].diff().dropna().values),
                      (df.loc[swim_start-IEI_tail:swim_start,'x'].diff().abs().dropna().values)
-                ))     
+                ))
                 IEI_res3.loc[idx[i,:],'propBoutIEI_timedPitchPre'] = df.loc[swim_start-IEI_tail+1:swim_start,'ang'].values
             else:
                 IEI_res3.loc[idx[i,:],'propBoutIEI_timedHeadingPre'] = 500
@@ -785,7 +786,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     IEI_wolpert = pd.DataFrame({
         # wolpert values starts from the second IEI, thus exclude the first IEI match index
         'IEI_matchIndex': IEI_res2.loc[1:,'IEI_matchIndex'].tolist(),
-        # only get the pre IEI value, exclude the last speed_window_start.diff(). Be aware that df.loc[a:b] includes both a and b 
+        # only get the pre IEI value, exclude the last speed_window_start.diff(). Be aware that df.loc[a:b] includes both a and b
         'wolpert_IEI': IEI_res2.loc[:len(IEI_res2)-2,'propBoutIEI'].tolist(),
         # same as above, exclude the last pitch
         'wolpert_preIEI_pitch': IEI_res2.loc[:len(IEI_res2)-2,'propBoutIEI_pitchFirst'].tolist(),
@@ -820,18 +821,18 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     # ## Grab all headings (movement angles)
     # ```
     # for: each epoch
-    #     if: x[-1] > x[1]  # >> 
+    #     if: x[-1] > x[1]  # >>
     #         then: move_angle = np.arctan2(yvel,xvel)
     #     if: x[-1] < x[1]  # <<
     #         then: flip x axis
     #               move_angle = np.arctan2(yvel,-xvel)
     # ```
-    
+
     # %%
     # below is for heading matched calculation
-    
+
     # df_chopped dataframe has been created at the beginning of the function
-    
+
     # chop top and bottom rows
     rows_to_drop = grouped_df.head(EDGE_CHOP).index.to_list() + grouped_df.tail(EDGE_CHOP).index.to_list()
     df_chopped.drop(axis=0, index=rows_to_drop, inplace=True)
@@ -863,11 +864,11 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
         # in mm/(sec^2)
         RMS_speed = grp_by_epoch(df_chopped)['velocity'].apply(
             lambda x: np.sqrt(np.sum(x**2))/len(x)*SAMPLE_RATE
-        )   
+        )
     )
-    
+
     # output dictionary
-    output = {'grabbed_all':df,  # note, this is different from MATLAB grabbed values (line 694). Here, only epochs with bouts (max_swimSpeed filtered) are included 
+    output = {'grabbed_all':df,  # note, this is different from MATLAB grabbed values (line 694). Here, only epochs with bouts (max_swimSpeed filtered) are included
               'baseline_angVel':all_baseline_angVel,  # angVel of swimSpeed < baseline threshold
               'bout_attributes':bout_attributes,
               'prop_bout_aligned':bout_res,
@@ -884,7 +885,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
               'epoch_pitch_heading_RMS':heading_res2}
     aligned_bout_num = len(bout_res2)
     print(f" {aligned_bout_num} bouts aligned")
-    
+
     return output
 
 def run(filenames, folder, frame_rate):
@@ -908,15 +909,15 @@ def run(filenames, folder, frame_rate):
     epoch_attributes = pd.DataFrame()
     heading_matched = pd.DataFrame()
     epoch_pitch_heading_RMS = pd.DataFrame()
-    
+
     total_bouts_aligned = 0
     metadata_from_bouts = pd.DataFrame()
-    
+
     for i, file in enumerate(filenames):
         raw = read_dlm(i, file)
         analyzed, fish_length = analyze_dlm_resliced(raw, i, file, folder, frame_rate)
         res = grab_fish_angle(analyzed, fish_length,frame_rate)
-        
+
         this_metadata = {
             'filename':os.path.basename(file)[0:15],
             'aligned_bout':len(res['prop_bout2']),
@@ -940,11 +941,11 @@ def run(filenames, folder, frame_rate):
         epoch_attributes = pd.concat([epoch_attributes, res['epoch_attributes']], ignore_index=True)
         heading_matched = pd.concat([heading_matched, res['heading_matched']], ignore_index=True)
         epoch_pitch_heading_RMS = pd.concat([epoch_pitch_heading_RMS, res['epoch_pitch_heading_RMS']], ignore_index=True)
-    
+
     # %%
     # concat metadata from bouts and metadata from ini. save in parent folder (condition folder)
     # read csv
-    
+
     csv_file = glob.glob(f"{folder}/*metadata.csv")
     if csv_file:
         csv_file = csv_file[0]
@@ -962,9 +963,9 @@ def run(filenames, folder, frame_rate):
         metadata_merged.to_csv(os.path.join(condition_folder,f"ana {csv_file_name}"))
     else:
         metadata_from_bouts.to_csv(os.path.join(folder,f"ana metadata.csv"))
-        
+
     total_bouts_aligned = metadata_from_bouts['aligned_bout'].sum()
-    # %%    
+    # %%
     output_dir = folder
     grabbed_all.to_hdf(f'{output_dir}/all_data.h5', key='grabbed_all', mode='w', format='table')
     baseline_angVel.to_hdf(f'{output_dir}/all_data.h5', key='baseline_angVel', format='table')
@@ -980,9 +981,9 @@ def run(filenames, folder, frame_rate):
     wolpert_IEI.to_hdf(f'{output_dir}/IEI_data.h5', key='wolpert_IEI', format='table')
     epoch_attributes.to_hdf(f'{output_dir}/all_data.h5', key='epoch_attributes', format='table')
     heading_matched.to_hdf(f'{output_dir}/all_data.h5', key='heading_matched', format='table')
-    epoch_pitch_heading_RMS.to_hdf(f'{output_dir}/all_data.h5', key='epoch_pitch_heading_RMS', format='table')  
- 
-    # %%   
+    epoch_pitch_heading_RMS.to_hdf(f'{output_dir}/all_data.h5', key='epoch_pitch_heading_RMS', format='table')
+
+    # %%
     data_file_explained = pd.DataFrame.from_dict(
         {'all_data.h5':[
             'Contains following keys',
@@ -997,7 +998,7 @@ def run(filenames, folder, frame_rate):
          'baseline_angVel':['all baseline angular velocity'],
          'heading_matched':['heading directions'],
          'epoch_pitch_heading_RMS':['mean pitch and heading for epoch, and RMSpitch'],
-         
+
          'bout_data.h5':[
              'Bout data including following keys',
              'bout_attributes',
@@ -1011,7 +1012,7 @@ def run(filenames, folder, frame_rate):
          'prop_bout2':['one-per-bout parameters'],
          'prop_bout_aligned_long':['including bout data with 1s after the time of peak speed'],
          'prop_bout_aligned_long2':['attributes for long bouts'],
-         
+
          'IEI_data.h5':[
          'Contains inter bout data. Includes following keys',
          'prop_bout_IEI_aligned',
@@ -1026,7 +1027,7 @@ def run(filenames, folder, frame_rate):
          }
     , orient='index')
     data_file_explained.to_csv(f'{output_dir}/data_file_explained.csv')
-    
+
     catalog_all_data = pd.DataFrame.from_dict(
         {'grabbed_all':grabbed_all.columns.to_list(),
          'epoch_attributes':epoch_attributes.columns.to_list(),
@@ -1045,7 +1046,7 @@ def run(filenames, folder, frame_rate):
          'wolpert_IEI':wolpert_IEI.columns.to_list() }
     , orient='index')
     catalog_IEI_data.to_csv(f'{output_dir}/catalog IEI_data.csv')
-    
+
     catalog_bout_data = pd.DataFrame.from_dict(
         {
          'bout_attributes':bout_attributes.columns.to_list(),
@@ -1055,7 +1056,7 @@ def run(filenames, folder, frame_rate):
          'prop_bout_aligned_long2':prop_bout_aligned_long2.columns.to_list(),
          }
     , orient='index')
-    catalog_bout_data.to_csv(f'{output_dir}/catalog bout_data.csv')  
+    catalog_bout_data.to_csv(f'{output_dir}/catalog bout_data.csv')
 # %%
     info_dict = {
         'frame_rate':frame_rate,
