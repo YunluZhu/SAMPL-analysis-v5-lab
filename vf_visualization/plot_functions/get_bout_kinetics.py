@@ -35,16 +35,16 @@ def get_kinetics(df):
     righting_fit_late = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_late_decel'], deg=1)
 
     steering_fit = np.polyfit(x=df['pitch_peak'], y=df['traj_peak'], deg=1)
-    if 'direction' in df.columns:
-        righting_fit_dn = np.polyfit(x=df.loc[df['direction']=='dive','pitch_pre_bout'], 
-                                    y=df.loc[df['direction']=='dive','rot_l_decel'], 
-                                    deg=1)
-        righting_fit_up = np.polyfit(x=df.loc[df['direction']=='climb','pitch_pre_bout'], 
-                                    y=df.loc[df['direction']=='climb','rot_l_decel'], 
-                                    deg=1)
-        corr_rot_lateAccel_decel_up = pearsonr(
-            x=df.loc[df['direction']=='climb','rot_late_accel'],
-            y=df.loc[df['direction']=='climb','rot_l_decel'])
+    # if 'direction' in df.columns:
+    #     righting_fit_dn = np.polyfit(x=df.loc[df['direction']=='dive','pitch_pre_bout'], 
+    #                                 y=df.loc[df['direction']=='dive','rot_l_decel'], 
+    #                                 deg=1)
+    #     righting_fit_up = np.polyfit(x=df.loc[df['direction']=='climb','pitch_pre_bout'], 
+    #                                 y=df.loc[df['direction']=='climb','rot_l_decel'], 
+    #                                 deg=1)
+        # corr_rot_lateAccel_decel_up = pearsonr(
+        #     x=df.loc[df['direction']=='climb','rot_late_accel'],
+        #     y=df.loc[df['direction']=='climb','rot_l_decel'])
     angvel_correct_fit_dn = np.polyfit(x=df.loc[df['angvel_initial_phase']<0,'angvel_initial_phase'],
                                         y=df.loc[df['angvel_initial_phase']<0,'angvel_chg'], 
                                         deg=1)
@@ -52,7 +52,8 @@ def get_kinetics(df):
                                         y=df.loc[df['angvel_initial_phase']>0,'angvel_chg'], 
                                         deg=1)   
     # posture_deviation = np.polyfit(x=df['pitch_peak'], y=df['tsp'], deg=1)
-    set_point = np.polyfit(x=df['rot_total'], y=df['pitch_initial'], deg=1)
+    set_point_new = np.polyfit(x=df['rot_total'], y=df['pitch_initial'], deg=1)
+    set_point_ori = np.polyfit(x=df['rot_l_decel'], y=df['pitch_pre_bout'], deg=1)
 
     corr_rot_accel_decel = pearsonr(x=df['rot_l_accel'],
                                     y=df['rot_l_decel'])
@@ -79,15 +80,17 @@ def get_kinetics(df):
         'corr_rot_preBout_decel': corr_rot_preBout_decel[0],
         # 'posture_deviation_slope': posture_deviation[0],
         # 'posture_deviation_y': posture_deviation[1],
-        'set_point':set_point[1],
+        # 'set_point_new':set_point_new[1],
+        'set_point':set_point_ori[1],
+
         'angvel_gain_neg': -1 * angvel_correct_fit_dn[0],
         'angvel_gain_pos': -1 * angvel_correct_fit_up[0],
     })
     if 'direction' in df.columns:
         direction_kinetics = pd.Series(data={
-            'righting_gain_dn':  -1 * righting_fit_dn[0],
-            'righting_gain_up':  -1 * righting_fit_up[0],
-            'corr_rot_lateAccel_decel_up': corr_rot_lateAccel_decel_up[0],
+            # 'righting_gain_dn':  -1 * righting_fit_dn[0],
+            # 'righting_gain_up':  -1 * righting_fit_up[0],
+            # 'corr_rot_lateAccel_decel_up': corr_rot_lateAccel_decel_up[0],
             
         })
         kinetics = pd.concat([kinetics, direction_kinetics])
