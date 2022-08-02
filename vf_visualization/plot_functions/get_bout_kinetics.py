@@ -31,8 +31,8 @@ def jackknife_kinetics(df,col):
 
 def get_kinetics(df):
     righting_fit = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_l_decel'], deg=1)
-    righting_fit_early = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_early_decel'], deg=1)
-    righting_fit_late = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_late_decel'], deg=1)
+    # righting_fit_early = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_early_decel'], deg=1)
+    # righting_fit_late = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_late_decel'], deg=1)
 
     steering_fit = np.polyfit(x=df['pitch_peak'], y=df['traj_peak'], deg=1)
     # if 'direction' in df.columns:
@@ -45,12 +45,14 @@ def get_kinetics(df):
         # corr_rot_lateAccel_decel_up = pearsonr(
         #     x=df.loc[df['direction']=='climb','rot_late_accel'],
         #     y=df.loc[df['direction']=='climb','rot_l_decel'])
-    angvel_correct_fit_dn = np.polyfit(x=df.loc[df['angvel_initial_phase']<0,'angvel_initial_phase'],
-                                        y=df.loc[df['angvel_initial_phase']<0,'angvel_chg'], 
-                                        deg=1)
-    angvel_correct_fit_up = np.polyfit(x=df.loc[df['angvel_initial_phase']>0,'angvel_initial_phase'],
-                                        y=df.loc[df['angvel_initial_phase']>0,'angvel_chg'], 
-                                        deg=1)   
+
+    # angvel_correct_fit_dn = np.polyfit(x=df.loc[df['angvel_initial_phase']<0,'angvel_initial_phase'],
+    #                                     y=df.loc[df['angvel_initial_phase']<0,'angvel_chg'], 
+    #                                     deg=1)
+    # angvel_correct_fit_up = np.polyfit(x=df.loc[df['angvel_initial_phase']>0,'angvel_initial_phase'],
+    #                                     y=df.loc[df['angvel_initial_phase']>0,'angvel_chg'], 
+    #                                     deg=1)   
+
     # posture_deviation = np.polyfit(x=df['pitch_peak'], y=df['tsp'], deg=1)
     set_point_new = np.polyfit(x=df['rot_total'], y=df['pitch_initial'], deg=1)
     set_point_ori = np.polyfit(x=df['rot_l_decel'], y=df['pitch_pre_bout'], deg=1)
@@ -69,8 +71,8 @@ def get_kinetics(df):
     
     kinetics = pd.Series(data={
         'righting_gain': -1 * righting_fit[0],
-        'righting_gain_early': -1 * righting_fit_early[0],
-        'righting_gain_late': -1 * righting_fit_late[0],
+        # 'righting_gain_early': -1 * righting_fit_early[0],
+        # 'righting_gain_late': -1 * righting_fit_late[0],
 
         'steering_gain': steering_fit[0],
         'corr_rot_accel_decel': corr_rot_accel_decel[0],
@@ -83,8 +85,8 @@ def get_kinetics(df):
         # 'set_point_new':set_point_new[1],
         'set_point':set_point_ori[1],
 
-        'angvel_gain_neg': -1 * angvel_correct_fit_dn[0],
-        'angvel_gain_pos': -1 * angvel_correct_fit_up[0],
+        # 'angvel_gain_neg': -1 * angvel_correct_fit_dn[0],
+        # 'angvel_gain_pos': -1 * angvel_correct_fit_up[0],
     })
     if 'direction' in df.columns:
         direction_kinetics = pd.Series(data={
@@ -97,13 +99,15 @@ def get_kinetics(df):
     return kinetics
 
 def get_bout_kinetics(root, FRAME_RATE,**kwargs):
+    if_calc_bySpeed = 1
+    
     peak_idx , total_aligned = get_index(FRAME_RATE)
     T_start = -0.3
     T_end = 0.25
     idx_start = int(peak_idx + T_start * FRAME_RATE)
     idx_end = int(peak_idx + T_end * FRAME_RATE)
     idxRANGE = [idx_start,idx_end]
-    spd_bins = np.arange(3,24,3)
+    spd_bins = np.arange(5,25,4)
 
     TSP_THRESHOLD = [-np.Inf,-50,50,np.Inf]
 
@@ -222,22 +226,27 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
 
     # calculate jackknifed kinetics by speed bins
     kinetics_bySpd_jackknife = pd.DataFrame()
-    for name, group in all_feature_cond.groupby(['condition','dpf','ztime']):
-        kinetics_all_speed = pd.DataFrame()
-        for speed_bin in set(group.speed_bins):
-            if pd.notna(speed_bin):
-                this_speed_data = group.loc[group['speed_bins']==speed_bin,:]
-                this_speed_kinetics = jackknife_kinetics(this_speed_data,'expNum')
-                this_speed_kinetics = this_speed_kinetics.assign(speed_bins=speed_bin)
-                kinetics_all_speed = pd.concat([kinetics_all_speed,this_speed_kinetics],ignore_index=True)
-        kinetics_all_speed = kinetics_all_speed.assign(
-            condition = name[0],
-            dpf = name[1],
-            ztime = name[2]
-            )   
-        kinetics_bySpd_jackknife = pd.concat([kinetics_bySpd_jackknife, kinetics_all_speed],ignore_index=True)
-    kinetics_bySpd_jackknife = kinetics_bySpd_jackknife.sort_values(by=['condition','jackknife_group','dpf']).reset_index(drop=True)
-   
+    if if_calc_bySpeed == 1:
+        for name, group in all_feature_cond.groupby(['condition','dpf','ztime']):
+            kinetics_all_speed = pd.DataFrame()
+            for speed_bin in set(group.speed_bins):
+                if pd.notna(speed_bin):
+                    this_speed_data = group.loc[group['speed_bins']==speed_bin,:]
+                    # min_group_size = this_speed_data.groupby('expNum').size().min()
+                    this_speed_kinetics = jackknife_kinetics(this_speed_data,'expNum')
+                    this_speed_kinetics = this_speed_kinetics.assign(
+                        speed_bins=speed_bin,
+                        average_speed = this_speed_data['spd_peak'].mean(),
+                        )
+                    kinetics_all_speed = pd.concat([kinetics_all_speed,this_speed_kinetics],ignore_index=True)
+            kinetics_all_speed = kinetics_all_speed.assign(
+                condition = name[0],
+                dpf = name[1],
+                ztime = name[2]
+                )   
+            kinetics_bySpd_jackknife = pd.concat([kinetics_bySpd_jackknife, kinetics_all_speed],ignore_index=True)
+        kinetics_bySpd_jackknife = kinetics_bySpd_jackknife.sort_values(by=['condition','jackknife_group','dpf']).reset_index(drop=True)
+
    
     return all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond1, all_cond2
 
