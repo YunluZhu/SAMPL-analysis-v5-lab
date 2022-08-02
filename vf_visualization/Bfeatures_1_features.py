@@ -31,8 +31,8 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'wt_daylight'
-which_ztime = 'day'
+pick_data = 'sfld_combined'
+which_ztime = 'all'
 DAY_RESAMPLE = 0
 
 
@@ -85,8 +85,8 @@ for key, group in all_feature_cond.groupby(['dpf']):
 
 # %%
 #mean
-feature_to_plt = ['rot_early_decel','rot_late_decel']
-# feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','bout_traj']
+# feature_to_plt = ['rot_early_decel','rot_late_decel']
+feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','bout_traj','rot_early_decel','rot_late_decel']
 feature_for_comp = feature_to_plt + ['expNum']
 # jackknife
 all_feature_sampled = all_feature_UD

@@ -27,8 +27,8 @@ from plot_functions.get_IBIangles import get_IBIangles
 
 set_font_type()
 # %%
-pick_data = 'wt_daylight'
-which_ztime = 'all'
+pick_data = 'for_paper'
+which_ztime = 'day'
 
 RESAMPLE = 0  # how many bouts to take per  exp/ztime/condition
 
@@ -133,6 +133,29 @@ all_ztime.sort()
 
 jackknifed_coef['sensitivity'] = jackknifed_coef['sensitivity']*1000
 
+# %% ignore this
+if pick_data == 'for_paper':
+    cond2 = ['4dpf','7dpf','14dpf']
+    IBI_std_cond = IBI_std_cond.sort_values('condition'
+                            , key=lambda col: col.map(
+                                    {'4dpf':1,
+                                      '7dpf':2,
+                                      '14dpf':3}))
+    jackknifed_std = jackknifed_std.sort_values('condition'
+                            , key=lambda col: col.map(
+                                    {'4dpf':1,
+                                      '7dpf':2,
+                                      '14dpf':3}))
+    IBI_std_day_resampled = IBI_std_day_resampled.sort_values('condition'
+                            , key=lambda col: col.map(
+                                    {'4dpf':1,
+                                      '7dpf':2,
+                                      '14dpf':3}))
+    IBI_angles_cond = IBI_angles_cond.sort_values('condition'
+                            , key=lambda col: col.map(
+                                    {'4dpf':1,
+                                      '7dpf':2,
+                                      '14dpf':3}))
 # %% plot
 g = sns.relplot(x='IBI pitch',y='bout frequency', data=jackknifed_y, 
                 kind='line',

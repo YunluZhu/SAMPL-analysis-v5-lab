@@ -39,7 +39,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Paste root directory here
-pick_data = 'hc4'
+pick_data = 'for_paper'
 root, FRAME_RATE = get_data_dir(pick_data)
 
 folder_name = f'{pick_data}_boutBySpd_durMean'
@@ -54,7 +54,7 @@ except:
     
 # BIN_NUM = 4
 peak_idx , total_aligned = get_index(FRAME_RATE)
-spd_bins = [3,9,15,21,27]
+spd_bins = np.arange(5,25,4)
 
 # %%
 # CONSTANTS
@@ -176,6 +176,18 @@ all_around_peak_data = all_around_peak_data.sort_values(by='condition').reset_in
 all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
 # mean_data_cond = mean_data_cond.reset_index().sort_values(by='condition').reset_index(drop=True)
 
+if pick_data == 'for_paper':
+    # all_cond2 = ['4dpf','7dpf','14dpf']
+    all_around_peak_data = all_around_peak_data.sort_values('condition'
+                            , key=lambda col: col.map(
+                                    {'4dpf':1,
+                                      '7dpf':2,
+                                      '14dpf':3}))
+    all_feature_cond = all_feature_cond.sort_values('condition'
+                            , key=lambda col: col.map(
+                                    {'4dpf':1,
+                                      '7dpf':2,
+                                      '14dpf':3}))
 # assign 
 # all_around_peak_data = all_around_peak_data.assign(
 #     pitch_dir = pd.cut(all_around_peak_data['pitch_peak'],[-180,0,180],labels=['neg_pitch','pos_pitch'])
@@ -184,6 +196,9 @@ all_feature_cond = all_feature_cond.assign(
     pitch_dir = pd.cut(all_feature_cond['pitch_peak'],[-180,0,180],labels=['neg_pitch','pos_pitch']),
     speed_bins = pd.cut(all_feature_cond['speed_peak'],spd_bins,labels=np.arange(len(spd_bins)-1)),
 )
+
+# %%
+average_speed = all_feature_cond.groupby('speed_bins')['speed_peak'].mean().values
 
 # %% Jackknife resampling
 cat_cols = ['condition','expNum','pitch_dir','speed_bins']

@@ -26,10 +26,10 @@ from plot_functions.get_IBIangles import get_IBIangles
 set_font_type()
 # %%
 # Paste root directory here
-pick_data = 'wt_daylight'
-which_zeitgeber = 'all'
-DAY_RESAMPLE = 500
-NIGHT_RESAMPLE = 300
+pick_data = 'for_paper'
+which_zeitgeber = 'day'
+DAY_RESAMPLE = 0
+NIGHT_RESAMPLE = 0
 
 # %%
 # ztime_dict = {}
@@ -134,6 +134,29 @@ jackknifed_std = pd.concat([jackknifed_day_std,jackknifed_night_std]).reset_inde
 IBI_std_cond = IBI_angles_cond.groupby(['ztime','dpf','condition','exp','expNum']).std().reset_index()
 IBI_std_day_resampled = IBI_angles_day_resampled.groupby(['ztime','dpf','condition','expNum']).std().reset_index()
 
+# %% ignore this
+if pick_data == 'for_paper':
+    cond2 = ['4dpf','7dpf','14dpf']
+    IBI_std_cond = IBI_std_cond.sort_values('condition'
+                            , key=lambda col: col.map(
+                                    {'4dpf':1,
+                                      '7dpf':2,
+                                      '14dpf':3}))
+    jackknifed_std = jackknifed_std.sort_values('condition'
+                            , key=lambda col: col.map(
+                                    {'4dpf':1,
+                                      '7dpf':2,
+                                      '14dpf':3}))
+    IBI_std_day_resampled = IBI_std_day_resampled.sort_values('condition'
+                            , key=lambda col: col.map(
+                                    {'4dpf':1,
+                                      '7dpf':2,
+                                      '14dpf':3}))
+    IBI_angles_cond = IBI_angles_cond.sort_values('condition'
+                            , key=lambda col: col.map(
+                                    {'4dpf':1,
+                                      '7dpf':2,
+                                      '14dpf':3}))
 # %%
 # plot kde of all
 g = sns.FacetGrid(IBI_angles_cond, 
@@ -168,13 +191,13 @@ if which_zeitgeber == 'all':
 # %%
 # std cond vs ctrl
 
-plt.close()
 g = sns.catplot(data=IBI_std_cond,
                 col='dpf',
                 row='ztime',
                 x='condition', y='IBI_pitch',
                 hue='condition',
-                ci=None, markers=['d','d'],
+                ci=None,
+                # markers=['d','d'],
                 kind='point',
                 aspect=.5
                 )

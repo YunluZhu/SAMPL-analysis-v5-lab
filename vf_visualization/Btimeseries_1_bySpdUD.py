@@ -24,7 +24,7 @@ set_font_type()
 # %%
 # Paste root directory here
 if_plot_by_speed = True
-pick_data = 'wt_daylight'
+pick_data = 'for_paper'
 root, FRAME_RATE= get_data_dir(pick_data)
 
 folder_name = f'B1_features_Tseries'

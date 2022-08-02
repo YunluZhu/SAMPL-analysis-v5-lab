@@ -34,9 +34,10 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'tau_long'
+pick_data = 'for_paper'
 root, FRAME_RATE = get_data_dir(pick_data)
-spd_bins = [5,10,15,20,25]
+spd_bins = np.arange(3,24,3)
+
 posture_bins = [-50,-20,-10,-5,0,5,10,15,20,25,50]
 
 folder_name = f'B4_bySpd_UD_features'
@@ -59,7 +60,8 @@ all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset
 
 all_feature_cond = all_feature_cond.assign(
     direction = pd.cut(all_feature_cond['pitch_initial'],[-80,10,80],labels=['dive','climb']),
-    speed_bins = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1)),
+    speed_bins = pd.cut(all_feature_cond['spd_peak'],bins=spd_bins,labels=np.arange(len(spd_bins)-1)),
+    # speed_bins = pd.cut(all_feature_cond['spd_peak'],bins=spd_bins,labels=np.arange(spd_bins)),
 )
 
 # %% Jackknife resampling
@@ -67,7 +69,13 @@ cat_cols = ['condition','expNum','direction','speed_bins','dpf']
 mean_data = all_feature_cond.groupby(cat_cols).mean().reset_index()
 mean_data_jackknife = mean_data.groupby(['condition','direction','speed_bins','dpf']).apply(
     lambda x: jackknife_mean(x)
- ).drop(columns=['dpf']).reset_index()
+ )
+try:
+    mean_data_jackknife = mean_data_jackknife.drop(columns=['dpf'])
+except:
+    pass
+
+mean_data_jackknife = mean_data_jackknife.reset_index()
 
 # calculate the excluded expNum for each jackknifed result
 max_exp = mean_data.expNum.max()
@@ -83,6 +91,15 @@ except:
 mean_data_jackknife.rename(columns={c:c+'_jack' for c in mean_data_jackknife.columns if c not in cat_cols},inplace=True)
 # %% mean
 # data to plot
+if pick_data == 'for_paper':
+    all_cond2 = ['4dpf','7dpf','14dpf']
+    mean_data_jackknife = mean_data_jackknife.sort_values('condition'
+                            , key=lambda col: col.map(
+                                    {'4dpf':1,
+                                      '7dpf':2,
+                                      '14dpf':3}))
+# for key,group in all_feature_cond.groupby()
+# average_speed = all_feature_cond.groupby('speed_bins')['spd_peak'].mean()
 
 # %% Compare Sibs & Tau
 toplt = mean_data_jackknife
@@ -113,6 +130,7 @@ for feature_toplt in tqdm(all_features):
 plt.close('all')
 
 # %% 
+# Plot with long format. as a function of speed. col = time duration
 toplt = mean_data_jackknife
 all_features = [c for c in toplt.columns if c not in cat_cols]
 

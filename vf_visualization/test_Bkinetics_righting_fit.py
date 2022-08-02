@@ -22,8 +22,8 @@ from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlott
 set_font_type()
 
 # %%
-pick_data = 'tau_long'
-which_zeitgeber = 'all'
+pick_data = 'sfld_combined'
+which_zeitgeber = 'day'
 # %%
 def sigmoid_fit(x_val, y_val, x_range_to_fit,func,**kwargs):
     # lower_bounds = [0.1,-20,-100,1]

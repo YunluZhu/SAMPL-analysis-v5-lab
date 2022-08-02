@@ -52,8 +52,27 @@ except:
 
 # %%
 all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond1, all_cond2 = get_bout_kinetics(root, FRAME_RATE, ztime=which_zeitgeber)
+all_cond1.sort()
+all_cond2.sort()
+# adjust condition order
+if pick_data == 'for_paper':
+    all_cond2 = ['4dpf','7dpf','14dpf']
+    kinetics_bySpd_jackknife = kinetics_bySpd_jackknife.sort_values('condition'
+                            , key=lambda col: col.map(
+                                    {'4dpf':1,
+                                      '7dpf':2,
+                                      '14dpf':3}))
+    kinetics_jackknife = kinetics_jackknife.sort_values('condition'
+                            , key=lambda col: col.map(
+                                    {'4dpf':1,
+                                      '7dpf':2,
+                                      '14dpf':3}))
+# %% calc speed bin averaged
 
 # %%
+sns.set_style("ticks")
+
+
 #plot ztime
 if which_zeitgeber == 'all':
     cat_cols = ['jackknife_group','condition','expNum','dpf','ztime']
@@ -77,13 +96,15 @@ toplt = kinetics_bySpd_jackknife
 cat_cols = ['jackknife_group','condition','expNum','dpf','ztime']
 all_features = [c for c in toplt.columns if c not in cat_cols]
 
+
+
 for feature_toplt in (all_features):
     g = sns.relplot(
         data = toplt,
         row = 'ztime',
         col = 'dpf',
         hue = 'condition',
-        x = 'speed_bins',
+        x = 'average_speed',
         y = feature_toplt,
         kind = 'line',
         marker = True,
@@ -111,21 +132,33 @@ cat_cols = ['jackknife_group','condition','expNum','dpf','ztime']
 all_features = [c for c in toplt.columns if c not in cat_cols]
 # print('plot jackknife data')
 
+
+
+
 for feature_toplt in (all_features):
     g = sns.catplot(
         data = toplt,
-        col = 'ztime',
+        row = 'ztime',
         hue = 'dpf',
         x = 'condition',
+        order=all_cond2,
         y = feature_toplt,
         kind = 'point',
         marker = True,
     )
-    
+    g.map(sns.lineplot,'condition',feature_toplt,estimator=None,
+      units='jackknife_group',
+      data = toplt,
+      sort=False,
+      color='grey',
+      alpha=0.2,)
+    g.add_legend()
+
+    sns.despine(offset=10, trim=True)
     filename = os.path.join(fig_dir,f"{feature_toplt}_z{which_zeitgeber}_byCondition.pdf")
     plt.savefig(filename,format='PDF')
 
-# # %% raw data. no jackknife
+# %% raw data. no jackknife
 # cat_cols = ['expNum','condition','dpf']
 
 # toplt = all_kinetic_cond

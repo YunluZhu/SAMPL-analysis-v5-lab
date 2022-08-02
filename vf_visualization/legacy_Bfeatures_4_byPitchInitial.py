@@ -33,7 +33,7 @@ mpl.rcParams['pdf.fonttype'] = 42
 mpl.rc('figure', max_open_warning = 0)
 
 # %%
-pick_data = 'tau_long'
+pick_data = 'sfld_combined'
 bin_by = 'pitch_initial'
 spd_bins = [3,7,13,18,25]
 posture_bins = [-50,-20,-10,-5,0,5,10,15,20,25,50]

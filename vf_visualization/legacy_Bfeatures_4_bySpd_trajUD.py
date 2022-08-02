@@ -34,7 +34,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'tau_long'
+pick_data = 'for_paper'
 root, FRAME_RATE = get_data_dir(pick_data)
 spd_bins = [5,10,15,20,25]
 posture_bins = [-50,-20,-10,-5,0,5,10,15,20,25,50]
@@ -67,8 +67,13 @@ cat_cols = ['condition','expNum','direction','speed_bins','dpf']
 mean_data = all_feature_cond.groupby(cat_cols).mean().reset_index()
 mean_data_jackknife = mean_data.groupby(['condition','direction','speed_bins','dpf']).apply(
     lambda x: jackknife_mean(x)
- ).drop(columns=['dpf']).reset_index()
+ )
+try:
+    mean_data_jackknife = mean_data_jackknife.drop(columns=['dpf'])
+except:
+    pass
 
+mean_data_jackknife = mean_data_jackknife.reset_index()
 # calculate the excluded expNum for each jackknifed result
 max_exp = mean_data.expNum.max()
 mean_data_jackknife['expNum'] = ((max_exp * (max_exp+1))/2 - max_exp * mean_data_jackknife['expNum']).astype(int)

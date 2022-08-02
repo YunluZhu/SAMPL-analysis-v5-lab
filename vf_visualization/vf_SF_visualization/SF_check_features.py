@@ -34,7 +34,7 @@ from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_
 set_font_type()
 # %%
 # Paste root directory here
-pick_data = 'sf'
+pick_data = 'sf_24h'
 root, FRAME_RATE = get_data_dir(pick_data)
 peak_idx, total_aligned = get_index(FRAME_RATE)
 
@@ -50,7 +50,7 @@ except:
 
 # %%
 MIN_DATA_SIZE = 20
-HIGH_DATA_SIZE = 300
+HIGH_DATA_SIZE = 120
 time50ms = int(0.05 * FRAME_RATE)
 time100ms = int(0.1 * FRAME_RATE)
 
@@ -140,7 +140,7 @@ for fish_idx, folder in enumerate(folder_paths):
         atk_ang = this_exp_features_day['traj'] - angles.loc[all_peak_idx-time50ms,'propBoutAligned_pitch'].values # new atk angles calculated using accel ang
         this_exp_features_day = this_exp_features_day.assign(
             atk_ang = atk_ang,
-            direction = pd.cut(this_exp_features_day['pitch_peak'],[-91,10,91],labels=['dive','climb']),
+            direction = pd.cut(this_exp_features_day['pitch_initial'],[-91,5,91],labels=['dive','climb']),
             fish_id = this_fish_id,
             clutch_id = clutch_id,
             )
@@ -274,6 +274,7 @@ for (this_clutch, this_direction), group in high_bout_data.groupby(['clutch_id',
     this_chg.loc[:,features] = (this_chg.loc[:,features]-this_sib_mean[features])/this_sib_mean[features]
     percent_chg = pd.concat([percent_chg, this_chg],ignore_index=True)
 
+
 # %%
 feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','bout_traj']
 
@@ -400,7 +401,7 @@ features = [
 ]
 
 data_toplt = high_bout_kinetics
-
+  
 sns.relplot(
     data=data_toplt,
     x='fish_id',
