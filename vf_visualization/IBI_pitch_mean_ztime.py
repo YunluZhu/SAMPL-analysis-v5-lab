@@ -135,6 +135,7 @@ IBI_std_cond = IBI_angles_cond.groupby(['ztime','dpf','condition','exp','expNum'
 IBI_std_day_resampled = IBI_angles_day_resampled.groupby(['ztime','dpf','condition','expNum']).std().reset_index()
 
 # %% ignore this
+
 if pick_data == 'for_paper':
     cond2 = ['4dpf','7dpf','14dpf']
     IBI_std_cond = IBI_std_cond.sort_values('condition'
@@ -164,8 +165,7 @@ g = sns.FacetGrid(IBI_angles_cond,
                   col='dpf', col_order=cond1,
                   hue='condition', hue_order=cond2,
                   )
-g.map(sns.kdeplot, "IBI_pitch",alpha=0.5,
-      )
+g.map(sns.kdeplot, "IBI_pitch",alpha=0.5,)
 g.add_legend()
 filename = os.path.join(fig_dir,"IBI pitch kde.pdf")
 plt.savefig(filename,format='PDF')

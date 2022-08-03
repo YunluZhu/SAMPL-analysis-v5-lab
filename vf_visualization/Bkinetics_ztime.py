@@ -29,9 +29,9 @@ from plot_functions.get_bout_kinetics import get_bout_kinetics
 set_font_type()
 defaultPlotting()
 # %%
-pick_data = 'wt_daylight' # all or specific data
+pick_data = 'tmp' # all or specific data
 # for day night split
-which_zeitgeber = 'all'
+which_zeitgeber = 'day'
 
 # %%
 # def main(pick_data):

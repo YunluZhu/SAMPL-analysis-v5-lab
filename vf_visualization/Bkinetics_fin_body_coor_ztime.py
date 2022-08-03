@@ -22,7 +22,7 @@ set_font_type()
 
 # %%
 pick_data = 'wt_daylight'
-which_zeitgeber = 'day'
+which_zeitgeber = 'day' # day / night / all
 
 # %%
 def sigmoid_fit(df, x_range_to_fit,func,**kwargs):

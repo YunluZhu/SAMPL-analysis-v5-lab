@@ -35,7 +35,7 @@ except:
     
 peak_idx , total_aligned = get_index(FRAME_RATE)
 idxRANGE = [peak_idx-int(0.3*FRAME_RATE),peak_idx+int(0.2*FRAME_RATE)]
-spd_bins = np.arange(5,29,4)
+spd_bins = np.arange(5,25,4)
 
 # %% features for plotting
 all_features = [
@@ -190,30 +190,35 @@ all_around_peak_data = all_around_peak_data.assign(
 
 # %%
 # correlation with pre bout pitch
+# which to corr
+which_to_corr = 'initial_pitch' # initial_pitch or pre_bout_angle
 cat_cols = ['speed_bin','condition','initial_posture']
 # cat_cols = ['condition','initial_posture']
 grp_cols = cat_cols + ['time_ms']
 
 corr_angvel = all_around_peak_data.groupby(grp_cols).apply(
-    lambda y: stats.pearsonr(y['pre_bout_angle'].values,y['propBoutAligned_angVel'].values)[0]
+    lambda y: stats.pearsonr(y[which_to_corr].values,y['propBoutAligned_angVel'].values)[0]
 )
 corr_angvel.name = 'corr'
 corr_angvel = corr_angvel.reset_index()
 
+# %%
+palette = sns.color_palette("mako_r", 4)
+
 g = sns.relplot(
     col='condition',
-    # row='initial_posture',
-    col_order=['4dpf','7dpf','14dpf'],
+    row='initial_posture',
     # hue_order=[0,2,4],
-    # hue='speed_bin',
+    hue='speed_bin',
+    # size='speed_bin', size_order=[3,2,1,0],
+
     x='time_ms',y='corr',
     data=corr_angvel,
     kind='line',
-    palette="flare", 
-    # hue_norm=mpl.colors.LogNorm()
+    palette=palette, 
     )
-g.set(xlim=(-100,200))
-plt.savefig(fig_dir+f"/3.pdf",format='PDF')
+g.set(xlim=(-250,200))
+plt.savefig(fig_dir+f"/{which_to_corr}_by spd and dir.pdf",format='PDF')
 
 # %%
 cat_cols = ['condition','initial_posture']
@@ -227,7 +232,6 @@ corr_angvel = corr_angvel.reset_index()
 
 g = sns.relplot(
     row='initial_posture',
-    hue_order=['4dpf','7dpf','14dpf'],
     hue='condition',
     x='time_ms',y='corr',
     data=corr_angvel,
