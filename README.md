@@ -22,6 +22,7 @@ Run `vf_analysis/vf_analysis_....py` to analyze .dlm files. Then, run individual
 
 - a table describing parameters
 - streamline IBI timing scripts
+- change condition names to cond1 and cond2 from dpf/condition
 
 ## Prerequisites and tips
 
