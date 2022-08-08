@@ -7,7 +7,7 @@ def set_font_type():
     mpl.rcParams['pdf.fonttype'] = 42
     
 def defaultPlotting(): 
-    sns.set(rc={"xtick.labelsize":'medium',"ytick.labelsize":'medium', "axes.labelsize":'medium'},style="whitegrid")
+    sns.set(rc={"xtick.labelsize":16,"ytick.labelsize":16, "axes.labelsize":18},style="ticks")
 
 def jackknife_list(ori_list):
     matrix = np.tile(ori_list,(len(ori_list),1))
