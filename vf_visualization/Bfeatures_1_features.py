@@ -31,8 +31,8 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'sfld_combined'
-which_ztime = 'all'
+pick_data = 'wt_fin'
+which_ztime = 'day'
 DAY_RESAMPLE = 0
 
 

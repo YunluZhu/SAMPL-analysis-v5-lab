@@ -68,6 +68,9 @@ all_feature_UD = all_feature_cond.assign(
                        bins=[-51,10,91],labels=['dn','up']),
     speed_bins = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1)),
 )
+
+all_feature_UD = all_feature_UD.dropna().reset_index(drop=True)
+
 # for key, group in all_feature_cond.groupby(['dpf']):
 #     this_setvalue = all_kinetics.loc[all_kinetics['dpf']==key,'set_point'].to_list()[0]
 #     print(this_setvalue)

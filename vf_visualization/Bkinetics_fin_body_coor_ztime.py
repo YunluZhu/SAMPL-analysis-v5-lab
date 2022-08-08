@@ -19,9 +19,9 @@ from plot_functions.get_bout_features import get_bout_features
 from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlotting,distribution_binned_average)
 
 set_font_type()
-
+defaultPlotting()
 # %%
-pick_data = 'wt_daylight'
+pick_data = 'wt_fin'
 which_zeitgeber = 'day' # day / night / all
 
 # %%
@@ -131,7 +131,8 @@ all_coef = all_coef.reset_index(drop=True)
 all_ztime = list(set(all_coef['ztime']))
 all_ztime.sort()
 # %%
-plt.close()
+# plt.close()
+plt.figure()
 
 g = sns.relplot(x='Pre-bout rotation',y='Attack angle', data=all_y, 
                 kind='line',
@@ -151,12 +152,12 @@ for i , g_row in enumerate(g.axes):
 filename = os.path.join(fig_dir,"attack angle vs pre-bout rotation.pdf")
 plt.savefig(filename,format='PDF')
 
-plt.show()
+# plt.show()
 
 # %%
 # plot slope
-plt.close()
-
+# plt.close()
+plt.figure()
 p = sns.catplot(
     data = all_coef, y='slope',x='dpf',kind='point',join=False,
     col_order=all_cond1,ci='sd',
@@ -173,5 +174,5 @@ p.map(sns.lineplot,'dpf','slope',estimator=None,
 filename = os.path.join(fig_dir,"fin-body coordination slope.pdf")
 plt.savefig(filename,format='PDF')
 
-plt.show()
+# plt.show()
 # %%

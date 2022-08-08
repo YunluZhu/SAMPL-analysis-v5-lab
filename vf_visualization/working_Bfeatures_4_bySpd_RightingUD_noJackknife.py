@@ -34,13 +34,13 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'wt_fin'
+pick_data = 'tau_long'
 root, FRAME_RATE = get_data_dir(pick_data)
 spd_bins = np.arange(4,24,4)
 
 posture_bins = [-50,-20,-10,-5,0,5,10,15,20,25,50]
 
-folder_name = f'B4_bySpd_UD_noJackknife'
+folder_name = f'B4_bySpd_RightingUD_noJackknife'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -59,7 +59,7 @@ all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset
 
 
 all_feature_cond = all_feature_cond.assign(
-    direction = pd.cut(all_feature_cond['pitch_initial'],[-80,10,80],labels=['dive','climb']),
+    direction = pd.cut(all_feature_cond['rot_l_accel'],[-90,0,90],labels=['dive','climb']),
     speed_bins = pd.cut(all_feature_cond['spd_peak'],bins=spd_bins,labels=np.arange(len(spd_bins)-1)),
     # speed_bins = pd.cut(all_feature_cond['spd_peak'],bins=spd_bins,labels=np.arange(spd_bins)),
 )

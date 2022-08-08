@@ -21,13 +21,22 @@ set_font_type()
 defaultPlotting()
 mpl.rc('figure', max_open_warning = 0)
 
+colors = ["#28e5ab", "#29c4cc", "#2e7acc", "#cc23bc"]
+sns.set_palette(sns.color_palette())
+my_palette = sns.color_palette(colors)
+
+
 # %%
 # Select data and create figure folder
 pick_data = 'tau_long'
 which_ztime = 'day'
 root, FRAME_RATE = get_data_dir(pick_data)
+# rot_bins = np.arange(-6,9,3)
+rot_bins = [-6,0,8]
 
-folder_name = f'why_faster_more_righting'
+spd_bins = np.arange(4,24,4)
+
+folder_name = f'why_faster_more_righting 2 decel_rotation'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -56,15 +65,14 @@ all_kinetics = all_feature_cond.groupby(['condition']).apply(
                         ).reset_index()
 # %%
 # assign up and down
-# pitch_bins = np.arange(-20,42,12)
-pitch_bins = [-20,-8,-2,4,10,16,28,40]
-spd_bins = np.arange(5,25,4)
-all_mid_angles = (np.add(pitch_bins[:-1],pitch_bins[1:]))/2
+# rot_bins = np.arange(-20,42,12)
+
+all_mid_angles = (np.add(rot_bins[:-1],rot_bins[1:]))/2
 
 all_feature_UD = pd.DataFrame()
 all_feature_UD = all_feature_cond.assign(
-    pre_bout_bins = pd.cut(all_feature_cond['pitch_pre_bout'],pitch_bins,labels=np.arange(len(pitch_bins)-1)),
-    initial_bins = pd.cut(all_feature_cond['pitch_initial'],pitch_bins,labels=np.arange(len(pitch_bins)-1)),
+    # pre_bout_bins = pd.cut(all_feature_cond['pitch_pre_bout'],rot_bins,labels=np.arange(len(rot_bins)-1)),
+    rightingRot_bins = pd.cut(all_feature_cond['rot_l_decel'],rot_bins,labels=np.arange(len(rot_bins)-1)),
     speed_bins = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1)),
 )
 if all_feature_UD.groupby(['speed_bins','condition']).size().min() < 20:
@@ -80,30 +88,31 @@ df_kinetics = df_kinetics.assign(type='original')
 
 # %%
 # what are the ratio of pre-pitch bins  in different speed bins?
-pitchbin_count = all_feature_UD.groupby(['speed_bins','initial_bins','condition']).size()
-pitchbin_count = pitchbin_count.reset_index()
-pitchbin_count.columns = ['speed_bins','initial_bins','condition','count']
-total_bins = list(set(pitchbin_count['initial_bins'].values))
-pitchbin_count = pitchbin_count.sort_values(by=['condition','speed_bins','initial_bins']).reset_index(drop=True)
+rotbin_count = all_feature_UD.groupby(['speed_bins','rightingRot_bins','condition']).size()
+rotbin_count = rotbin_count.reset_index()
+rotbin_count.columns = ['speed_bins','rightingRot_bins','condition','count']
+total_bins = list(set(rotbin_count['rightingRot_bins'].values))
+rotbin_count = rotbin_count.sort_values(by=['condition','speed_bins','rightingRot_bins']).reset_index(drop=True)
 
-pitchbin_count = pitchbin_count.assign(
-    total = pitchbin_count.groupby(['speed_bins','condition'])['count'].cumsum()
+rotbin_count = rotbin_count.assign(
+    total = rotbin_count.groupby(['speed_bins','condition'])['count'].cumsum()
 )
-total = pitchbin_count.groupby(['speed_bins','condition'])['total'].max()
+total = rotbin_count.groupby(['speed_bins','condition'])['total'].max()
 total = total.reset_index().sort_values(by=['condition','speed_bins'])
-pitchbin_count['total'] = np.repeat(total['total'],len(total_bins)).values
-pitchbin_count['Initial angle'] = all_mid_angles[0:len(spd_bins)+2].tolist() * len(pitchbin_count.groupby(['speed_bins','condition']).size())
-pitchbin_count = pitchbin_count.assign(
-    percent = pitchbin_count['count'] / pitchbin_count['total']
+rotbin_count['total'] = np.repeat(total['total'],len(total_bins)).values
+rotbin_count['righting rotation'] = all_mid_angles[0:len(spd_bins)+2].tolist() * len(rotbin_count.groupby(['speed_bins','condition']).size())
+rotbin_count = rotbin_count.assign(
+    percent = rotbin_count['count'] / rotbin_count['total']
 )
 
 # %%
 plt.figure()
-sns.relplot(data=pitchbin_count,
+sns.catplot(data=rotbin_count,
             col='condition',
-            kind='line',
-             x='Initial angle',
+            kind='bar',
+             x='righting rotation',
              y='percent',
+             palette = my_palette,
              hue='speed_bins')
 filename = os.path.join(fig_dir,f"byInitialBins_percentage_spd.pdf")
 plt.savefig(filename,format='PDF')
@@ -113,7 +122,7 @@ plt.figure()
 sns.relplot(data=all_feature_UD,
             col='condition',
             kind='line',
-             x='initial_bins',
+             x='rightingRot_bins',
              y='spd_peak',
             #  hue='speed_bins'
              )
@@ -126,14 +135,14 @@ artificial_kinetics_byPreBout = pd.DataFrame()
 artificial_bouts = pd.DataFrame()
 for i in ['try1','try2','try3']:
     artificial_df = pd.DataFrame()
-    for idx, row in pitchbin_count.iterrows():
-        which_bin = row['initial_bins']
+    for idx, row in rotbin_count.iterrows():
+        which_bin = row['rightingRot_bins']
         total = row['total']
         count = row['count']
         this_df = row['count']
         cond = row['condition']
         sel_bouts = all_feature_UD.loc[
-            (all_feature_UD['initial_bins']==which_bin) & (all_feature_UD['condition']==cond)
+            (all_feature_UD['rightingRot_bins']==which_bin) & (all_feature_UD['condition']==cond)
             ].sample(n=int(count))
         artificial_df = pd.concat(
             [artificial_df,sel_bouts]
@@ -151,7 +160,6 @@ for i in ['try1','try2','try3']:
         type = i,
     )
     artificial_bouts = pd.concat([artificial_bouts,artificial_df])
-# %%
 all_feature_UD = all_feature_UD.assign(type = 'original')
 bouts_combined = pd.concat([artificial_bouts,all_feature_UD]).reset_index(drop=True)
 kinetics_toplt = pd.concat([artificial_kinetics_byPreBout,df_kinetics]).reset_index(drop=True)
@@ -166,6 +174,7 @@ for feature_toplt in (all_features):
         col='condition',
         data = toplt,
         hue = 'type',
+        palette = my_palette,
         x = 'speed_bins',
         y = feature_toplt,
         kind = 'line',
@@ -180,8 +189,9 @@ plt.figure()
 sns.relplot(data=bouts_combined,
             col='condition',
             hue='type',
+            palette = my_palette,
             kind='line',
-             x='initial_bins',
+             x='rightingRot_bins',
              y='spd_peak',
             #  hue='speed_bins'
              )

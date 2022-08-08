@@ -29,7 +29,7 @@ from plot_functions.get_bout_kinetics import get_bout_kinetics
 set_font_type()
 defaultPlotting()
 # %%
-pick_data = 'tmp' # all or specific data
+pick_data = 'tau_long' # all or specific data
 # for day night split
 which_zeitgeber = 'day'
 
@@ -55,19 +55,6 @@ all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond1, all_c
 all_cond1.sort()
 all_cond2.sort()
 # adjust condition order
-if pick_data == 'for_paper':
-    all_cond2 = ['4dpf','7dpf','14dpf']
-    kinetics_bySpd_jackknife = kinetics_bySpd_jackknife.sort_values('condition'
-                            , key=lambda col: col.map(
-                                    {'4dpf':1,
-                                      '7dpf':2,
-                                      '14dpf':3}))
-    kinetics_jackknife = kinetics_jackknife.sort_values('condition'
-                            , key=lambda col: col.map(
-                                    {'4dpf':1,
-                                      '7dpf':2,
-                                      '14dpf':3}))
-# %% calc speed bin averaged
 
 # %%
 sns.set_style("ticks")
@@ -95,8 +82,6 @@ if which_zeitgeber == 'all':
 toplt = kinetics_bySpd_jackknife
 cat_cols = ['jackknife_group','condition','expNum','dpf','ztime']
 all_features = [c for c in toplt.columns if c not in cat_cols]
-
-
 
 for feature_toplt in (all_features):
     g = sns.relplot(
@@ -132,9 +117,6 @@ cat_cols = ['jackknife_group','condition','expNum','dpf','ztime']
 all_features = [c for c in toplt.columns if c not in cat_cols]
 # print('plot jackknife data')
 
-
-
-
 for feature_toplt in (all_features):
     g = sns.catplot(
         data = toplt,
@@ -148,6 +130,7 @@ for feature_toplt in (all_features):
     )
     g.map(sns.lineplot,'condition',feature_toplt,estimator=None,
       units='jackknife_group',
+      hue = 'dpf',
       data = toplt,
       sort=False,
       color='grey',

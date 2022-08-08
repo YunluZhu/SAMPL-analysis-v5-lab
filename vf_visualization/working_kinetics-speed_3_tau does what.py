@@ -27,7 +27,7 @@ pick_data = 'tau_long'
 which_ztime = 'day'
 root, FRAME_RATE = get_data_dir(pick_data)
 
-folder_name = f'why_faster_more_righting'
+folder_name = f'speed-righting 3 tau does what'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -189,4 +189,19 @@ filename = os.path.join(fig_dir,f"artificial_byInitialBins_raw_speed_as_pitch.pd
 plt.savefig(filename,format='PDF')
 
 # %%
-# so faster more positive pitches. What about decel rotation
+# so speed is the samme. WTF is with the righting gain at 4dpf? 
+# check decel rotation next
+# maybe 2D distribution plt first?
+
+toplt = bouts_combined.loc[bouts_combined['condition']=='07dpf']
+g = sns.displot(
+    data = toplt,
+    col='speed_bins',
+    row='type',
+    x = 'pitch_pre_bout',y = 'rot_l_decel',
+)
+g.add_legend()
+filename = os.path.join(fig_dir,f"artificial_byInitialBins_raw_speed_as_pitch.pdf")
+plt.savefig(filename,format='PDF')
+
+# %%

@@ -27,7 +27,7 @@ from plot_functions.get_IBIangles import get_IBIangles
 
 set_font_type()
 # %%
-pick_data = 'for_paper'
+pick_data = 'wt_fin'
 which_ztime = 'day'
 
 RESAMPLE = 0  # how many bouts to take per  exp/ztime/condition

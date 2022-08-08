@@ -28,8 +28,8 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'for_paper'
-which_ztime = 'day'
+pick_data = 'wt_fin'
+which_ztime = 'all'
 root, FRAME_RATE = get_data_dir(pick_data)
 
 folder_name = f'B3_feature_distribution_z{which_ztime}'
@@ -361,7 +361,7 @@ g = sns.displot(data=toplt,
                 x='propBoutIEI_pitch',y='y_boutFreq',
                 col="dpf", row="condition",col_order=all_cond1,hue='condition')
 g.set(xlim=(-20, 40),ylim=(0,4))
-plt.savefig(fig_dir+"IEI freq pitch.pdf",format='PDF')
+plt.savefig(fig_dir+"/IEI freq pitch.pdf",format='PDF')
 
 # %%
 

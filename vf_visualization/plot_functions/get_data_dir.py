@@ -46,6 +46,9 @@ def get_data_dir(pick_data):
     elif pick_data == 'wt_daylight':
         root = '/Volumes/LabData/VF_data_in_use/wt_daylight/organized'
         fr = 166
+    elif pick_data == 'wt_fin':
+        root = "/Volumes/LabData/VF_data_in_use/wt_daylight_finless"
+        fr = 166
     elif pick_data == 'tau_bkg':
         root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Tau background/_analyzed'
         fr = 166
@@ -57,7 +60,9 @@ def get_data_dir(pick_data):
     elif pick_data == 'for_paper':
         root = "/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana"
         fr = 166
-        
+    elif pick_data == 'pc_lesion':
+        root = "/Volumes/LabData/VF_FA_PCLesion/YZ_code"
+        fr = 40    
     elif pick_data == 'tmp':
         root = input("Dir? ")
         fr = int(input("Frame rate? "))

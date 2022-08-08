@@ -26,9 +26,9 @@ from plot_functions.get_IBIangles import get_IBIangles
 set_font_type()
 # %%
 # Paste root directory here
-pick_data = 'for_paper'
+pick_data = 'wt_fin'
 which_zeitgeber = 'day'
-DAY_RESAMPLE = 0
+DAY_RESAMPLE = 350
 NIGHT_RESAMPLE = 0
 
 # %%
@@ -136,28 +136,6 @@ IBI_std_day_resampled = IBI_angles_day_resampled.groupby(['ztime','dpf','conditi
 
 # %% ignore this
 
-if pick_data == 'for_paper':
-    cond2 = ['4dpf','7dpf','14dpf']
-    IBI_std_cond = IBI_std_cond.sort_values('condition'
-                            , key=lambda col: col.map(
-                                    {'4dpf':1,
-                                      '7dpf':2,
-                                      '14dpf':3}))
-    jackknifed_std = jackknifed_std.sort_values('condition'
-                            , key=lambda col: col.map(
-                                    {'4dpf':1,
-                                      '7dpf':2,
-                                      '14dpf':3}))
-    IBI_std_day_resampled = IBI_std_day_resampled.sort_values('condition'
-                            , key=lambda col: col.map(
-                                    {'4dpf':1,
-                                      '7dpf':2,
-                                      '14dpf':3}))
-    IBI_angles_cond = IBI_angles_cond.sort_values('condition'
-                            , key=lambda col: col.map(
-                                    {'4dpf':1,
-                                      '7dpf':2,
-                                      '14dpf':3}))
 # %%
 # plot kde of all
 g = sns.FacetGrid(IBI_angles_cond, 

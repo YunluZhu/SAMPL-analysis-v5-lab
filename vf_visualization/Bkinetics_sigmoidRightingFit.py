@@ -17,12 +17,12 @@ from astropy.stats import jackknife_resampling
 from scipy.optimize import curve_fit
 from plot_functions.get_data_dir import (get_data_dir,get_figure_dir)
 from plot_functions.get_bout_features import get_bout_features
-from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlotting,distribution_binned_average)
+from plot_functions.plt_tools import (jackknife_mean, set_font_type, defaultPlotting, distribution_binned_average)
 
 set_font_type()
-
+# defaultPlotting()
 # %%
-pick_data = 'sfld_combined'
+pick_data = 'wt_fin'
 which_zeitgeber = 'day'
 # %%
 def sigmoid_fit(x_val, y_val, x_range_to_fit,func,**kwargs):
@@ -73,7 +73,7 @@ X_RANGE = np.arange(-5,8.01,0.01)
 BIN_WIDTH = 0.3
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
-folder_name = f'B_righting_fit_z{which_zeitgeber}'
+folder_name = f'B_righting_sigFit_z{which_zeitgeber}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -104,10 +104,10 @@ for (cond_abla,cond_dpf), for_fit in df_tofit.groupby(['condition','dpf']):
     for excluded_exp, idx_group in enumerate(jackknife_idx):
         this_for_fit = for_fit.loc[for_fit['expNum'].isin(idx_group)]
         coef, fitted_y, sigma = sigmoid_fit(
-            this_for_fit['rot_l_decel'],this_for_fit['pitch_prep_phase'], X_RANGE, func=sigfunc_4free
+            this_for_fit['rot_l_decel'],this_for_fit['pitch_pre_bout'], X_RANGE, func=sigfunc_4free
         )
         slope = coef.iloc[0,0]*(coef.iloc[0,3]) / 4
-        fitted_y.columns = ['prep pitch','decel rotation']
+        fitted_y.columns = ['pre_bout pitch','decel rotation']
         all_y = pd.concat([all_y, fitted_y.assign(
             dpf=cond_dpf,
             condition=cond_abla,
@@ -121,8 +121,8 @@ for (cond_abla,cond_dpf), for_fit in df_tofit.groupby(['condition','dpf']):
             excluded_exp = excluded_exp,
             ztime=which_zeitgeber,
             )])
-    binned_df = distribution_binned_average(for_fit,by_col='rot_l_decel',bin_col='pitch_prep_phase',bin=AVERAGE_BIN)
-    binned_df.columns=['decel rotation','prep pitch']
+    binned_df = distribution_binned_average(for_fit,by_col='rot_l_decel',bin_col='pitch_pre_bout',bin=AVERAGE_BIN)
+    binned_df.columns=['decel rotation','pre_bout pitch']
     all_binned_average = pd.concat([all_binned_average,binned_df.assign(
         dpf=cond_dpf,
         condition=cond_abla,
@@ -135,9 +135,10 @@ all_coef = all_coef.reset_index(drop=True)
 all_ztime = list(set(all_coef['ztime']))
 all_ztime.sort()
 # %%
-plt.close()
+# plot sigmoid
+plt.figure()
 
-g = sns.relplot(x='decel rotation',y='prep pitch', data=all_y, 
+g = sns.relplot(x='decel rotation',y='pre_bout pitch', data=all_y, 
                 kind='line',
                 col='dpf', col_order=all_cond1,
                 row = 'ztime', row_order=all_ztime,
@@ -148,13 +149,33 @@ for i , g_row in enumerate(g.axes):
         sns.lineplot(data=all_binned_average.loc[
             (all_binned_average['dpf']==all_cond1[j]) & (all_binned_average['ztime']==all_ztime[i]),:
                 ], 
-                    x='decel rotation', y='prep pitch', 
+                    x='decel rotation', y='pre_bout pitch', 
                     hue='condition',alpha=0.5,
                     ax=ax)
     
-filename = os.path.join(fig_dir,"pre pitch vs decel rotation.pdf")
+filename = os.path.join(fig_dir,"pre_bout pitch VS decel rotation.pdf")
 plt.savefig(filename,format='PDF')
 
+plt.figure()
+
+g = sns.relplot(x='decel rotation',y='pre_bout pitch', data=all_y, 
+                kind='line',
+                col='condition', col_order=all_cond2,
+                row = 'ztime', row_order=all_ztime,
+                hue='dpf', hue_order = all_cond1, 
+                ci='sd',
+                )
+for i , g_row in enumerate(g.axes):
+    for j, ax in enumerate(g_row):
+        sns.lineplot(data=all_binned_average.loc[
+            (all_binned_average['condition']==all_cond2[j]) & (all_binned_average['ztime']==all_ztime[i]),:
+                ], 
+                    x='decel rotation', y='pre_bout pitch', 
+                    hue='dpf',alpha=0.5,
+                    ax=ax)
+    
+filename = os.path.join(fig_dir,"pre_bout pitch VS decel rotation by cond1.pdf")
+plt.savefig(filename,format='PDF')
 # %%
 # plot coefs
 plt.close()
@@ -193,7 +214,7 @@ for feature in ['upper','lower','x_off','growth','gain','slope']:
         # units=excluded_exp,
         hue='condition', 
         hue_order = all_cond2,
-        aspect=.4,
+        aspect=0.2*len(all_cond2),
     )
     p.map(sns.lineplot,'condition',feature,estimator=None,
         units='excluded_exp',

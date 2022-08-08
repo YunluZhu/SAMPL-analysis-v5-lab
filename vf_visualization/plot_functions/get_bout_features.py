@@ -131,6 +131,7 @@ def get_bout_features(root, FRAME_RATE,**kwargs):
             if subdir_list:
                 # reset for each condition
                 bout_features = pd.DataFrame()
+                subdir_list.sort()
                 # loop through each sub-folder (experiment) under each condition
                 for expNum, exp in enumerate(subdir_list):
                     # angular velocity (angVel) calculation
@@ -143,7 +144,8 @@ def get_bout_features(root, FRAME_RATE,**kwargs):
                     exp_data = exp_data.assign(ang_speed=exp_data['propBoutAligned_angVel'].abs())
                     # assign frame number, total_aligned frames per bout
                     exp_data = exp_data.assign(idx=int(len(exp_data)/total_aligned)*list(range(0,total_aligned)),
-                                               expNum = expNum)
+                                               expNum = expNum,
+                                               exp=exp)
                     # - get the index of the rows in exp_data to keep (for each bout, there are range(0:51) frames. keep range(20:41) frames)
                     bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,'aligned_time']
                     

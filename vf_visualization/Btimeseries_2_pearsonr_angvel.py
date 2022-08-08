@@ -20,7 +20,7 @@ set_font_type()
 # %%
 # Paste root directory here
 # if_plot_by_speed = True
-pick_data = 'for_paper'
+pick_data = 'wt_fin'
 root, FRAME_RATE= get_data_dir(pick_data)
 
 folder_name = f'corr_timed'
@@ -191,55 +191,79 @@ all_around_peak_data = all_around_peak_data.assign(
 # %%
 # correlation with pre bout pitch
 # which to corr
-which_to_corr = 'initial_pitch' # initial_pitch or pre_bout_angle
-cat_cols = ['speed_bin','condition','initial_posture']
-# cat_cols = ['condition','initial_posture']
-grp_cols = cat_cols + ['time_ms']
+# which_to_corr = 'initial_pitch' # initial_pitch or pre_bout_angle
+for which_to_corr in ['initial_pitch', 'pre_bout_angle']:
+    cat_cols = ['speed_bin','condition','initial_posture','dpf']
+    # cat_cols = ['condition','initial_posture']
+    grp_cols = cat_cols + ['time_ms']
 
-corr_angvel = all_around_peak_data.groupby(grp_cols).apply(
-    lambda y: stats.pearsonr(y[which_to_corr].values,y['propBoutAligned_angVel'].values)[0]
-)
-corr_angvel.name = 'corr'
-corr_angvel = corr_angvel.reset_index()
-
-# %%
-palette = sns.color_palette("mako_r", 4)
-
-g = sns.relplot(
-    col='condition',
-    row='initial_posture',
-    # hue_order=[0,2,4],
-    hue='speed_bin',
-    # size='speed_bin', size_order=[3,2,1,0],
-
-    x='time_ms',y='corr',
-    data=corr_angvel,
-    kind='line',
-    palette=palette, 
+    corr_angvel = all_around_peak_data.groupby(grp_cols).apply(
+        lambda y: stats.pearsonr(y[which_to_corr].values,y['propBoutAligned_angVel'].values)[0]
     )
-g.set(xlim=(-250,200))
-plt.savefig(fig_dir+f"/{which_to_corr}_by spd and dir.pdf",format='PDF')
+    corr_angvel.name = 'corr'
+    corr_angvel = corr_angvel.reset_index()
 
-# %%
-cat_cols = ['condition','initial_posture']
-grp_cols = cat_cols + ['time_ms']
+    palette = sns.color_palette("mako_r", 4)
 
-corr_angvel = all_around_peak_data.groupby(grp_cols).apply(
-    lambda y: stats.pearsonr(y['pre_bout_angle'].values,y['propBoutAligned_angVel'].values)[0]
-)
-corr_angvel.name = 'corr'
-corr_angvel = corr_angvel.reset_index()
+    g = sns.relplot(
+        style='condition',
+        row='initial_posture',
+        # hue_order=[0,2,4],
+        hue='speed_bin',
+        col='dpf',
+        # size='speed_bin', size_order=[3,2,1,0],
 
-g = sns.relplot(
-    row='initial_posture',
-    hue='condition',
-    x='time_ms',y='corr',
-    data=corr_angvel,
-    kind='line',
-    # palette="flare", 
-    # hue_norm=mpl.colors.LogNorm()
+        x='time_ms',y='corr',
+        data=corr_angvel,
+        kind='line',
+        palette=palette, 
+        )
+    g.set(xlim=(-200,200))
+    plt.savefig(fig_dir+f"/{which_to_corr}_by dir and spd.pdf",format='PDF')
+
+    # %%
+    cat_cols = ['condition','initial_posture','dpf']
+    grp_cols = cat_cols + ['time_ms']
+
+    corr_angvel = all_around_peak_data.groupby(grp_cols).apply(
+        lambda y: stats.pearsonr(y['pre_bout_angle'].values,y['propBoutAligned_angVel'].values)[0]
     )
-g.set(xlim=(-100,200))
-plt.savefig(fig_dir+f"/2.pdf",format='PDF')
+    corr_angvel.name = 'corr'
+    corr_angvel = corr_angvel.reset_index()
 
+    g = sns.relplot(
+        row='initial_posture',
+        col='dpf',
+        hue='condition',
+        x='time_ms',y='corr',
+        data=corr_angvel,
+        kind='line',
+        # palette="flare", 
+        # hue_norm=mpl.colors.LogNorm()
+        )
+    g.set(xlim=(-200,200))
+    plt.savefig(fig_dir+f"/{which_to_corr}_by dir and cond.pdf",format='PDF')
+
+    # %%
+    # ignore dir
+    cat_cols = ['condition','dpf']
+    grp_cols = cat_cols + ['time_ms']
+
+    corr_angvel = all_around_peak_data.groupby(grp_cols).apply(
+        lambda y: stats.pearsonr(y['pre_bout_angle'].values,y['propBoutAligned_angVel'].values)[0]
+    )
+    corr_angvel.name = 'corr'
+    corr_angvel = corr_angvel.reset_index()
+
+    g = sns.relplot(
+        hue='condition',
+        x='time_ms',y='corr',
+        data=corr_angvel,
+        kind='line',
+        col='dpf',
+        # palette="flare", 
+        # hue_norm=mpl.colors.LogNorm()
+        )
+    g.set(xlim=(-200,200))
+    plt.savefig(fig_dir+f"/{which_to_corr}_by cond.pdf",format='PDF')
 # %%
