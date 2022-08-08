@@ -177,7 +177,8 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
     ana.insert(1,
         'absTime', start_time + pd.to_timedelta(raw_truncate['time'].values, unit=('s'))
     )
-
+    
+    ana = ana.loc[ana['deltaT']>0]  # V4.2 update for old data
     # Calculate coordinates
     #   dataframe subduction is faster than cumulative difference. 
     #   Use .values to convert into arrays to further speed up

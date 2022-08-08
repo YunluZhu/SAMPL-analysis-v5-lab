@@ -31,6 +31,7 @@ def main(root,frame_rate):
             
         for path, dir_list, file_list in all_folders: # look for dlm in all subfolders
             # loop through each subfolder
+            dir_list.sort()
             for folder_name in dir_list:
                 # get the folder dir by joining path and subfolder name 
                 folder = os.path.join(path, folder_name)        
