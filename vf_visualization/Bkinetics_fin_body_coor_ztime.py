@@ -19,9 +19,9 @@ from plot_functions.get_bout_features import get_bout_features
 from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlotting,distribution_binned_average)
 
 set_font_type()
-defaultPlotting()
+defaultPlotting(size=16)
 # %%
-pick_data = 'wt_fin'
+pick_data = 'tau_bkg'
 which_zeitgeber = 'day' # day / night / all
 
 # %%
@@ -127,7 +127,8 @@ for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['condi
     
 all_y = all_y.reset_index(drop=True)
 all_coef = all_coef.reset_index(drop=True)
-
+all_coef.columns=['k','xval','min','height',
+                  'slope','dpf','condition','excluded_exp','ztime']
 all_ztime = list(set(all_coef['ztime']))
 all_ztime.sort()
 # %%
@@ -157,6 +158,7 @@ plt.savefig(filename,format='PDF')
 # %%
 # plot slope
 # plt.close()
+defaultPlotting(size=12)
 plt.figure()
 p = sns.catplot(
     data = all_coef, y='slope',x='dpf',kind='point',join=False,
@@ -171,8 +173,32 @@ p.map(sns.lineplot,'dpf','slope',estimator=None,
       hue='condition',
       alpha=0.2,
       data=all_coef)
-filename = os.path.join(fig_dir,"fin-body coordination slope.pdf")
+filename = os.path.join(fig_dir,"slope_together.pdf")
 plt.savefig(filename,format='PDF')
 
 # plt.show()
+# %%
+defaultPlotting(size=12)
+for coef_name in ['k','xval','min','height','slope']:
+    plt.figure()
+    p = sns.catplot(
+        data = all_coef, y=coef_name,x='condition',kind='point',join=False,
+        col='dpf',col_order=all_cond1,
+        ci='sd',
+        row = 'ztime', row_order=all_ztime,
+        # units=excluded_exp,
+        hue='condition', dodge=True,
+        hue_order = all_cond2,
+        sharey=False,
+        aspect=.4,
+    )
+    p.map(sns.lineplot,'condition',coef_name,estimator=None,
+        units='excluded_exp',
+        hue='condition',
+        alpha=0.2,
+        data=all_coef)
+    sns.despine(offset=10)
+    filename = os.path.join(fig_dir,f"{coef_name} by cond1.pdf")
+    
+    plt.savefig(filename,format='PDF')
 # %%
