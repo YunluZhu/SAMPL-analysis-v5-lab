@@ -33,7 +33,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'wt_fin'
+pick_data = 'tau_bkg'
 # segment_by = 'bout_traj'
 segment_by = 'pitch_initial'
 root, FRAME_RATE = get_data_dir(pick_data)
