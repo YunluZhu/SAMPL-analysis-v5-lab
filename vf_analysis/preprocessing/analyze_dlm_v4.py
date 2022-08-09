@@ -145,9 +145,13 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
     MAX_DIST_TRAVEL = 0.8 # max distance traveled value. defined as: (dist-dist.rolling(3, center=True).median()).abs(), epochs with multiple fish but appeared as 1 fish have aberrent displ jumps - YZ 20.05.13
     # However, in analyzeFreeVerticalGrouped2, line epochDex:epochStop(i):epochStop(i+1) incorrectly truncated the beginning of the epoch by 1 and the end by 3. 
 
-    # reslice epochs, generating new epoch numbers
-    # resliced = epoch_reslice(raw) # disabled, gen 2 boxes only include fish num == 0
-    resliced = raw
+    
+    # resliced = epoch_reslice(raw) 
+    if frame_rate == 40:
+        resliced = epoch_reslice(raw) # reslice epochs if more than one fish in FOV, generating new epoch numbers
+    else:
+        resliced = raw  # disabled, gen 2 boxes only include fish num == 0
+        
     # Smooth x and y coordinates
     resliced['absx'] = smooth_series_ML(resliced.loc[:,'absx'],XY_SM_WSZ)
     resliced['absy'] = smooth_series_ML(resliced.loc[:,'absy'],XY_SM_WSZ)
