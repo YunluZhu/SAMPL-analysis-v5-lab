@@ -6,8 +6,12 @@ import numpy as np
 def set_font_type():
     mpl.rcParams['pdf.fonttype'] = 42
     
-def defaultPlotting(): 
-    sns.set(rc={"xtick.labelsize":16,"ytick.labelsize":16, "axes.labelsize":18},style="ticks")
+def defaultPlotting(**kwargs):
+    font_size = 12
+    for key, value in kwargs.items():
+        if key == 'size':
+            font_size = int(value)
+    sns.set(rc={"xtick.labelsize":font_size,"ytick.labelsize":font_size, "axes.labelsize":font_size},style="ticks")
 
 def jackknife_list(ori_list):
     matrix = np.tile(ori_list,(len(ori_list),1))
