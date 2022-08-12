@@ -27,10 +27,11 @@ from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_
 from plot_functions.get_IBIangles import get_IBIangles
 
 set_font_type()
+defaultPlotting()
 # %%
-pick_data = 'tau_long'
+pick_data = 'sfld_combined'
 which_ztime = 'day'
-RESAMPLE = 800
+RESAMPLE = 0
 
 root, FRAME_RATE = get_data_dir(pick_data)
 

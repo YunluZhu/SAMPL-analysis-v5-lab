@@ -34,7 +34,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'wt_fin'
+pick_data = 'blind'
 root, FRAME_RATE = get_data_dir(pick_data)
 spd_bins = np.arange(4,24,4)
 

@@ -21,11 +21,12 @@ def jackknife_kinetics(df,col):
     output = pd.DataFrame()
     for j, exp_group in enumerate(jackknife_exp_matrix):
         this_group_data = df.loc[df[col].isin(exp_group),:]
-        this_group_kinetics = get_kinetics(this_group_data)
-        this_group_kinetics = this_group_kinetics.append(pd.Series(data={
-            'jackknife_group':j
-        }))
-        output = pd.concat([output,this_group_kinetics],axis=1)
+        if len(this_group_data)>10:
+            this_group_kinetics = get_kinetics(this_group_data)
+            this_group_kinetics = this_group_kinetics.append(pd.Series(data={
+                'jackknife_group':j
+            }))
+            output = pd.concat([output,this_group_kinetics],axis=1)
     output = output.T.reset_index(drop=True)
     return output
 
@@ -107,8 +108,9 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
     idx_start = int(peak_idx + T_start * FRAME_RATE)
     idx_end = int(peak_idx + T_end * FRAME_RATE)
     idxRANGE = [idx_start,idx_end]
-    spd_bins = np.arange(5,25,4)
-
+    # spd_bins = np.arange(5,25,4)  
+    # spd_bins = np.arange(3,18,3)  # warning, temp change
+    spd_bins = [3.5,5.5,7,10,100]
     TSP_THRESHOLD = [-np.Inf,-50,50,np.Inf]
 
     # for day night split
@@ -173,12 +175,13 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
                     this_ztime_exp_features = day_night_split(this_exp_features,'bout_time',ztime=which_zeitgeber)
                     
                     this_ztime_exp_features = this_ztime_exp_features.assign(
-                        direction = pd.cut(this_ztime_exp_features['pitch_peak'],[-90,10,90],labels=['dive','climb'])
+                        direction = pd.cut(this_ztime_exp_features['pitch_initial'],[-90,10,90],labels=['DN','UP'])
                         )
                     
                     tsp_filter = pd.cut(this_ztime_exp_features['tsp_peak'],TSP_THRESHOLD,labels=['too_neg','select','too_pos'])
                     this_ztime_exp_features = this_ztime_exp_features.loc[tsp_filter=='select',:].reset_index(drop=True)
-                    
+                    if this_ztime_exp_features.groupby('ztime').size().min() < 10:
+                        print(f"Too few bouts for kinetic analysis, consider removing the dataset: exp")
                     this_exp_kinetics = this_ztime_exp_features.groupby('ztime').apply(
                         lambda x: get_kinetics(x)
                     ).reset_index()
@@ -206,7 +209,7 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
     all_cond2.sort()
     
     all_feature_cond = all_feature_cond.assign(
-        direction = pd.cut(all_feature_cond['pitch_peak'],[-80,0,80],labels=['dive','climb']),
+        # direction = pd.cut(all_feature_cond['pitch_initial'],[-90,10,90],labels=['DN','UP']),
         speed_bins = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1)),
     )
     

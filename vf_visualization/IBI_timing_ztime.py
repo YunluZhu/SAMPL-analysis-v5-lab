@@ -26,9 +26,10 @@ from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_
 from plot_functions.get_IBIangles import get_IBIangles
 
 set_font_type()
+defaultPlotting()
 # %%
-pick_data = 'wt_fin'
-which_ztime = 'day'
+pick_data = 'blind'
+which_ztime = 'all'
 
 RESAMPLE = 0  # how many bouts to take per  exp/ztime/condition
 

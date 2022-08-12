@@ -21,8 +21,8 @@ from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlott
 set_font_type()
 defaultPlotting(size=16)
 # %%
-pick_data = 'tau_bkg'
-which_zeitgeber = 'day' # day / night / all
+pick_data = 'blind'
+which_zeitgeber = 'all' # day / night / all
 
 # %%
 def sigmoid_fit(df, x_range_to_fit,func,**kwargs):
@@ -133,6 +133,8 @@ all_ztime = list(set(all_coef['ztime']))
 all_ztime.sort()
 # %%
 # plt.close()
+defaultPlotting(size=12)
+
 plt.figure()
 
 g = sns.relplot(x='Pre-bout rotation',y='Attack angle', data=all_y, 
@@ -190,7 +192,7 @@ for coef_name in ['k','xval','min','height','slope']:
         hue='condition', dodge=True,
         hue_order = all_cond2,
         sharey=False,
-        aspect=.4,
+        aspect=.6,
     )
     p.map(sns.lineplot,'condition',coef_name,estimator=None,
         units='excluded_exp',

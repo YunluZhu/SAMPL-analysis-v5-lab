@@ -38,7 +38,7 @@ pick_data = 'sf all'
 root, FRAME_RATE = get_data_dir(pick_data)
 peak_idx, total_aligned = get_index(FRAME_RATE)
 
-folder_name = f'{pick_data}_nodir'
+folder_name = f'{pick_data}_noDir'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -50,7 +50,7 @@ except:
 
 # %%
 MIN_DATA_SIZE = 60
-HIGH_DATA_SIZE = 180
+HIGH_DATA_SIZE = 140
 time50ms = int(0.05 * FRAME_RATE)
 time100ms = int(0.1 * FRAME_RATE)
 
@@ -106,12 +106,13 @@ for fish_idx, folder in enumerate(folder_paths):
     df = day_night_split(df,'propBoutIEItime',)
     if len(df) > MIN_DATA_SIZE:
         # get pitch
-        this_body_angles = df.loc[:,['propBoutIEI_pitch']].rename(columns={'propBoutIEI_pitch':'IEIpitch'})
+        this_body_angles = df.loc[:,['propBoutIEI_pitch','propBoutIEI']].rename(columns={'propBoutIEI_pitch':'IEIpitch'})
 
         this_body_angles = this_body_angles.assign(fish_id = this_fish_id,
                                                 #    fish_idx = fish_idx,
                                                 condition = 'tau',
-                                                IEI_number = len(this_body_angles))
+                                                IEI_number = len(this_body_angles),
+                                                clutch_id = clutch_id)
                 
         # get other bout features
         angles = pd.read_hdf(f"{folder}/bout_data.h5", key='prop_bout_aligned')
@@ -141,7 +142,6 @@ for fish_idx, folder in enumerate(folder_paths):
         atk_ang = this_exp_features_day['traj'] - angles.loc[all_peak_idx-time50ms,'propBoutAligned_pitch'].values # new atk angles calculated using accel ang
         this_exp_features_day = this_exp_features_day.assign(
             atk_ang = atk_ang,
-            direction = pd.cut(this_exp_features_day['pitch_initial'],[-91,5,91],labels=['dive','climb']),
             fish_id = this_fish_id,
             clutch_id = clutch_id,
             )
@@ -149,10 +149,7 @@ for fish_idx, folder in enumerate(folder_paths):
         this_exp_kinetics = get_kinetics(this_exp_features_day)
         this_exp_kinetics = this_exp_kinetics.append(
             pd.Series(data={'condition': 'tau',
-                            'fish_id':this_fish_id,
-                            'clutch_id':clutch_id,
-                            
-                            }))
+                            'fish_id':this_fish_id}))
 
         # correct condition
         if not this_fish_id%100: # if sibs
@@ -207,7 +204,7 @@ sns.scatterplot(
 # %%
 high_bout_data = all_feature_data.loc[all_feature_data['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bout>HIGH_DATA_SIZE,'fish_id']),:]
 high_bout_kinetics = all_kinetics.loc[all_kinetics['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bout>HIGH_DATA_SIZE,'fish_id']),:]
-
+high_bout_IEI = all_IEI_angles.loc[all_IEI_angles['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bout>HIGH_DATA_SIZE,'fish_id']),:]
 
 # NOTE 
 # traj and pitch worth to look at
@@ -219,10 +216,10 @@ high_bout_kinetics = all_kinetics.loc[all_kinetics['fish_id'].isin(fish_metadata
 
 # %%
 # z score by fish id
-cat_cols = ['condition', 'ztime', 'direction', 'fish_id','time','clutch_id']
+cat_cols = ['condition', 'ztime', 'fish_id','time','clutch_id']
 features = list(set(high_bout_data.columns).difference(set(cat_cols)))
-all_directions = ['dive',
-                  'climb']
+all_directions = ['DOWN',
+                  'UP']
 
 high_bout_zScore = pd.DataFrame()
 data_toplt = high_bout_data
@@ -235,8 +232,8 @@ for feature in features:
             )
 high_bout_zScore = pd.concat([high_bout_zScore,this_z],ignore_index=True) 
 
-# %%
-#correlation
+# # %%
+
 # corr = high_bout_zScore[features].sort_index(axis = 1).corr()
 
 # # Generate a mask for the upper triangle
@@ -255,11 +252,11 @@ high_bout_zScore = pd.concat([high_bout_zScore,this_z],ignore_index=True)
 
 # %%
 # z score by clutch id
-cat_cols = ['condition', 'ztime', 'direction', 'fish_id','time','clutch_id']
+cat_cols = ['condition', 'ztime', 'fish_id','time','clutch_id']
 features = list(set(high_bout_data.columns).difference(set(cat_cols)))
 
 zscore_byClutch = pd.DataFrame()
-for this_clutch, group in high_bout_data.groupby('clutch_id'):
+for this_clutch, group in high_bout_data.groupby(['clutch_id']):
     this_sib = group.loc[group['condition']=='sibs',features]
     this_sib_mean = this_sib.mean()
     this_sib_std = this_sib.std()
@@ -267,29 +264,29 @@ for this_clutch, group in high_bout_data.groupby('clutch_id'):
     this_z.loc[:,features] = (this_z.loc[:,features]-this_sib_mean[features])/this_sib_std[features]
     zscore_byClutch = pd.concat([zscore_byClutch, this_z],ignore_index=True)
     
-percent_chg = pd.DataFrame()
-for this_clutch, group in high_bout_data.groupby('clutch_id'):
-    this_sib = group.loc[group['condition']=='sibs',features]
-    this_sib_mean = this_sib.mean()
-    this_sib_std = this_sib.std()
-    this_chg = group.reset_index(drop=True)
-    this_chg.loc[:,features] = (this_chg.loc[:,features]-this_sib_mean[features])/this_sib_mean[features]
-    percent_chg = pd.concat([percent_chg, this_chg],ignore_index=True)
+# percent_chg = pd.DataFrame()
+# for (this_clutch, this_direction), group in high_bout_data.groupby(['clutch_id']):
+#     this_sib = group.loc[group['condition']=='sibs',features]
+#     this_sib_mean = this_sib.mean()
+#     this_sib_std = this_sib.std()
+#     this_chg = group.reset_index(drop=True)
+#     this_chg.loc[:,features] = (this_chg.loc[:,features]-this_sib_mean[features])/this_sib_mean[features]
+#     percent_chg = pd.concat([percent_chg, this_chg],ignore_index=True)
 
 
 # %%
 feature_to_plt = [
     # 'rot_late_accel',
-    # 'pitch_peak',
-    # 'pitch_initial',
+    'pitch_peak',
+    'pitch_initial',
     'rot_l_decel',
     'pitch_end',
     'angvel_chg',
     'angvel_post_phase',
     'atk_ang',
-    # 'bout_traj'
+    'bout_traj'
     ]
-
+# by fish
 for feature in feature_to_plt:
     plt.figure()
     g = sns.catplot(
@@ -298,7 +295,7 @@ for feature in feature_to_plt:
         x='condition',
         hue='fish_id',
         # units = 'fish_id',
-        # col='direction',
+        col='clutch_id',
         kind='point',
         # err_style='bars',
         # size=0,
@@ -307,37 +304,41 @@ for feature in feature_to_plt:
         )
     plt.savefig(fig_dir+f"/{feature} raw.pdf",format='PDF')
 
-# for feature in feature_to_plt:
-#     plt.figure()
-#     g = sns.catplot(
-#         data=high_bout_data,
-#         y=feature,
-#         x='condition',
-#         # hue='fish_id',
-#         # units = 'fish_id',
-#         col='direction',
-#         kind='point',
-#         # err_style='bars',
-#         # size=0,
-#         sharey = False,
-#         dodge=True
-#         )
-#     plt.savefig(fig_dir+f"/mean {feature} zScore.pdf",format='PDF')
+# by clutch
+for feature in feature_to_plt:
+    plt.figure()
+    g = sns.catplot(
+        data=high_bout_data,
+        y=feature,
+        x='condition',
+        hue='clutch_id',
+        # units = 'fish_id',
+        kind='point',
+        # err_style='bars',
+        # size=0,
+        sharey = False,
+        dodge=True
+        )
+    plt.savefig(fig_dir+f"/mean {feature} raw.pdf",format='PDF')
     
+# %% IEI
+plt.figure()
+g = sns.catplot(
+    data=high_bout_IEI,
+    y='propBoutIEI',
+    x='condition',
+    hue='fish_id',
+    # units = 'fish_id',
+    col='clutch_id',
+    kind='point',
+    # err_style='bars',
+    # size=0,
+    sharey = False,
+    dodge=True
+    )
+plt.savefig(fig_dir+f"/IEI duration raw.pdf",format='PDF')
 # %%
 # z score by clutch
-
-feature_to_plt = [
-    # 'rot_late_accel',
-    # 'pitch_peak',
-    # 'pitch_initial',
-    'rot_l_decel',
-    'pitch_end',
-    'angvel_chg',
-    'angvel_post_phase',
-    'atk_ang',
-    # 'bout_traj'
-    ]
 
 for feature in feature_to_plt:
     plt.figure()
@@ -347,7 +348,7 @@ for feature in feature_to_plt:
         x='condition',
         hue='fish_id',
         # units = 'fish_id',
-        # col='direction',
+        col='clutch_id',
         kind='point',
         # err_style='bars',
         # size=0,
@@ -362,9 +363,8 @@ for feature in feature_to_plt:
         data=zscore_byClutch,
         y=feature,
         x='condition',
-        # hue='fish_id',
+        hue='clutch_id',
         # units = 'fish_id',
-        # col='direction',
         kind='point',
         # err_style='bars',
         # size=0,
@@ -376,64 +376,62 @@ for feature in feature_to_plt:
 # %%
 # percent change
 
-for feature in feature_to_plt:
-    plt.figure()
-    g = sns.catplot(
-        data=percent_chg,
-        y=feature,
-        x='condition',
-        hue='fish_id',
-        # units = 'fish_id',
-        # col='direction',
-        kind='point',
-        # err_style='bars',
-        # size=0,
-        sharey = False,
-        dodge=True
-        )
-    plt.savefig(fig_dir+f"/{feature} percentChg byClutch.pdf",format='PDF')
+# for feature in feature_to_plt:
+#     plt.figure()
+#     g = sns.catplot(
+#         data=percent_chg,
+#         y=feature,
+#         x='condition',
+#         hue='fish_id',
+#         # units = 'fish_id',
 
-for feature in feature_to_plt:
-    plt.figure()
-    g = sns.catplot(
-        data=percent_chg,
-        y=feature,
-        x='condition',
-        # hue='fish_id',
-        # units = 'fish_id',
-        # col='direction',
-        kind='point',
-        # err_style='bars',
-        # size=0,
-        sharey = False,
-        dodge=True
-        )
-    plt.savefig(fig_dir+f"/mean {feature} percentChg byClutch.pdf",format='PDF')
+#         row='direction',
+#         col='clutch_id',
+#         kind='point',
+#         # err_style='bars',
+#         # size=0,
+#         sharey = False,
+#         dodge=True
+#         )
+#     plt.savefig(fig_dir+f"/{feature} percentChg byClutch.pdf",format='PDF')
 
+# for feature in feature_to_plt:
+#     plt.figure()
+#     g = sns.catplot(
+#         data=percent_chg,
+#         y=feature,
+#         x='condition',
+#         # hue='fish_id',
+#         # units = 'fish_id',
 
-
+#         row='direction',
+#         col='clutch_id',
+#         kind='point',
+#         # err_style='bars',
+#         # size=0,
+#         sharey = False,
+#         dodge=True
+#         )
+#     plt.savefig(fig_dir+f"/mean {feature} percentChg byClutch.pdf",format='PDF')
 
 # %%
 # Plot kinetics
 
 features = [
-'righting_gain', 'steering_gain', 'corr_rot_accel_decel',
-       'corr_rot_lateAccel_decel', 'corr_rot_preBout_decel', 'set_point'
+'righting_gain',
+       'steering_gain', 'corr_rot_accel_decel', 'corr_rot_lateAccel_decel',
+       'corr_rot_earlyAccel_decel', 'corr_rot_preBout_decel', 'set_point'
 ]
 
 data_toplt = high_bout_kinetics
-# data_toplt = data_toplt.sort_values(by='clutch_id').reset_index(drop=True)
-sns.relplot(
-    y='steering_gain',
-
-    data=data_toplt,
-    col='clutch_id',
-    x='fish_id',
-    kind='line',
-    err_style='bars',
-    size=0,
-    facet_kws={'sharey': True, 'sharex': False}
-    )
+for kinetics in features:
+    sns.relplot(
+        data=data_toplt,
+        x=data_toplt.index,
+        y=kinetics,
+        kind='line',
+        err_style='bars',
+        size=0,
+        facet_kws={'sharey': False, 'sharex': True}
+        )
 # %%
-# apparently some parameters need to look at dn  up separatedly, some can be combined for a more reliable result
-# also check the sigmoid righting fit maybe?

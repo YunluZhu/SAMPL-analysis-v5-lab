@@ -34,7 +34,7 @@ from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_
 set_font_type()
 # %%
 # Paste root directory here
-pick_data = 'sf_24h'
+pick_data = 'sf all'
 root, FRAME_RATE = get_data_dir(pick_data)
 peak_idx, total_aligned = get_index(FRAME_RATE)
 
@@ -49,8 +49,9 @@ except:
     print('fig folder already exist')
 
 # %%
-MIN_DATA_SIZE = 20
-HIGH_DATA_SIZE = 120
+POSTURE_SEP = 4 #deg
+MIN_DATA_SIZE = 60
+HIGH_DATA_SIZE = 140
 time50ms = int(0.05 * FRAME_RATE)
 time100ms = int(0.1 * FRAME_RATE)
 
@@ -96,6 +97,7 @@ all_mean_data = pd.DataFrame()
 all_std_data = pd.DataFrame()
 all_kinetics = pd.DataFrame()
 
+folder_paths.sort()
 # go through each condition folders under the root
 for fish_idx, folder in enumerate(folder_paths):
     # get IEI pitch
@@ -105,12 +107,13 @@ for fish_idx, folder in enumerate(folder_paths):
     df = day_night_split(df,'propBoutIEItime',)
     if len(df) > MIN_DATA_SIZE:
         # get pitch
-        this_body_angles = df.loc[:,['propBoutIEI_pitch']].rename(columns={'propBoutIEI_pitch':'IEIpitch'})
+        this_body_angles = df.loc[:,['propBoutIEI_pitch','propBoutIEI']].rename(columns={'propBoutIEI_pitch':'IEIpitch'})
 
         this_body_angles = this_body_angles.assign(fish_id = this_fish_id,
                                                 #    fish_idx = fish_idx,
                                                 condition = 'tau',
-                                                IEI_number = len(this_body_angles))
+                                                IEI_number = len(this_body_angles),
+                                                clutch_id = clutch_id)
                 
         # get other bout features
         angles = pd.read_hdf(f"{folder}/bout_data.h5", key='prop_bout_aligned')
@@ -140,7 +143,7 @@ for fish_idx, folder in enumerate(folder_paths):
         atk_ang = this_exp_features_day['traj'] - angles.loc[all_peak_idx-time50ms,'propBoutAligned_pitch'].values # new atk angles calculated using accel ang
         this_exp_features_day = this_exp_features_day.assign(
             atk_ang = atk_ang,
-            direction = pd.cut(this_exp_features_day['pitch_initial'],[-91,5,91],labels=['dive','climb']),
+            direction = pd.cut(this_exp_features_day['pitch_initial'],[-91,POSTURE_SEP,91],labels=['DOWN','UP']),
             fish_id = this_fish_id,
             clutch_id = clutch_id,
             )
@@ -155,10 +158,10 @@ for fish_idx, folder in enumerate(folder_paths):
             this_body_angles['condition'] = 'sibs'
             this_exp_features_day['condition'] = 'sibs'
             this_exp_kinetics['condition'] = 'sibs'
-        
-    all_feature_data = pd.concat([all_feature_data,this_exp_features_day], ignore_index=True)
-    all_IEI_angles = pd.concat([all_IEI_angles,this_body_angles], axis=0, ignore_index=True)
-    all_kinetics = pd.concat([all_kinetics,this_exp_kinetics.to_frame().T], ignore_index=True)
+                    
+        all_feature_data = pd.concat([all_feature_data,this_exp_features_day], ignore_index=True)
+        all_IEI_angles = pd.concat([all_IEI_angles,this_body_angles], axis=0, ignore_index=True)
+        all_kinetics = pd.concat([all_kinetics,this_exp_kinetics.to_frame().T], ignore_index=True)
 
 # get metadata for this dlm file      
 all_metadata = pd.DataFrame() 
@@ -203,7 +206,7 @@ sns.scatterplot(
 # %%
 high_bout_data = all_feature_data.loc[all_feature_data['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bout>HIGH_DATA_SIZE,'fish_id']),:]
 high_bout_kinetics = all_kinetics.loc[all_kinetics['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bout>HIGH_DATA_SIZE,'fish_id']),:]
-
+high_bout_IEI = all_IEI_angles.loc[all_IEI_angles['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bout>HIGH_DATA_SIZE,'fish_id']),:]
 
 # NOTE 
 # traj and pitch worth to look at
@@ -217,8 +220,8 @@ high_bout_kinetics = all_kinetics.loc[all_kinetics['fish_id'].isin(fish_metadata
 # z score by fish id
 cat_cols = ['condition', 'ztime', 'direction', 'fish_id','time','clutch_id']
 features = list(set(high_bout_data.columns).difference(set(cat_cols)))
-all_directions = ['dive',
-                  'climb']
+all_directions = ['DOWN',
+                  'UP']
 
 high_bout_zScore = pd.DataFrame()
 for dir_toplt in all_directions:
@@ -232,29 +235,30 @@ for dir_toplt in all_directions:
                 )
     high_bout_zScore = pd.concat([high_bout_zScore,this_z],ignore_index=True) 
 
+# # %%
 
-corr = high_bout_zScore[features].sort_index(axis = 1).corr()
+# corr = high_bout_zScore[features].sort_index(axis = 1).corr()
 
-# Generate a mask for the upper triangle
-mask = np.triu(np.ones_like(corr, dtype=bool))
+# # Generate a mask for the upper triangle
+# mask = np.triu(np.ones_like(corr, dtype=bool))
 
-# Set up the matplotlib figure
-f, ax = plt.subplots(figsize=(11, 9))
+# # Set up the matplotlib figure
+# f, ax = plt.subplots(figsize=(11, 9))
 
-# Generate a custom diverging colormap
-cmap = sns.diverging_palette(230, 20, as_cmap=True)
+# # Generate a custom diverging colormap
+# cmap = sns.diverging_palette(230, 20, as_cmap=True)
 
-# Draw the heatmap with the mask and correct aspect ratio
-sns.heatmap(corr, cmap=cmap, vmax=1,vmin=-1, center=0,
-            square=True, linewidths=.5, cbar_kws={"shrink": .5})
+# # Draw the heatmap with the mask and correct aspect ratio
+# sns.heatmap(corr, cmap=cmap, vmax=1,vmin=-1, center=0,
+#             square=True, linewidths=.5, cbar_kws={"shrink": .5})
 
 
 # %%
 # z score by clutch id
 cat_cols = ['condition', 'ztime', 'direction', 'fish_id','time','clutch_id']
 features = list(set(high_bout_data.columns).difference(set(cat_cols)))
-all_directions = ['dive',
-                  'climb']
+all_directions = ['DOWN',
+                  'UP']
 
 zscore_byClutch = pd.DataFrame()
 for (this_clutch, this_direction), group in high_bout_data.groupby(['clutch_id','direction']):
@@ -276,8 +280,18 @@ for (this_clutch, this_direction), group in high_bout_data.groupby(['clutch_id',
 
 
 # %%
-feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','bout_traj']
-
+feature_to_plt = [
+    # 'rot_late_accel',
+    'pitch_peak',
+    'pitch_initial',
+    'rot_l_decel',
+    'pitch_end',
+    'angvel_chg',
+    'angvel_post_phase',
+    'atk_ang',
+    'bout_traj'
+    ]
+# by fish
 for feature in feature_to_plt:
     plt.figure()
     g = sns.catplot(
@@ -286,7 +300,8 @@ for feature in feature_to_plt:
         x='condition',
         hue='fish_id',
         # units = 'fish_id',
-        col='direction',
+        row='direction',
+        col='clutch_id',
         kind='point',
         # err_style='bars',
         # size=0,
@@ -295,27 +310,42 @@ for feature in feature_to_plt:
         )
     plt.savefig(fig_dir+f"/{feature} raw.pdf",format='PDF')
 
-# for feature in feature_to_plt:
-#     plt.figure()
-#     g = sns.catplot(
-#         data=high_bout_data,
-#         y=feature,
-#         x='condition',
-#         # hue='fish_id',
-#         # units = 'fish_id',
-#         col='direction',
-#         kind='point',
-#         # err_style='bars',
-#         # size=0,
-#         sharey = False,
-#         dodge=True
-#         )
-#     plt.savefig(fig_dir+f"/mean {feature} zScore.pdf",format='PDF')
+# by clutch
+for feature in feature_to_plt:
+    plt.figure()
+    g = sns.catplot(
+        data=high_bout_data,
+        y=feature,
+        x='condition',
+        hue='clutch_id',
+        # units = 'fish_id',
+        row='direction',
+        kind='point',
+        # err_style='bars',
+        # size=0,
+        sharey = False,
+        dodge=True
+        )
+    plt.savefig(fig_dir+f"/mean {feature} raw.pdf",format='PDF')
     
+# %% IEI
+plt.figure()
+g = sns.catplot(
+    data=high_bout_IEI,
+    y='propBoutIEI',
+    x='condition',
+    hue='fish_id',
+    # units = 'fish_id',
+    col='clutch_id',
+    kind='point',
+    # err_style='bars',
+    # size=0,
+    sharey = False,
+    dodge=True
+    )
+plt.savefig(fig_dir+f"/IEI duration raw.pdf",format='PDF')
 # %%
 # z score by clutch
-
-feature_to_plt = ['rot_late_accel','rot_l_accel','pitch_peak','pitch_initial','rot_l_decel','bout_traj']
 
 for feature in feature_to_plt:
     plt.figure()
@@ -325,7 +355,9 @@ for feature in feature_to_plt:
         x='condition',
         hue='fish_id',
         # units = 'fish_id',
-        col='direction',
+
+        row='direction',
+        col='clutch_id',
         kind='point',
         # err_style='bars',
         # size=0,
@@ -340,9 +372,10 @@ for feature in feature_to_plt:
         data=zscore_byClutch,
         y=feature,
         x='condition',
-        # hue='fish_id',
+        hue='clutch_id',
         # units = 'fish_id',
-        col='direction',
+
+        row='direction',
         kind='point',
         # err_style='bars',
         # size=0,
@@ -354,48 +387,49 @@ for feature in feature_to_plt:
 # %%
 # percent change
 
-for feature in feature_to_plt:
-    plt.figure()
-    g = sns.catplot(
-        data=percent_chg,
-        y=feature,
-        x='condition',
-        hue='fish_id',
-        # units = 'fish_id',
-        col='direction',
-        kind='point',
-        # err_style='bars',
-        # size=0,
-        sharey = False,
-        dodge=True
-        )
-    plt.savefig(fig_dir+f"/{feature} percentChg byClutch.pdf",format='PDF')
+# for feature in feature_to_plt:
+#     plt.figure()
+#     g = sns.catplot(
+#         data=percent_chg,
+#         y=feature,
+#         x='condition',
+#         hue='fish_id',
+#         # units = 'fish_id',
 
-for feature in feature_to_plt:
-    plt.figure()
-    g = sns.catplot(
-        data=percent_chg,
-        y=feature,
-        x='condition',
-        # hue='fish_id',
-        # units = 'fish_id',
-        col='direction',
-        kind='point',
-        # err_style='bars',
-        # size=0,
-        sharey = False,
-        dodge=True
-        )
-    plt.savefig(fig_dir+f"/mean {feature} percentChg byClutch.pdf",format='PDF')
+#         row='direction',
+#         col='clutch_id',
+#         kind='point',
+#         # err_style='bars',
+#         # size=0,
+#         sharey = False,
+#         dodge=True
+#         )
+#     plt.savefig(fig_dir+f"/{feature} percentChg byClutch.pdf",format='PDF')
 
+# for feature in feature_to_plt:
+#     plt.figure()
+#     g = sns.catplot(
+#         data=percent_chg,
+#         y=feature,
+#         x='condition',
+#         # hue='fish_id',
+#         # units = 'fish_id',
 
-
+#         row='direction',
+#         col='clutch_id',
+#         kind='point',
+#         # err_style='bars',
+#         # size=0,
+#         sharey = False,
+#         dodge=True
+#         )
+#     plt.savefig(fig_dir+f"/mean {feature} percentChg byClutch.pdf",format='PDF')
 
 # %%
 # Plot kinetics
 
 features = [
-'righting_gain', 'righting_gain_dn', 'righting_gain_up',
+'righting_gain',
        'steering_gain', 'corr_rot_accel_decel', 'corr_rot_lateAccel_decel',
        'corr_rot_earlyAccel_decel', 'corr_rot_preBout_decel', 'set_point'
 ]
@@ -404,10 +438,11 @@ data_toplt = high_bout_kinetics
   
 sns.relplot(
     data=data_toplt,
-    x='fish_id',
-    y='righting_gain_up',
+    x=data_toplt.index,
+    y='steering_gain',
     kind='line',
     err_style='bars',
     size=0,
     facet_kws={'sharey': False, 'sharex': True}
     )
+# %%

@@ -20,7 +20,7 @@ set_font_type()
 # %%
 # Paste root directory here
 # if_plot_by_speed = True
-pick_data = 'wt_fin'
+pick_data = 'blind'
 root, FRAME_RATE= get_data_dir(pick_data)
 
 folder_name = f'corr_timed'
@@ -193,33 +193,33 @@ all_around_peak_data = all_around_peak_data.assign(
 # which to corr
 # which_to_corr = 'initial_pitch' # initial_pitch or pre_bout_angle
 for which_to_corr in ['initial_pitch', 'pre_bout_angle']:
-    cat_cols = ['speed_bin','condition','initial_posture','dpf']
-    # cat_cols = ['condition','initial_posture']
-    grp_cols = cat_cols + ['time_ms']
+    # cat_cols = ['speed_bin','condition','initial_posture','dpf']
+    # # cat_cols = ['condition','initial_posture']
+    # grp_cols = cat_cols + ['time_ms']
 
-    corr_angvel = all_around_peak_data.groupby(grp_cols).apply(
-        lambda y: stats.pearsonr(y[which_to_corr].values,y['propBoutAligned_angVel'].values)[0]
-    )
-    corr_angvel.name = 'corr'
-    corr_angvel = corr_angvel.reset_index()
+    # corr_angvel = all_around_peak_data.groupby(grp_cols).apply(
+    #     lambda y: stats.pearsonr(y[which_to_corr].values,y['propBoutAligned_angVel'].values)[0]
+    # )
+    # corr_angvel.name = 'corr'
+    # corr_angvel = corr_angvel.reset_index()
 
-    palette = sns.color_palette("mako_r", 4)
+    # palette = sns.color_palette("mako_r", 4)
 
-    g = sns.relplot(
-        style='condition',
-        row='initial_posture',
-        # hue_order=[0,2,4],
-        hue='speed_bin',
-        col='dpf',
-        # size='speed_bin', size_order=[3,2,1,0],
+    # g = sns.relplot(
+    #     style='condition',
+    #     row='initial_posture',
+    #     # hue_order=[0,2,4],
+    #     hue='speed_bin',
+    #     col='dpf',
+    #     # size='speed_bin', size_order=[3,2,1,0],
 
-        x='time_ms',y='corr',
-        data=corr_angvel,
-        kind='line',
-        palette=palette, 
-        )
-    g.set(xlim=(-200,200))
-    plt.savefig(fig_dir+f"/{which_to_corr}_by dir and spd.pdf",format='PDF')
+    #     x='time_ms',y='corr',
+    #     data=corr_angvel,
+    #     kind='line',
+    #     palette=palette, 
+    #     )
+    # g.set(xlim=(-200,200))
+    # plt.savefig(fig_dir+f"/{which_to_corr}_by dir and spd.pdf",format='PDF')
 
     # %%
     cat_cols = ['condition','initial_posture','dpf']

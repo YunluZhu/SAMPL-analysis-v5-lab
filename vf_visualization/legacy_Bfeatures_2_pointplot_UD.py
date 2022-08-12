@@ -33,7 +33,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'tau_bkg'
+pick_data = 'wt_daylight'
 # segment_by = 'bout_traj'
 segment_by = 'pitch_initial'
 root, FRAME_RATE = get_data_dir(pick_data)
@@ -59,7 +59,7 @@ all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset
 
 
 all_feature_cond = all_feature_cond.assign(
-    direction = pd.cut(all_feature_cond[segment_by],[-80,0,80],labels=['dive','climb']),
+    direction = pd.cut(all_feature_cond[segment_by],[-90,10,90],labels=['DN','UP']),
 )
 
 # %% Jackknife resampling

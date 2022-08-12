@@ -28,7 +28,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'wt_fin'
+pick_data = 'blind'
 which_ztime = 'all'
 root, FRAME_RATE = get_data_dir(pick_data)
 
@@ -59,15 +59,21 @@ all_kinetics = all_feature_cond.groupby(['dpf']).apply(
 # %%
 # assign up and down
 all_feature_UD = pd.DataFrame()
+# all_feature_cond = all_feature_cond.assign(direction=np.nan)
+# for key, group in all_feature_cond.groupby(['dpf']):
+#     this_setvalue = all_kinetics.loc[all_kinetics['dpf']==key,'set_point'].to_list()[0]
+#     print(this_setvalue)
+#     group['direction'] = pd.cut(group['pitch_initial'],
+#                                 bins=[-91,this_setvalue,91],
+#                                 labels=['dn','up'])
+#     all_feature_UD = pd.concat([all_feature_UD,group])
+
 all_feature_cond = all_feature_cond.assign(direction=np.nan)
 for key, group in all_feature_cond.groupby(['dpf']):
-    this_setvalue = all_kinetics.loc[all_kinetics['dpf']==key,'set_point'].to_list()[0]
-    print(this_setvalue)
     group['direction'] = pd.cut(group['pitch_initial'],
-                                bins=[-91,this_setvalue,91],
+                                bins=[-91,10,91],
                                 labels=['dn','up'])
     all_feature_UD = pd.concat([all_feature_UD,group])
-    
     
 # %%
 # Plots
@@ -174,7 +180,9 @@ toplt = all_feature_UD
 # toplt = toplt.loc[(toplt['rot_pre_bout']>-2) & (toplt['rot_pre_bout']<1),:]
 xname = 'bout_traj'
 yname = 'atk_ang'
-g = sns.displot(data=toplt.sample(n=10000), 
+if len(toplt) > 10000:
+    toplt = toplt.sample(n=10000)
+g = sns.displot(data= toplt,
                 y=yname,x=xname,
                 col="dpf", row="condition",col_order=all_cond1,hue='condition')
 g.add_legend()
@@ -224,6 +232,13 @@ g = sns.displot(data=toplt,
 g.add_legend()
 
 plt.savefig(fig_dir+"/rot_l_decel v pitch_pre_bout.pdf",format='PDF')
+
+# g = sns.relplot(data=toplt, 
+#                 y='rot_l_decel',x='pitch_pre_bout',
+#                 col="dpf", row="condition",col_order=all_cond1,hue='spd_peak', kind='scatter', alpha=0.2)
+# g.add_legend()
+# plt.savefig(fig_dir+"/rot_l_decel v pitch_pre_bout scatter.pdf",format='PDF')
+
 
 #corr
 g = sns.displot(data=toplt, 

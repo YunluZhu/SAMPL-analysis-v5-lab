@@ -23,12 +23,13 @@ from astropy.stats import jackknife_resampling
 from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
 from plot_functions.plt_tools import (day_night_split,defaultPlotting, set_font_type, jackknife_mean, distribution_binned_average)
 from plot_functions.get_IBIangles import get_IBIangles
+defaultPlotting()
 set_font_type()
 # %%
 # Paste root directory here
-pick_data = 'wt_fin'
-which_zeitgeber = 'day'
-DAY_RESAMPLE = 350
+pick_data = 'blind'
+which_zeitgeber = 'all'
+DAY_RESAMPLE = 0
 NIGHT_RESAMPLE = 0
 
 # %%
@@ -173,9 +174,10 @@ g = sns.catplot(data=IBI_std_cond,
                 col='dpf',
                 row='ztime',
                 x='condition', y='IBI_pitch',
-                hue='condition',
+                hue='expNum',
                 ci=None,
                 # markers=['d','d'],
+                sharey=False,
                 kind='point',
                 aspect=.5
                 )
@@ -186,7 +188,7 @@ g.map(sns.lineplot,'condition','IBI_pitch',estimator=None,
 filename = os.path.join(fig_dir,"std of IBI pitch.pdf")
 plt.savefig(filename,format='PDF')
 # %%
-# jackknifed resampled 500 per repeat
+# jackknifed resampled per repeat
 # std cond vs ctrl
 
 plt.close()
@@ -197,6 +199,7 @@ g = sns.catplot(data=jackknifed_std,
                 hue='condition',
                 ci='sd', 
                 # markers=['d','d'],
+                sharey=False,
                 kind='point',
                 aspect=.8
                 )
@@ -206,7 +209,7 @@ g.map(sns.lineplot,'condition','jackknifed_std',estimator=None,
       color='grey',
       alpha=0.2,)
 g.add_legend()
-sns.despine(offset=10, trim=True)
+sns.despine(offset=10)
 filename = os.path.join(fig_dir,"std of IBI pitch - jackknifed resasmpled.pdf")
 plt.savefig(filename,format='PDF')
 # %%

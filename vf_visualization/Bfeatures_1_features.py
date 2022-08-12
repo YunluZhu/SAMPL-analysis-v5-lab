@@ -31,18 +31,16 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'wt_fin'
+pick_data = 'blind'
 which_ztime = 'day'
 DAY_RESAMPLE = 0
-
-
 
 # %%
 root, FRAME_RATE = get_data_dir(pick_data)
 # spd_bins = [5,10,15,20,25]
 # posture_bins = [-50,-20,-10,-5,0,5,10,15,20,25,50]
 
-folder_name = f'B2_features_z{which_ztime}'
+folder_name = f'B1_features_z{which_ztime}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -62,31 +60,40 @@ all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset
 # all_ibi_cond = all_ibi_cond.assign(y_boutFreq=1/all_ibi_cond['propBoutIEI'],
                                     # direction = pd.cut(all_ibi_cond['propBoutIEI_pitch'],[-90,7.5,90],labels=['dive','climb']))
 
-# get kinetics for separating up and down
-all_kinetics = all_feature_cond.groupby(['dpf']).apply(
-                        lambda x: get_kinetics(x)
-                        ).reset_index()
+
 # %%
-# assign up and down
+# assign up and down by set point
+# # get kinetics for separating up and down
+# all_kinetics = all_feature_cond.groupby(['dpf']).apply(
+#                         lambda x: get_kinetics(x)
+#                         ).reset_index()
+# all_feature_UD = pd.DataFrame()
+# all_feature_cond = all_feature_cond.assign(direction=np.nan)
+# for key, group in all_feature_cond.groupby(['dpf']):
+#     this_setvalue = all_kinetics.loc[all_kinetics['dpf']==key,'set_point'].to_list()[0]
+#     print(this_setvalue)
+#     group['direction'] = pd.cut(group['pitch_initial'],
+#                                 bins=[-1000,this_setvalue,1000],
+#                                 labels=['dn','up'])
+#     all_feature_UD = pd.concat([all_feature_UD,group])
+    
+# assign up and down 
+
 all_feature_UD = pd.DataFrame()
 all_feature_cond = all_feature_cond.assign(direction=np.nan)
 for key, group in all_feature_cond.groupby(['dpf']):
-    this_setvalue = all_kinetics.loc[all_kinetics['dpf']==key,'set_point'].to_list()[0]
-    print(this_setvalue)
     group['direction'] = pd.cut(group['pitch_initial'],
-                                bins=[-1000,this_setvalue,1000],
+                                bins=[-1000,10,1000],
                                 labels=['dn','up'])
-    all_feature_UD = pd.concat([all_feature_UD,group])
-    
-    
+    all_feature_UD = pd.concat([all_feature_UD,group]) 
 
 # %%
 # Plots
 
 # %%
 #mean
-# feature_to_plt = ['rot_early_decel','rot_late_decel']
-feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','bout_traj','rot_early_decel','rot_late_decel']
+cat_cols = ['condition','expNum','direction','dpf','bout_time','ztime']
+feature_to_plt = [c for c in all_feature_UD.columns if c not in cat_cols]
 feature_for_comp = feature_to_plt + ['expNum']
 # jackknife
 all_feature_sampled = all_feature_UD
@@ -99,6 +106,10 @@ if DAY_RESAMPLE != 0:
                     replace=True
                     )
 
+cat_cols = ['dpf','condition','direction','expNum']
+mean_data = all_feature_sampled.groupby(cat_cols).mean()
+mean_data = mean_data.reset_index()
+
 cat_cols = ['dpf','condition','direction']
 
 mean_data_jackknife = all_feature_sampled.groupby(cat_cols)[feature_for_comp].apply(
@@ -107,7 +118,6 @@ mean_data_jackknife = all_feature_sampled.groupby(cat_cols)[feature_for_comp].ap
 mean_data_jackknife = mean_data_jackknife.reset_index()
 # %%plot
 toplt = mean_data_jackknife
-
 
 for feature in feature_to_plt:
     
@@ -127,8 +137,33 @@ for feature in feature_to_plt:
           color='grey',
           alpha=0.2,))
     sns.despine(offset=10, trim=False)
-    filename = os.path.join(fig_dir,f"mean val {feature}.pdf")
+    filename = os.path.join(fig_dir,f"jackknifed val {feature}.pdf")
     plt.savefig(filename,format='PDF')
     # plt.close()
     
+# %%
+toplt = mean_data
+
+for feature in feature_to_plt:
+    
+    g = sns.catplot(data=toplt, 
+                    y = feature,
+                    x='condition',
+                    col="dpf", row="direction",col_order=all_cond1,
+                    hue='condition',
+                    sharey=False,
+                    kind='point', 
+                    # marker=['d','d'],
+                    aspect=.8,
+                )
+    (g.map(sns.lineplot,'condition',feature,
+          estimator=None,
+          units='expNum',
+          data = toplt,
+          color='grey',
+          alpha=0.2,))
+    sns.despine(offset=10, trim=False)
+    filename = os.path.join(fig_dir,f"raw val {feature}.pdf")
+    plt.savefig(filename,format='PDF')
+    # plt.close()
 # %%

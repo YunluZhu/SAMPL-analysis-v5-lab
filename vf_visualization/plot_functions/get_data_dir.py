@@ -48,9 +48,6 @@ def get_data_dir(pick_data):
     elif pick_data =='sf all':
         root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF quantified all'
         fr = 166
-    elif pick_data == 'sf_24h':
-        root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF quantified 7-9 only'
-        fr = 166
     elif pick_data == 'sfld_combined':
         root = "/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF_LD_combined_7-9only_100mb-plus-singlefish"
         fr = 166
@@ -77,6 +74,20 @@ def get_data_dir(pick_data):
     elif pick_data == 'pc_lesion':
         root = "/Volumes/LabData/VF_FA_PCLesion/YZ_code"
         fr = 40    
+    elif pick_data == 'tan_lesion':
+        root = "/Volumes/LabData/VF_FA KRH_Tan_lesion/FA"
+        fr = 40        
+    elif pick_data == 'tan_reorg':
+        root = "/Volumes/LabData/VF_FA KRH_Tan_lesion/reorganized"
+        fr = 40    
+    elif pick_data == 'otog':
+        root = "/Volumes/LabData/VF_data_in_use/otog/otog DD"
+        fr = 166
+    elif pick_data == 'blind':
+        root = "/Volumes/LabData/VF_KR_blind/reorganized"
+        fr = 40    
+        
+        
     elif pick_data == 'tmp':
         root = input("Dir? ")
         fr = int(input("Frame rate? "))
