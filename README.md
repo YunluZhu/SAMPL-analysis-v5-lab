@@ -21,7 +21,6 @@ Run `vf_analysis/vf_analysis_....py` to analyze .dlm files. Then, run individual
 **To dos** (220610)
 
 - a table describing parameters
-- streamline IBI timing scripts
 - change condition names to cond1 and cond2 from dpf/condition
 
 ## Prerequisites and tips
@@ -132,6 +131,32 @@ All the extracted swim bouts under `bout_data.h5` are aligned at the time of the
     - `IBI_pitch_mean_ztime` plot IBI pitch
     - `IBI_timing_ztime` plot bout rate vs IBI pitch
 
+### Parameters
+
+| Parameters                | Unit | Definition                                                                                   |
+|---------------------------|------|----------------------------------------------------------------------------------------------|
+| Pitch angle               | deg  | Angle of the fish on the pitch axis relative to horizonal                                    |
+| Peak speed                | mm/s | Peak speed of swim bouts                                                                     |
+| Initial pitch             | deg  | Pitch angle at 250 ms before the peak speed                                                  |
+| Pre-bout pitch            | deg  | Pitch angle at 100 ms before the peak speed                                                  |
+| Post-bout pitch           | deg  | Pitch angle at 100 ms after the peak speed                                                   |
+| End pitch                 | deg  | Pitch angle at 200 ms after the peak speed                                                   |
+| Acceleration phase        |      | Duration of 100 ms before time of the peak speed                                             |
+| Deceleration phase        |      | Duration of 100 ms after time of the peak speed                                              |
+| Total rotation            | deg  | Difference between Initial pitch and End pitch                                               |
+| Pre-bout rotation         | deg  | Posture change from Initial pitch to pre-bout pitch                                          |
+| Acceleration rotation     | deg  | Posture change from pre-bout pitch to pitch angle at the peak speed                          |
+| Deceleration rotation     | deg  | Posture change from pitch angle at the peak speed to post-bout pitch                         |
+| Bout trajectory           | deg  | Direction of translocation relative to horizontal from pre-bout to post-bout location        |
+| Bout displacement         | mm   | Displacement of fish from pre-bout to post-bout                                              |
+| Inter-bout interval       | s    | Duration between two adjacent swim bouts                                                     |
+| Inter-bout-interval pitch | deg  | Mean pitch angle during inter-bout interval                                                  |
+| Attack angle              | deg  | Deviation of bout trajectory from pre-bout pitch                                             |
+| Fin-body ratio            |      | Ratio of attack angles to pre-bout rotation measured by the maximal slope of fitted sigmoid  |
+| Set point                 | deg  | Pre-bout posture at which causes zero deceleration rotation                                  |
+| Righting gain             |      | The additive inverse of the ratio of deceleration rotation to pre-bout posture               |
+| Steering gain             |      | Ratio of instantaneous trajectory to pitch angle at the peak speed                           |
+
 ## Guides
 
 ### On analysis
@@ -139,17 +164,17 @@ All the extracted swim bouts under `bout_data.h5` are aligned at the time of the
 1. Data analysis (running `vf_analysis_by_folder_v4.py`) takes time. Since the script goes through all the subfolders under root directory, be smart with the root input. There's no need to re-analyze the dataset if the .dlm files haven't been changed. In another word, if you've added new .dlm files into an analyzed folder containing old .dlm files, make sure to re-analyze this folder.
 2. Always take the .ini metadata file when moving .dlm around or generate a metadata table containing experiment info for all the .dlm files.
 
-### On visualization
+### On plotting
 
 1. Conditions (`cond1` `cond2`) are taken from parent folder names and sorted alphabetically. If you want them to be in a specific order, the easiest way to do is to add number before each condition, e.g.: `07dpf_1ctrl` `07dpf_2cond`.
 2. Some scripts only compare data with different `cond2`, feel free to edit the scripts and make the comparison across other conditions.
 3. Bouts are separated into "nose-up" and "nose-down" bouts based on their initial pitch. The cut point is at a fixed 10 deg for all the ages/conditions. This is generally true across all the dataset I've look at, YMMV. An alternative way is to calculate the set point for each condition and split bouts by their set points. This can be easily done by `groupby(['conditions', 'age', 'repeats', 'whatever']).apply(get_kinetics())` or looping through every sub-condition to apply `pd.cut()`.
 
-### On interpretation
+### On data interpretation
 
 1. Take any results based on <1000 bouts with a grain of salt. Some parameters (such as bout timing parabola fit and righting gain) require a large number of bouts (>5000) to start to converge.  
 2. Always look at the time series plots first. Strong phenotypes can be seen on averaged time series results.
 3. Then, look at distributions of parameters.
 4. `Inter-bout interval pitch` shows posture/stability of fish. The timing parabola fit tells you their "preferred" posture, baseline bout rate (which can also be seen in IEI distribution plots), and sensitivity to posture changes.
 5. Kinetics tells you how fish coordinate propulsion and rotation in general. `fin_body` and `steering gain` demonstrate fin engagement.
-6. Lastly, check bout features (`Bfeatures_features` and `Bfeatures_4_by...`). Any subtle differences in the way fish swims can be picked up here. However, Jackknife resampling may "exaggerate" differences across fish with different backgrounds, so pay attention to the y-axis range. 
+6. Lastly, check bout features (`Bfeatures_features` and `Bfeatures_4_by...`). Any subtle differences in the way fish swims can be picked up here. However, Jackknife resampling may "exaggerate" differences across fish with different backgrounds, so pay attention to the y-axis range.
