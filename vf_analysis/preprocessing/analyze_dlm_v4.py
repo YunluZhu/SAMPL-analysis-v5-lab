@@ -33,7 +33,7 @@ import math
 # Constants
 
 # MAX_FISH = 1         # all epochs that have more than one fish
-MAX_INST_DISPL = 20  # in mm epochs where fish# > 1 but appear as 1 fish will have improbably large instantaneous displacement.
+MAX_INST_DISPL = 35  # in mm epochs where fish# > 1 but appear as 1 fish will have improbably large instantaneous displacement.
 MAX_ANG_VEL = 100  # or an improbably large angular velocity
 MAX_ANG_ACCEL = 32000  # or an improbably large angular accel.
 XY_SM_WSZ = 9  # smooth window size for x and y coordinates
@@ -141,8 +141,8 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
     # Constants
     MAX_DELTA_T = 3/frame_rate   # in s, epochs with inexplicably large gaps between frame timestamps
     MIN_DUR = 2.5 * frame_rate  # 2.5s, minimun duration of epochs     
-    EPOCH_BUF = math.ceil(frame_rate*0.2)        # truncate the epochs from both ends. In Matlab code, 3 was excluded in analyzeFreeVerticalGrouped2 and another 5 was dropped in GrabFishAngel
-    MAX_DIST_TRAVEL = 0.8 # max distance traveled value. defined as: (dist-dist.rolling(3, center=True).median()).abs(), epochs with multiple fish but appeared as 1 fish have aberrent displ jumps - YZ 20.05.13
+    EPOCH_BUF = math.ceil(frame_rate/20)        # truncate the epochs from both ends. In Matlab code, 3 was excluded in analyzeFreeVerticalGrouped2 and another 5 was dropped in GrabFishAngel
+    MAX_DIST_TRAVEL = 26 # max distance traveled value. defined as: (dist-dist.rolling(3, center=True).median()).abs(), epochs with multiple fish but appeared as 1 fish have aberrent displ jumps - YZ 20.05.13
     # However, in analyzeFreeVerticalGrouped2, line epochDex:epochStop(i):epochStop(i+1) incorrectly truncated the beginning of the epoch by 1 and the end by 3. 
 
     
@@ -157,7 +157,6 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
         resliced['absx'] = smooth_series_ML(resliced.loc[:,'absx'],XY_SM_WSZ)
         resliced['absy'] = smooth_series_ML(resliced.loc[:,'absy'],XY_SM_WSZ)
         
-    
     # truncate epochs
     raw_truncate = raw_filter(resliced.reset_index().rename(columns={'index': 'oriIndex'}),EPOCH_BUF,MIN_DUR)
 
