@@ -153,8 +153,10 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
         resliced = raw  # disabled, gen 2 boxes only include fish num == 0
         
     # Smooth x and y coordinates
-    resliced['absx'] = smooth_series_ML(resliced.loc[:,'absx'],XY_SM_WSZ)
-    resliced['absy'] = smooth_series_ML(resliced.loc[:,'absy'],XY_SM_WSZ)
+    if frame_rate > 100:  # if not data from gen 1 boxes
+        resliced['absx'] = smooth_series_ML(resliced.loc[:,'absx'],XY_SM_WSZ)
+        resliced['absy'] = smooth_series_ML(resliced.loc[:,'absy'],XY_SM_WSZ)
+        
     
     # truncate epochs
     raw_truncate = raw_filter(resliced.reset_index().rename(columns={'index': 'oriIndex'}),EPOCH_BUF,MIN_DUR)
