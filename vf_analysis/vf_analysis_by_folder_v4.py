@@ -13,7 +13,7 @@ from bout_analysis import grab_fish_angle_v4
 # import time
 from tqdm import tqdm
 
-def main(root,frame_rate):
+def vf_analysis(root,frame_rate):
     # for progress bar and time estimation (2022.0126 update)
     dlm_files_count = 0
     for _, _, files in os.walk(root):
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     confirm = input("- Proceed? (y/n): ")
     while confirm != 'n':
         if confirm == 'y':
-            main(root_dir, frame_rate)
+            vf_analysis(root_dir, frame_rate)
             break
         else:
             confirm = input("- Proceed? (y/n): ")

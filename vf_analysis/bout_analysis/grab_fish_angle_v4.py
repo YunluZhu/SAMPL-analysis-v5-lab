@@ -32,7 +32,7 @@ import math
 from preprocessing.read_dlm import read_dlm
 from preprocessing.analyze_dlm_v4 import analyze_dlm_resliced
 global program_version
-program_version = 'V4.220718'
+program_version = 'V4.2.220815'
 # %%
 # Define functions
 def grp_by_epoch(df):
