@@ -127,7 +127,11 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     df = grp_by_epoch(analyzed).filter(
         lambda g: np.nanmax(g['swimSpeed'].values) >= PROPULSION_THRESHOLD
     ).reset_index(drop=True)
-
+    
+    if len(df) < 3:    # if no epoch found
+        return "> not enough epoches > dlm file skipped"
+    
+    
     grouped_df = grp_by_epoch(df)
 
     # calculate smoothed x and y velocity for heading calculation later. Save into a new dataaframe, which will be chopped for heading matched calculations later
@@ -365,7 +369,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     bout_aligned = bout_attributes.loc[bout_attributes['if_align']].reset_index(drop=True)
 
     if bout_aligned.empty:
-        sys.exit(f"\nNo bout aligned! Remove this dlm and restart.")
+        return "> no bout aligned > dlm file skipped" 
     # initialize result dataframe for bout alignment
     bouts = range(len(bout_aligned))
     frames = range(All_Aligned_FRAMES)
@@ -681,6 +685,10 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     rows_to_drop = list(IEI_res2.loc[IEI_res2['propBoutIEItime'].isna()].index)
     IEI_attributes.drop(rows_to_drop, inplace=True)
     IEI_res2.drop(rows_to_drop, inplace=True)
+    
+    if len(IEI_attributes) < 2:
+        return "> no bout aligned > dlm file skipped"
+    
     # all swim_end_shift and swim_start in the same row belong to the same epoch
     # reset index
     IEI_attributes = IEI_attributes.reset_index(drop=True)
@@ -917,7 +925,9 @@ def run(filenames, folder, frame_rate):
         raw = read_dlm(i, file)
         analyzed, fish_length = analyze_dlm_resliced(raw, i, file, folder, frame_rate)
         res = grab_fish_angle(analyzed, fish_length,frame_rate)
-
+        if type(res) == str:
+            print(res)
+            continue 
         this_metadata = {
             'filename':os.path.basename(file)[0:15],
             'aligned_bout':len(res['prop_bout2']),
