@@ -105,7 +105,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     SM_WINDOW = SM_WINDOW-1+SM_WINDOW%2
     SPD_SM_WINDOW = SPD_SM_WINDOW-1+SPD_SM_WINDOW%2
 
-    EDGE_CHOP = math.ceil((3/40) * SAMPLE_RATE)   # number of samples to remove from the beginning and end of each vector to account for edge effects (improper detection of fish body and movement)
+    EDGE_CHOP = math.ceil((2.5/40) * SAMPLE_RATE)   # number of samples to remove from the beginning and end of each vector to account for edge effects (improper detection of fish body and movement)
     BOUT_LONG_TAIL = SAMPLE_RATE  # align prop bouts with longer duration (20 extra frames for 40hz)
 
     PRE_PEAK_FRAMES = math.ceil(SAMPLE_RATE * 0.5)  # s, Only align bouts with extra frames before peak speed
