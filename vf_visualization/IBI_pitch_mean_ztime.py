@@ -27,17 +27,19 @@ defaultPlotting()
 set_font_type()
 # %%
 # Paste root directory here
-pick_data = 'blind'
+pick_data = 'tau_bkg'
 which_zeitgeber = 'all'
-DAY_RESAMPLE = 0
-NIGHT_RESAMPLE = 0
+DAY_RESAMPLE = 400
+NIGHT_RESAMPLE = 200
 
 # %%
 # ztime_dict = {}
 
 root, FRAME_RATE = get_data_dir(pick_data)
-
-folder_name = f'IBI_pitch_z{which_zeitgeber}'
+if DAY_RESAMPLE+NIGHT_RESAMPLE > 0:
+    folder_name = f'IBI_pitch_z{which_zeitgeber}_resample_zD{DAY_RESAMPLE}_zN{NIGHT_RESAMPLE}'
+else:
+    folder_name = f'IBI_pitch_z{which_zeitgeber}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -102,10 +104,12 @@ if which_zeitgeber != 'night':
         jackknife_idx = jackknife_resampling(np.array(list(range(IBI_angles_day_resampled['expNum'].max()+1))))
         for excluded_exp, idx_group in enumerate(jackknife_idx):
             this_std = group.loc[group['expNum'].isin(idx_group),['IBI_pitch']].std().to_frame(name='jackknifed_std')
+            this_mean = group.loc[group['expNum'].isin(idx_group),['IBI_pitch']].mean()
             jackknifed_day_std = pd.concat([jackknifed_day_std, this_std.assign(dpf=this_dpf,
                                                                     condition=this_cond,
                                                                     excluded_exp=excluded_exp,
-                                                                    ztime=this_ztime)])
+                                                                    ztime=this_ztime,
+                                                                    jackknifed_mean=this_mean)])
     jackknifed_day_std = jackknifed_day_std.reset_index(drop=True)
 
 
@@ -125,10 +129,12 @@ if which_zeitgeber != 'day':
         jackknife_idx = jackknife_resampling(np.array(list(range(IBI_angles_night_resampled['expNum'].max()+1))))
         for excluded_exp, idx_group in enumerate(jackknife_idx):
             this_std = group.loc[group['expNum'].isin(idx_group),['IBI_pitch']].std().to_frame(name='jackknifed_std')
+            this_mean = group.loc[group['expNum'].isin(idx_group),['IBI_pitch']].mean()
             jackknifed_night_std = pd.concat([jackknifed_night_std, this_std.assign(dpf=this_dpf,
                                                                     condition=this_cond,
                                                                     excluded_exp=excluded_exp,
-                                                                    ztime=this_ztime)])
+                                                                    ztime=this_ztime,
+                                                                    jackknifed_mean=this_mean)])
     jackknifed_night_std = jackknifed_night_std.reset_index(drop=True)
 
 jackknifed_std = pd.concat([jackknifed_day_std,jackknifed_night_std]).reset_index(drop=True)
@@ -150,7 +156,7 @@ filename = os.path.join(fig_dir,"IBI pitch kde.pdf")
 plt.savefig(filename,format='PDF')
 
 # %% 
-# raw std day vs night
+# raw pitch day vs night
 
 if which_zeitgeber == 'all':
     plt.close()
@@ -164,11 +170,11 @@ if which_zeitgeber == 'all':
       units='expNum',
       data = IBI_std_cond,
       alpha=0.2,)
-    filename = os.path.join(fig_dir,"std of IBI pitch day-night.pdf")
+    filename = os.path.join(fig_dir,"pitch_IBI day-night.pdf")
     plt.savefig(filename,format='PDF')
 
 # %%
-# std cond vs ctrl
+# pitch cond vs ctrl
 
 g = sns.catplot(data=IBI_std_cond,
                 col='dpf',
@@ -185,8 +191,75 @@ g.map(sns.lineplot,'condition','IBI_pitch',estimator=None,
       units='expNum',
       data = IBI_std_cond,
       alpha=0.2,)
-filename = os.path.join(fig_dir,"std of IBI pitch.pdf")
+filename = os.path.join(fig_dir,"pitch_IBI exp repeats.pdf")
 plt.savefig(filename,format='PDF')
+
+
+g = sns.catplot(data=IBI_std_cond,
+                col='dpf',row='ztime',
+                x='condition', y='IBI_pitch',
+                hue='dpf',
+                ci='sd',
+                kind='point')
+g.map(sns.lineplot,'condition','IBI_pitch',estimator=None,
+    units='expNum',
+    data = IBI_std_cond,
+    alpha=0.2,)
+filename = os.path.join(fig_dir,"pitch_IBI cond.pdf")
+plt.savefig(filename,format='PDF')
+
+# %%
+# jackknifed resampled per repeat
+# mean cond vs ctrl
+
+plt.close()
+g = sns.catplot(data=jackknifed_std,
+                col='dpf',
+                row='ztime',
+                x='condition', y='jackknifed_mean',
+                hue='condition',
+                ci='sd', 
+                # markers=['d','d'],
+                sharey=False,
+                kind='point',
+                aspect=.8
+                )
+g.map(sns.lineplot,'condition','jackknifed_mean',estimator=None,
+      units='excluded_exp',
+      data = jackknifed_std,
+      color='grey',
+      alpha=0.2,)
+g.add_legend()
+sns.despine(offset=10)
+filename = os.path.join(fig_dir,"std of IBI pitch - jackknifed resasmpled.pdf")
+plt.savefig(filename,format='PDF')
+
+# jackknifed resampled per repeat
+# mean cond vs ctrl
+# plot on same scale
+
+plt.close()
+g = sns.catplot(data=jackknifed_std,
+                col='dpf',
+                row='ztime',
+                x='condition', y='jackknifed_mean',
+                hue='condition',
+                ci='sd', 
+                # markers=['d','d'],
+                sharey='row',
+                kind='point',
+                aspect=.8
+                )
+g.map(sns.lineplot,'condition','jackknifed_mean',estimator=None,
+      units='excluded_exp',
+      data = jackknifed_std,
+      color='grey',
+      alpha=0.2,)
+g.add_legend()
+sns.despine(offset=10)
+filename = os.path.join(fig_dir,"std of IBI pitch - jackknifed sharey.pdf")
+plt.savefig(filename,format='PDF')
+
 # %%
 # jackknifed resampled per repeat
 # std cond vs ctrl
@@ -211,5 +284,31 @@ g.map(sns.lineplot,'condition','jackknifed_std',estimator=None,
 g.add_legend()
 sns.despine(offset=10)
 filename = os.path.join(fig_dir,"std of IBI pitch - jackknifed resasmpled.pdf")
+plt.savefig(filename,format='PDF')
+
+# jackknifed resampled per repeat
+# std cond vs ctrl
+# plot on same scale
+
+plt.close()
+g = sns.catplot(data=jackknifed_std,
+                col='dpf',
+                row='ztime',
+                x='condition', y='jackknifed_std',
+                hue='condition',
+                ci='sd', 
+                # markers=['d','d'],
+                sharey='row',
+                kind='point',
+                aspect=.8
+                )
+g.map(sns.lineplot,'condition','jackknifed_std',estimator=None,
+      units='excluded_exp',
+      data = jackknifed_std,
+      color='grey',
+      alpha=0.2,)
+g.add_legend()
+sns.despine(offset=10)
+filename = os.path.join(fig_dir,"std of IBI pitch - jackknifed sharey.pdf")
 plt.savefig(filename,format='PDF')
 # %%
