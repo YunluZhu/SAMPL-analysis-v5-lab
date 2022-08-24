@@ -31,16 +31,16 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'blind'
+pick_data = 'tau_bkg'
 which_ztime = 'day'
-DAY_RESAMPLE = 0
+DAY_RESAMPLE = 300
 
 # %%
 root, FRAME_RATE = get_data_dir(pick_data)
 # spd_bins = [5,10,15,20,25]
 # posture_bins = [-50,-20,-10,-5,0,5,10,15,20,25,50]
 
-folder_name = f'B1_features_z{which_ztime}'
+folder_name = f'B1_features_z{which_ztime}_sample{DAY_RESAMPLE}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -54,6 +54,7 @@ except:
 all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
 # all_ibi_cond, _, _  = get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
 # %% tidy data
+all_feature_cond = all_feature_cond.loc[all_feature_cond['spd_peak']>4]
 all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
 # all_ibi_cond = all_ibi_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
 
