@@ -31,8 +31,12 @@ from datetime import timedelta
 import math
 from preprocessing.read_dlm import read_dlm
 from preprocessing.analyze_dlm_v4 import analyze_dlm_resliced
+from bout_analysis.logger import log_vf_ana
+
 global program_version
 program_version = 'V4.3.220826'
+
+
 # %%
 # Define functions
 def grp_by_epoch(df):
@@ -901,6 +905,10 @@ def run(filenames, folder, frame_rate):
     Loop through all .dlm, run analyze_dlm() and grab_fish_angle() functions
     Concatinate results from different .dlm files
     '''
+    logger = log_vf_ana('vf_ana_log')
+    logger.info(f"Program ver: {program_version}")
+    logger.info(f'Folder analyzed: {folder}')
+
     # initialize output vars
     grabbed_all = pd.DataFrame()
     baseline_angVel = pd.DataFrame()
@@ -922,11 +930,13 @@ def run(filenames, folder, frame_rate):
     metadata_from_bouts = pd.DataFrame()
 
     for i, file in enumerate(filenames):
+        logger.info(f"File: {file}")
         raw = read_dlm(i, file)
         analyzed, fish_length = analyze_dlm_resliced(raw, i, file, folder, frame_rate)
         res = grab_fish_angle(analyzed, fish_length,frame_rate)
         if type(res) == str:
             print(res)
+            logger.warning(f"{res}")
             continue 
         this_metadata = {
             'filename':os.path.basename(file)[0:15],
@@ -951,6 +961,9 @@ def run(filenames, folder, frame_rate):
         epoch_attributes = pd.concat([epoch_attributes, res['epoch_attributes']], ignore_index=True)
         heading_matched = pd.concat([heading_matched, res['heading_matched']], ignore_index=True)
         epoch_pitch_heading_RMS = pd.concat([epoch_pitch_heading_RMS, res['epoch_pitch_heading_RMS']], ignore_index=True)
+        
+        logger.info(f"Bouts aligned: {this_metadata.loc[0,'aligned_bout']}")
+        
 
     # %%
     # concat metadata from bouts and metadata from ini. save in parent folder (condition folder)
@@ -1077,3 +1090,4 @@ def run(filenames, folder, frame_rate):
     }
     analysis_info = pd.Series(info_dict)
     analysis_info.to_csv(os.path.join(output_dir,'analysis info.csv'))
+    

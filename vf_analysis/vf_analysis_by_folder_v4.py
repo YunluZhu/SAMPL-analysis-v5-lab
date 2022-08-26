@@ -17,9 +17,14 @@
 import sys
 import os,glob
 from bout_analysis import grab_fish_angle_v4
+from bout_analysis.logger import log_vf_ana
+
 from tqdm import tqdm
 
 def vf_analysis(root,frame_rate):
+    logger = log_vf_ana('vf_ana_log')
+    logger.info(f"Root dir: {root}")
+    logger.info(f"Frame Rate: {frame_rate}")
     # for progress bar and time estimation (2022.0126 update)
     dlm_files_count = 0
     for _, _, files in os.walk(root):
