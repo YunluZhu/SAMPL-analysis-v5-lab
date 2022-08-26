@@ -21,7 +21,7 @@ from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlott
 set_font_type()
 defaultPlotting(size=16)
 # %%
-pick_data = 'blind'
+pick_data = 's'
 which_zeitgeber = 'all' # day / night / all
 
 # %%
@@ -87,7 +87,10 @@ all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, zti
 
 # %% tidy data
 all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-all_feature_cond.drop(all_feature_cond[all_feature_cond['spd_peak']<7].index, inplace=True)
+if FRAME_RATE > 100:
+    all_feature_cond.drop(all_feature_cond[all_feature_cond['spd_peak']<7].index, inplace=True)
+elif FRAME_RATE == 40:
+    all_feature_cond.drop(all_feature_cond[all_feature_cond['spd_peak']<4].index, inplace=True)
 
 # %% fit sigmoid - master
 all_coef = pd.DataFrame()

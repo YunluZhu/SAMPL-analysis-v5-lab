@@ -28,7 +28,7 @@ my_palette = sns.color_palette(colors)
 
 # %%
 # Select data and create figure folder
-pick_data = 'tau_long'
+pick_data = 'for_paper'
 which_ztime = 'day'
 root, FRAME_RATE = get_data_dir(pick_data)
 # rot_bins = np.arange(-6,9,3)
@@ -198,5 +198,4 @@ sns.relplot(data=bouts_combined,
 filename = os.path.join(fig_dir,f"artificial_byInitialBins_raw_speed_as_pitch.pdf")
 plt.savefig(filename,format='PDF')
 
-# %%
 # so faster more positive pitches. What about decel rotation

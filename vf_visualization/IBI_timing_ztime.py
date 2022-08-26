@@ -28,14 +28,14 @@ from plot_functions.get_IBIangles import get_IBIangles
 set_font_type()
 defaultPlotting()
 # %%
-pick_data = 'blind'
+pick_data = 'tan_lesion'
 which_ztime = 'all'
 
 RESAMPLE = 0  # how many bouts to take per  exp/ztime/condition
 
 root, FRAME_RATE = get_data_dir(pick_data)
 
-folder_name = f'IBI_timing_z{which_ztime}'
+folder_name = f'IBI_timing_z{which_ztime}_sample{RESAMPLE}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -49,7 +49,7 @@ except:
 # CONSTANTS
 # SAMPLES_PER_BIN = 70  # this adjusts the density of raw data points on the fitted parabola
 BIN_WIDTH = 3  # this adjusts the density of raw data points on the fitted parabola
-X_RANGE_FULL = range(-40,41,1)
+X_RANGE_FULL = range(-30,51,1)
 
 def distribution_binned_average(df, bin_width):
     '''
@@ -87,7 +87,6 @@ def parabola_fit1(df, X_RANGE_to_fit = X_RANGE_FULL):
 IBI_angles, cond1_all, cond2_all= get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
 IBI_angles = IBI_angles.assign(y_boutFreq=1/IBI_angles['propBoutIEI'])
 # %%
-
 
 jackknifed_coef = pd.DataFrame()
 jackknifed_y = pd.DataFrame()
@@ -134,29 +133,6 @@ all_ztime.sort()
 
 jackknifed_coef['sensitivity'] = jackknifed_coef['sensitivity']*1000
 
-# %% ignore this
-if pick_data == 'for_paper':
-    cond2 = ['4dpf','7dpf','14dpf']
-    IBI_std_cond = IBI_std_cond.sort_values('condition'
-                            , key=lambda col: col.map(
-                                    {'4dpf':1,
-                                      '7dpf':2,
-                                      '14dpf':3}))
-    jackknifed_std = jackknifed_std.sort_values('condition'
-                            , key=lambda col: col.map(
-                                    {'4dpf':1,
-                                      '7dpf':2,
-                                      '14dpf':3}))
-    IBI_std_day_resampled = IBI_std_day_resampled.sort_values('condition'
-                            , key=lambda col: col.map(
-                                    {'4dpf':1,
-                                      '7dpf':2,
-                                      '14dpf':3}))
-    IBI_angles_cond = IBI_angles_cond.sort_values('condition'
-                            , key=lambda col: col.map(
-                                    {'4dpf':1,
-                                      '7dpf':2,
-                                      '14dpf':3}))
 # %% plot
 g = sns.relplot(x='IBI pitch',y='bout frequency', data=jackknifed_y, 
                 kind='line',
@@ -172,7 +148,7 @@ for i , g_row in enumerate(g.axes):
                     x='propBoutIEI_pitch', y='y_boutFreq', 
                     hue='condition',alpha=0.2,
                     ax=ax)
-g.set(xlim=(-40, 40),
+g.set(xlim=(-30, 50),
       ylim=(0,4))
     
 filename = os.path.join(fig_dir,f"IEI timing sample{RESAMPLE}.pdf")
@@ -294,4 +270,28 @@ p.map(sns.lineplot,'condition','y intersect',estimator=None,
     data=jackknifed_coef)
 filename = os.path.join(fig_dir,f"IBI baseline rate sample{RESAMPLE}.pdf")
 plt.savefig(filename,format='PDF')
+# %%
+# test code
+
+plt.close()
+p = sns.catplot(
+    data = jackknifed_coef, y='sensitivity',x='condition',
+    kind='point',
+    col='dpf',
+    ci='sd',
+    row = 'ztime', 
+    hue='jackknife num', 
+    # hue_order = cond2_all,
+    sharey=True,
+    aspect=.8, 
+    # markers=['d','d'],
+)
+# p.map(sns.lineplot,'condition','sensitivity',
+#     #   estimator=None,
+#     # units='jackknife num',
+#     hue='jackknife num',
+#     alpha=0.2,
+#     data=jackknifed_coef)
+
+
 # %%

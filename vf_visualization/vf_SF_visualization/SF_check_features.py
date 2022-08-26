@@ -34,7 +34,7 @@ from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_
 set_font_type()
 # %%
 # Paste root directory here
-pick_data = 'sf all'
+pick_data = 'sf ana'
 root, FRAME_RATE = get_data_dir(pick_data)
 peak_idx, total_aligned = get_index(FRAME_RATE)
 
@@ -51,7 +51,8 @@ except:
 # %%
 POSTURE_SEP = 4 #deg
 MIN_DATA_SIZE = 60
-HIGH_DATA_SIZE = 140
+HIGH_DATA_SIZE = 100
+HIGH_IEI_SIZE = 100
 time50ms = int(0.05 * FRAME_RATE)
 time100ms = int(0.1 * FRAME_RATE)
 
@@ -179,16 +180,20 @@ all_std_IEI_angles['IEI_number'] = all_IEI_angles.groupby(cat_cols)['IEI_number'
 
 fish_metadata = all_metadata.groupby('fish_id').mean().reset_index()
 fish_metadata['aligned_bout'] = all_metadata.groupby('fish_id')['aligned_bout'].sum().values
-# tidy up
-all_mean_data.set_index('fish_id')
-all_std_data.set_index('fish_id')
-fish_metadata.set_index('fish_id')
-all_mean_data = pd.concat([all_mean_data,fish_metadata], axis=1)
-all_std_data = pd.concat([all_std_data,fish_metadata], axis=1)
 
+# %%
+# tidy up
+# all_mean_data.set_index('fish_id')
+# all_std_data.set_index('fish_id')
+# fish_metadata.set_index('fish_id')
+# all_mean_data = pd.merge([all_mean_data,fish_metadata], how='fish_id', axis=1).dropna()
+# all_std_data = pd.concat([all_std_data,fish_metadata], by='fish_id', axis=1).dropna()
+all_mean_data = all_mean_data.merge(fish_metadata, how='inner', on='fish_id')
 
 # %%
 # 
+all_mean_data.loc[all_mean_data['condition']=='tau','aligned_bout'].mean()
+
 plt.figure()
 sns.histplot(
     data=all_mean_data,
@@ -206,8 +211,8 @@ sns.scatterplot(
 # %%
 high_bout_data = all_feature_data.loc[all_feature_data['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bout>HIGH_DATA_SIZE,'fish_id']),:]
 high_bout_kinetics = all_kinetics.loc[all_kinetics['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bout>HIGH_DATA_SIZE,'fish_id']),:]
-high_bout_IEI = all_IEI_angles.loc[all_IEI_angles['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bout>HIGH_DATA_SIZE,'fish_id']),:]
-
+# high_bout_IEI = all_IEI_angles.loc[all_IEI_angles['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bout>HIGH_DATA_SIZE,'fish_id']),:]
+high_bout_IEI = all_IEI_angles.loc[all_IEI_angles.IEI_number > HIGH_IEI_SIZE]
 # NOTE 
 # traj and pitch worth to look at
 # also see lower attack angle
@@ -226,12 +231,26 @@ all_directions = ['DOWN',
 high_bout_zScore = pd.DataFrame()
 for dir_toplt in all_directions:
     data_toplt = high_bout_data.loc[high_bout_data.direction==dir_toplt,:]
-    sibs_mean = data_toplt.loc[data_toplt.condition=='sibs',features]
-    sibs_mean = sibs_mean.mean()
+    sibs_data = data_toplt.loc[data_toplt.condition=='sibs',features]
+    sibs_mean = sibs_data.mean()
+    sibs_sd = sibs_data.std()
     this_z = data_toplt.reset_index(drop=True)
     for feature in features:
         this_z.loc[:,feature] = this_z.groupby('fish_id')[feature].apply(
-                lambda x: (x-sibs_mean[feature])/np.std(x)
+                lambda x: (x-sibs_mean[feature])/sibs_sd[feature]
+                )
+    high_bout_zScore = pd.concat([high_bout_zScore,this_z],ignore_index=True) 
+
+high_bout_mean_zScore = pd.DataFrame()
+for dir_toplt in all_directions:
+    data_toplt = high_bout_data.loc[high_bout_data.direction==dir_toplt,:]
+    sibs_data = data_toplt.loc[data_toplt.condition=='sibs',features]
+    sibs_mean = sibs_data.mean()
+    sibs_sd = sibs_data.std()
+    this_z = data_toplt.reset_index(drop=True)
+    for feature in features:
+        this_z.loc[:,feature] = this_z.groupby('fish_id')[feature].apply(
+                lambda x: (x-sibs_mean[feature])/sibs_sd[feature]
                 )
     high_bout_zScore = pd.concat([high_bout_zScore,this_z],ignore_index=True) 
 
@@ -254,11 +273,29 @@ for dir_toplt in all_directions:
 
 
 # %%
-# z score by clutch id
+# z score by mean by fish
 cat_cols = ['condition', 'ztime', 'direction', 'fish_id','time','clutch_id']
 features = list(set(high_bout_data.columns).difference(set(cat_cols)))
 all_directions = ['DOWN',
                   'UP']
+
+### to update
+# calculate mean for each fish first, then z score
+# 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 zscore_byClutch = pd.DataFrame()
 for (this_clutch, this_direction), group in high_bout_data.groupby(['clutch_id','direction']):
@@ -269,21 +306,26 @@ for (this_clutch, this_direction), group in high_bout_data.groupby(['clutch_id',
     this_z.loc[:,features] = (this_z.loc[:,features]-this_sib_mean[features])/this_sib_std[features]
     zscore_byClutch = pd.concat([zscore_byClutch, this_z],ignore_index=True)
     
-percent_chg = pd.DataFrame()
-for (this_clutch, this_direction), group in high_bout_data.groupby(['clutch_id','direction']):
-    this_sib = group.loc[group['condition']=='sibs',features]
-    this_sib_mean = this_sib.mean()
-    this_sib_std = this_sib.std()
-    this_chg = group.reset_index(drop=True)
-    this_chg.loc[:,features] = (this_chg.loc[:,features]-this_sib_mean[features])/this_sib_mean[features]
-    percent_chg = pd.concat([percent_chg, this_chg],ignore_index=True)
+# percent_chg = pd.DataFrame()
+# for (this_clutch, this_direction), group in high_bout_data.groupby(['clutch_id','direction']):
+#     this_sib = group.loc[group['condition']=='sibs',features]
+#     this_sib_mean = this_sib.mean()
+#     this_sib_std = this_sib.std()
+#     this_chg = group.reset_index(drop=True)
+#     this_chg.loc[:,features] = (this_chg.loc[:,features]-this_sib_mean[features])/this_sib_mean[features]
+#     percent_chg = pd.concat([percent_chg, this_chg],ignore_index=True)
+
+# %%
+# power analysis
 
 
 # %%
 feature_to_plt = [
-    # 'rot_late_accel',
-    'pitch_peak',
+    'rot_late_accel',
+    'rot_l_decel',
     'pitch_initial',
+    'pitch_peak',
+    'pitch_end',
     'rot_l_decel',
     'pitch_end',
     'angvel_chg',

@@ -20,7 +20,7 @@ set_font_type()
 # %%
 # Paste root directory here
 # if_plot_by_speed = True
-pick_data = 'blind'
+pick_data = 's'
 root, FRAME_RATE= get_data_dir(pick_data)
 
 folder_name = f'corr_timed'
@@ -221,7 +221,6 @@ for which_to_corr in ['initial_pitch', 'pre_bout_angle']:
     # g.set(xlim=(-200,200))
     # plt.savefig(fig_dir+f"/{which_to_corr}_by dir and spd.pdf",format='PDF')
 
-    # %%
     cat_cols = ['condition','initial_posture','dpf']
     grp_cols = cat_cols + ['time_ms']
 

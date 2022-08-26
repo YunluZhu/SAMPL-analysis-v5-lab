@@ -27,10 +27,10 @@ defaultPlotting()
 set_font_type()
 # %%
 # Paste root directory here
-pick_data = 'tau_bkg'
+pick_data = 'tan_lesion'
 which_zeitgeber = 'all'
-DAY_RESAMPLE = 400
-NIGHT_RESAMPLE = 200
+DAY_RESAMPLE = 0
+NIGHT_RESAMPLE = 0
 
 # %%
 # ztime_dict = {}

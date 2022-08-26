@@ -23,7 +23,8 @@ set_font_type()
 # defaultPlotting()
 # %%
 pick_data = 's'
-which_zeitgeber = 'all'
+which_zeitgeber = 'day'
+what_to_fit = 'pitch_pre_bout'
 # %%
 def sigmoid_fit(x_val, y_val, x_range_to_fit,func,**kwargs):
     # lower_bounds = [0.1,-20,-100,1]
@@ -73,9 +74,11 @@ X_RANGE = np.arange(-5,8.01,0.01)
 BIN_WIDTH = 0.3
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
-folder_name = f'B_righting_sigFit_z{which_zeitgeber}'
+folder_name = f'B_righting_sigFit_z{which_zeitgeber}_bySpd_{what_to_fit}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
+
+spd_bins = np.arange(5,25,4)
 
 try:
     os.makedirs(fig_dir)
@@ -95,24 +98,27 @@ all_coef = pd.DataFrame()
 all_y = pd.DataFrame()
 all_binned_average = pd.DataFrame()
 
-df_tofit = all_feature_cond.loc[all_feature_cond['spd_peak']>6,:]
+df_tofit = all_feature_cond
+df_tofit = df_tofit.assign(
+    speed_bins = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1)),
+)
 
-
-for (cond_abla,cond_dpf), for_fit in df_tofit.groupby(['condition','dpf']):
+for (cond_abla,cond_dpf,cond_spd), for_fit in df_tofit.groupby(['condition','dpf','speed_bins']):
     expNum = for_fit['expNum'].max()
     jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
     for excluded_exp, idx_group in enumerate(jackknife_idx):
         this_for_fit = for_fit.loc[for_fit['expNum'].isin(idx_group)]
         coef, fitted_y, sigma = sigmoid_fit(
-            this_for_fit['rot_l_decel'],this_for_fit['pitch_pre_bout'], X_RANGE, func=sigfunc_4free
+            this_for_fit['rot_l_decel'],this_for_fit[what_to_fit], X_RANGE, func=sigfunc_4free
         )
         slope = coef.iloc[0,0]*(coef.iloc[0,3]) / 4
-        fitted_y.columns = ['pre_bout pitch','decel rotation']
+        fitted_y.columns = [what_to_fit,'decel rotation']
         all_y = pd.concat([all_y, fitted_y.assign(
             dpf=cond_dpf,
             condition=cond_abla,
             excluded_exp = excluded_exp,
             ztime=which_zeitgeber,
+            speed_bins=cond_spd
             )])
         all_coef = pd.concat([all_coef, coef.assign(
             slope=slope,
@@ -120,12 +126,14 @@ for (cond_abla,cond_dpf), for_fit in df_tofit.groupby(['condition','dpf']):
             condition=cond_abla,
             excluded_exp = excluded_exp,
             ztime=which_zeitgeber,
+            speed_bins=cond_spd
             )])
-    binned_df = distribution_binned_average(for_fit,by_col='rot_l_decel',bin_col='pitch_pre_bout',bin=AVERAGE_BIN)
-    binned_df.columns=['decel rotation','pre_bout pitch']
+    binned_df = distribution_binned_average(for_fit,by_col='rot_l_decel',bin_col=what_to_fit,bin=AVERAGE_BIN)
+    binned_df.columns=['decel rotation',what_to_fit]
     all_binned_average = pd.concat([all_binned_average,binned_df.assign(
         dpf=cond_dpf,
         condition=cond_abla,
+        speed_bins=cond_spd,
         ztime=which_zeitgeber,
         )],ignore_index=True)
     
@@ -138,48 +146,48 @@ all_ztime.sort()
 # plot sigmoid
 plt.figure()
 
-g = sns.relplot(x='decel rotation',y='pre_bout pitch', data=all_y, 
+g = sns.relplot(x='decel rotation',y=what_to_fit, data=all_y, 
                 kind='line',
                 col='dpf', col_order=all_cond1,
                 row = 'ztime', row_order=all_ztime,
-                hue='condition', hue_order = all_cond2,ci='sd',
+                hue='speed_bins', hue_order = all_cond2,ci='sd',
                 )
 for i , g_row in enumerate(g.axes):
     for j, ax in enumerate(g_row):
         sns.lineplot(data=all_binned_average.loc[
             (all_binned_average['dpf']==all_cond1[j]) & (all_binned_average['ztime']==all_ztime[i]),:
                 ], 
-                    x='decel rotation', y='pre_bout pitch', 
-                    hue='condition',alpha=0.5,
+                    x='decel rotation', y=what_to_fit, 
+                    hue='speed_bins',alpha=0.5,
                     ax=ax)
     
-filename = os.path.join(fig_dir,"pre_bout pitch VS decel rotation.pdf")
-plt.savefig(filename,format='PDF')
+# filename = os.path.join(fig_dir,"pre_bout pitch VS decel rotation.pdf")
+# plt.savefig(filename,format='PDF')
 
-plt.figure()
+# plt.figure()
 
-g = sns.relplot(x='decel rotation',y='pre_bout pitch', data=all_y, 
-                kind='line',
-                col='condition', col_order=all_cond2,
-                row = 'ztime', row_order=all_ztime,
-                hue='dpf', hue_order = all_cond1, 
-                ci='sd',
-                )
-for i , g_row in enumerate(g.axes):
-    for j, ax in enumerate(g_row):
-        sns.lineplot(data=all_binned_average.loc[
-            (all_binned_average['condition']==all_cond2[j]) & (all_binned_average['ztime']==all_ztime[i]),:
-                ], 
-                    x='decel rotation', y='pre_bout pitch', 
-                    hue='dpf',alpha=0.5,
-                    ax=ax)
+# g = sns.relplot(x='decel rotation',y=what_to_fit, data=all_y, 
+#                 kind='line',
+#                 col='speed_bins', col_order=all_cond2,
+#                 row = 'ztime', row_order=all_ztime,
+#                 hue='dpf', hue_order = all_cond1, 
+#                 ci='sd',
+#                 )
+# for i , g_row in enumerate(g.axes):
+#     for j, ax in enumerate(g_row):
+#         sns.lineplot(data=all_binned_average.loc[
+#             (all_binned_average['condition']==all_cond2[j]) & (all_binned_average['ztime']==all_ztime[i]),:
+#                 ], 
+#                     x='decel rotation', y=what_to_fit, 
+#                     hue='dpf',alpha=0.5,
+#                     ax=ax)
     
-filename = os.path.join(fig_dir,"pre_bout pitch VS decel rotation by cond1.pdf")
-plt.savefig(filename,format='PDF')
+# filename = os.path.join(fig_dir,"pre_bout pitch VS decel rotation by cond1.pdf")
+# plt.savefig(filename,format='PDF')
 # %%
 # plot coefs
 plt.close()
-all_coef.columns = ['a','b','c','d','slope','dpf','condition','excluded_exp','ztime']
+all_coef.columns = ['a','b','c','d','slope','dpf','condition','excluded_exp','ztime','speed_bins']
 all_coef_comp = all_coef.assign(
     upper = all_coef['c'].values,
     lower = all_coef['c'].values + all_coef['d'].values,
@@ -190,18 +198,18 @@ all_coef_comp = all_coef.assign(
     
 for feature in ['upper','lower','x_off','growth','gain','slope']:
     p = sns.catplot(
-        data = all_coef_comp, y=feature,x='dpf',kind='point',join=False,
+        data = all_coef_comp, y=feature,x='speed_bins',kind='point',join=False,
         col_order=all_cond1,ci='sd',
         row = 'ztime', row_order=all_ztime,
         # units=excluded_exp,
         hue='condition', dodge=True,
         hue_order = all_cond2,
     )
-    p.map(sns.lineplot,'dpf',feature,estimator=None,
-        units='excluded_exp',
-        hue='condition',
-        alpha=0.2,
-        data=all_coef_comp)
+    # p.map(sns.lineplot,'dpf',feature,estimator=None,
+    #     units='excluded_exp',
+    #     hue='condition',
+    #     alpha=0.2,
+    #     data=all_coef_comp)
     filename = os.path.join(fig_dir,f"coef vs age {feature}.pdf")
     plt.savefig(filename,format='PDF')
 

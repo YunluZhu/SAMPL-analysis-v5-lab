@@ -32,7 +32,7 @@ def jackknife_kinetics(df,col):
 
 def get_kinetics(df):
     righting_fit = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_l_decel'], deg=1)
-    # righting_fit_early = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_early_decel'], deg=1)
+    righting_fit_initial = np.polyfit(x=df['pitch_initial'], y=df['rot_l_decel'], deg=1)
     # righting_fit_late = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_late_decel'], deg=1)
 
     steering_fit = np.polyfit(x=df['pitch_peak'], y=df['traj_peak'], deg=1)
@@ -72,7 +72,7 @@ def get_kinetics(df):
     
     kinetics = pd.Series(data={
         'righting_gain': -1 * righting_fit[0],
-        # 'righting_gain_early': -1 * righting_fit_early[0],
+        'righting_fit_initial': -1 * righting_fit_initial[0],
         # 'righting_gain_late': -1 * righting_fit_late[0],
 
         'steering_gain': steering_fit[0],
@@ -108,9 +108,9 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
     idx_start = int(peak_idx + T_start * FRAME_RATE)
     idx_end = int(peak_idx + T_end * FRAME_RATE)
     idxRANGE = [idx_start,idx_end]
-    # spd_bins = np.arange(5,25,4)  
+    spd_bins = np.arange(5,25,4)  
     # spd_bins = np.arange(3,18,3)  # warning, temp change
-    spd_bins = [3.5,5.5,7,10,100]
+    # spd_bins = [3.5,5.5,7,10,100]
     TSP_THRESHOLD = [-np.Inf,-50,50,np.Inf]
 
     # for day night split

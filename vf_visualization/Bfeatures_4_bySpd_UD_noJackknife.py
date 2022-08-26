@@ -34,9 +34,9 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'blind'
+pick_data = 'for_paper'
 root, FRAME_RATE = get_data_dir(pick_data)
-spd_bins = np.arange(4,24,4)
+spd_bins = np.arange(5,25,4)
 
 posture_bins = [-50,-20,-10,-5,0,5,10,15,20,25,50]
 

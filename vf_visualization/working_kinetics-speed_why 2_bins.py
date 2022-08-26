@@ -23,7 +23,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'tau_long'
+pick_data = 'for_paper'
 which_ztime = 'day'
 root, FRAME_RATE = get_data_dir(pick_data)
 
@@ -56,8 +56,8 @@ all_kinetics = all_feature_cond.groupby(['condition']).apply(
                         ).reset_index()
 # %%
 # assign up and down
-# pitch_bins = np.arange(-20,42,12)
-pitch_bins = [-20,-8,-2,4,10,16,28,40]
+pitch_bins = np.arange(-18,39,8)
+# pitch_bins = [-20,-5,0,10,25,40]
 spd_bins = np.arange(5,25,4)
 all_mid_angles = (np.add(pitch_bins[:-1],pitch_bins[1:]))/2
 
@@ -92,11 +92,22 @@ pitchbin_count = pitchbin_count.assign(
 total = pitchbin_count.groupby(['speed_bins','condition'])['total'].max()
 total = total.reset_index().sort_values(by=['condition','speed_bins'])
 pitchbin_count['total'] = np.repeat(total['total'],len(total_bins)).values
-pitchbin_count['Initial angle'] = all_mid_angles[0:len(spd_bins)+2].tolist() * len(pitchbin_count.groupby(['speed_bins','condition']).size())
+
+
+# pitch bin value average
+pitch_bin_average = all_feature_UD.groupby(['condition','speed_bins','initial_bins'])['pitch_initial'].mean().reset_index()
+pitch_bin_average.columns = ['condition','speed_bins','initial_bins','mean_pitch']
+pitch_bin_average = pitch_bin_average.sort_values(by=['condition','speed_bins'])
+
+pitchbin_count['Initial angle'] = pitch_bin_average['mean_pitch'].values
 pitchbin_count = pitchbin_count.assign(
     percent = pitchbin_count['count'] / pitchbin_count['total']
 )
 
+pitch_bin_mapping = all_feature_UD.groupby(['initial_bins'])['pitch_initial'].mean().to_dict()
+all_feature_UD = all_feature_UD.assign(
+    pitch_bin_mapped = all_feature_UD['initial_bins'].map(pitch_bin_mapping)
+)
 # %%
 plt.figure()
 sns.relplot(data=pitchbin_count,
@@ -113,7 +124,7 @@ plt.figure()
 sns.relplot(data=all_feature_UD,
             col='condition',
             kind='line',
-             x='initial_bins',
+             x='pitch_bin_mapped',
              y='spd_peak',
             #  hue='speed_bins'
              )
@@ -190,3 +201,5 @@ plt.savefig(filename,format='PDF')
 
 # %%
 # so faster more positive pitches. What about decel rotation
+
+# %%

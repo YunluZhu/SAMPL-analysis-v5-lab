@@ -29,7 +29,7 @@ from plot_functions.get_IBIangles import get_IBIangles
 set_font_type()
 defaultPlotting()
 # %%
-pick_data = 'sfld_combined'
+pick_data = 'wt_fin'
 which_ztime = 'day'
 RESAMPLE = 0
 

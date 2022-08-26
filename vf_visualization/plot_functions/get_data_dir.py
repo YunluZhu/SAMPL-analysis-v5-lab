@@ -20,7 +20,7 @@ def get_data_dir(pick_data):
     #     root = "/Volumes/LabData/VF_data_in_use/NefmaV3/7dd_master_v3"
     #     fr = 40
     elif pick_data == 's':
-        root = "/Volumes/LabData/VF_data_in_use/STauV3"
+        root = "/Volumes/LabData/VF_data_in_use/40hz_data/STauV3"
         fr = 40
     elif pick_data =='hc':
         root = '/Volumes/LabData/VF_data_in_use/VF_HairCell_V3'
@@ -39,14 +39,18 @@ def get_data_dir(pick_data):
     elif pick_data == 'tau_bkg':
         root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Tau background/_analyzed'
         fr = 166
+    elif pick_data == 'tau_selected':
+        root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Tau selected'
+        fr = 166
+        
         
           
     # single fish data
     elif pick_data =='sf':
         root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF quantified'
         fr = 166
-    elif pick_data =='sf all':
-        root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF quantified all'
+    elif pick_data =='sf ana':
+        root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF quantified ana'
         fr = 166
     elif pick_data == 'sfld_combined':
         root = "/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF_LD_combined_7-9only_100mb-plus-singlefish"
@@ -74,17 +78,17 @@ def get_data_dir(pick_data):
     elif pick_data == 'pc_lesion':
         root = "/Volumes/LabData/VF_FA_PCLesion/YZ_code"
         fr = 40    
+    # elif pick_data == 'tan_lesion':
+    #     root = "/Volumes/LabData/VF_FA KRH_Tan_lesion/FA"
+    #     fr = 40        
     elif pick_data == 'tan_lesion':
-        root = "/Volumes/LabData/VF_FA KRH_Tan_lesion/FA"
-        fr = 40        
-    elif pick_data == 'tan_reorg':
         root = "/Volumes/LabData/VF_FA KRH_Tan_lesion/reorganized"
         fr = 40    
     elif pick_data == 'otog':
         root = "/Volumes/LabData/VF_data_in_use/otog/otog DD"
         fr = 166
     elif pick_data == 'blind':
-        root = "/Volumes/LabData/VF_KR_blind/reorganized"
+        root = "/Volumes/LabData/VF_KRH_blind/reorganized"
         fr = 40    
         
         

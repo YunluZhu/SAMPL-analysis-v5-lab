@@ -29,9 +29,10 @@ from plot_functions.get_bout_kinetics import get_bout_kinetics
 set_font_type()
 defaultPlotting()
 # %%
-pick_data = 's' # all or specific data
+pick_data = 'otog' # all or specific data
+# pick_data = 'tan_lesion' # all or specific data
 # for day night split
-which_zeitgeber = 'all'
+which_zeitgeber = 'day'
 
 # %%
 # def main(pick_data):
@@ -40,7 +41,7 @@ peak_idx , total_aligned = get_index(FRAME_RATE)
 # TSP_THRESHOLD = [-np.Inf,-50,50,np.Inf]
 # spd_bins = np.arange(3,24,3)
 
-folder_name = f'B_kinetics_z{which_zeitgeber}'
+folder_name = f'B_kinetics_z{which_zeitgeber}_forPaper'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -94,9 +95,12 @@ for feature_toplt in (all_features):
         kind = 'line',
         marker = True,
     )
+    if 'steer' in feature_toplt:
+        g.set(ylim=(1.08, 1.6))
+    elif 'righting' in feature_toplt:
+        g.set(ylim=(0.01, 0.15))
     filename = os.path.join(fig_dir,f"{feature_toplt}_z{which_zeitgeber}_ztime_bySpd.pdf")
     plt.savefig(filename,format='PDF')
-
 # for feature_toplt in (all_features):
 #     g = sns.catplot(
 #         data = toplt,
@@ -127,6 +131,8 @@ for feature_toplt in (all_features):
         y = feature_toplt,
         kind = 'point',
         marker = True,
+        aspect=.4,
+        
     )
     g.map(sns.lineplot,'condition',feature_toplt,estimator=None,
       units='jackknife_group',
@@ -136,78 +142,12 @@ for feature_toplt in (all_features):
       color='grey',
       alpha=0.2,)
     g.add_legend()
+    if 'steer' in feature_toplt:
+        g.set(ylim=(1.12, 1.4))
+    elif 'righting' in feature_toplt:
+        g.set(ylim=(0.04, 0.14))
 
-    sns.despine(offset=10, trim=True)
+
+    sns.despine(offset=10, trim=False)
     filename = os.path.join(fig_dir,f"{feature_toplt}_z{which_zeitgeber}_byCondition.pdf")
     plt.savefig(filename,format='PDF')
-
-# %% raw data. no jackknife
-# cat_cols = ['expNum','condition','dpf']
-
-# toplt = all_kinetic_cond
-# all_features = [c for c in toplt.columns if c not in cat_cols]
-
-# flatui = ["#D0D0D0"] * (toplt.groupby('condition').size().max())
-
-# defaultPlotting()
-
-# # print('plot raw data')
-
-# for feature_toplt in (all_features):
-#     g = sns.catplot(data = toplt, x = 'condition', y = feature_toplt,
-#                     order=all_cond2,
-#                     height=4, aspect=0.8, kind='point',
-#                     hue='dpf', markers='d',sharey=False,
-#                     hue_order=all_cond1,
-#                     # ci=False, 
-#                     zorder=10
-#                     )
-#     g.map_dataframe(sns.pointplot, 
-#                     x = "condition", y = feature_toplt,
-#                     order=all_cond2,
-#                     hue='expNum', ci=None,
-#                     palette=sns.color_palette(flatui), scale=0.5,zorder=-1)
-    
-#     plt.savefig(fig_dir+f"/{pick_data}_{feature_toplt}.pdf",format='PDF')
-#     # plt.clf()
-# plt.close('all')
-# # %% by speed bins
-# toplt = kinetics_bySpd_jackknife
-# cat_cols = ['speed_bins', 'condition','dpf']
-# all_features = [c for c in toplt.columns if c not in cat_cols]
-
-# # print("Plot with long format. as a function of speed. ")
-
-# defaultPlotting()
-# toplt = kinetics_bySpd_jackknife
-# for feature_toplt in (['righting','set','steering','corr']):
-#     wide_data = toplt.loc[:,cat_cols + [col for col in all_features if f'{feature_toplt}' in col]]
-#     wide_data['id'] = wide_data.index
-#     long_data = pd.wide_to_long(wide_data, stubnames=feature_toplt, i='id', j='feature', sep='_', suffix='\w+')
-
-#     df_toplt = long_data.reset_index()
-#     g = sns.FacetGrid(df_toplt,
-#                     row = "feature", 
-#                     col = 'dpf',
-#                     hue = 'condition', 
-#                     height=3, aspect=1.8, 
-#                     sharey='row',
-#                     )
-#     g.map_dataframe(sns.lineplot, 
-#                     x = 'speed_bins', y = feature_toplt,
-#                     err_style='band', 
-#                     # ci='sd'
-#                     )
-#     g.map_dataframe(sns.pointplot, 
-#                     x = 'speed_bins', y = feature_toplt, 
-#                     ci=None, join=False,
-#                     markers='d')
-    
-#     # if feature_toplt == 'righting':
-#     #     g.set(ylim = (0.05,0.19))
-#     g.add_legend()
-#     plt.savefig(fig_dir+f"/{pick_data}__spd_{feature_toplt}.pdf",format='PDF')
-#     # plt.clf()
-
-
-# %%

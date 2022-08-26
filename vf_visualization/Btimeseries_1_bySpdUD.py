@@ -23,8 +23,8 @@ set_font_type()
 
 # %%
 # Paste root directory here
-if_plot_by_speed = True
-pick_data = 'for_paper'
+if_plot_by_speed = False
+pick_data = 's'
 root, FRAME_RATE= get_data_dir(pick_data)
 
 folder_name = f'B1_features_Tseries'
@@ -158,13 +158,17 @@ print(all_around_peak_data.groupby('speed_bin')['peak_speed'].agg('min'))
 print('--max')
 print(all_around_peak_data.groupby('speed_bin')['peak_speed'].agg('max'))
 
-# Peak data 
+# Peak data and pitch segmentation
+idx_initial = int(peak_idx -0.25 * FRAME_RATE)
 peak_data = all_around_peak_data.loc[all_around_peak_data['idx']==peak_idx].reset_index(drop=True)
+peak_data = peak_data.assign(
+    pitch_initial = all_around_peak_data.loc[all_around_peak_data['idx']==idx_initial,'propBoutAligned_pitch'].values
+)
 peak_grp = peak_data.groupby(['expNum','condition'],as_index=False)
 
 # assign by pitch
-neg_pitch_bout_num = peak_data.loc[peak_data['propBoutAligned_pitch']<0,'bout_number']
-pos_pitch_bout_num = peak_data.loc[peak_data['propBoutAligned_pitch']>0,'bout_number']
+neg_pitch_bout_num = peak_data.loc[peak_data['pitch_initial']<10,'bout_number']
+pos_pitch_bout_num = peak_data.loc[peak_data['pitch_initial']>10,'bout_number']
 all_around_peak_data = all_around_peak_data.assign(
     pitch_dir = 'neg_pitch' 
 )
