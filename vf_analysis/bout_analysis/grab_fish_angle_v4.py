@@ -931,7 +931,7 @@ def run(filenames, folder, frame_rate):
     metadata_from_bouts = pd.DataFrame()
 
     for i, file in enumerate(filenames):
-        logger.info(f"File: {file}")
+        logger.info(f"File {i}: {file[-19:]}")
         raw = read_dlm(i, file)
         analyzed, fish_length = analyze_dlm_resliced(raw, i, file, folder, frame_rate)
         res = grab_fish_angle(analyzed, fish_length,frame_rate)
