@@ -25,7 +25,7 @@ list_of_root_folders = [
     
     # ("/Volumes/LabData/VF_data_in_use/LateralLineHairCell/HC_highFR/HC_organized 220429", 166),   # Hair cell
     
-    # dataset used in methods paper
+    # dataset used in method paper
     ("/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/WT_DD_7dpf", 166),  # wt
     ("/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/TAN_lesion", 40),   # tan
     ("/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/otog", 166),        # otog

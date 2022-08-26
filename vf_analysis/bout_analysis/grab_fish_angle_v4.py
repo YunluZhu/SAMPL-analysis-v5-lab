@@ -16,6 +16,7 @@ NOTE
 220505: shortened bout align window
 220718: IEI detection changed to 100ms after and 100ms before speed passes speed threshold. Speed threshold set to 3.5mm/s
 220826: max angular acceleration filter now applys to moving average (window 3) of angaccel. filtering out about 10% epochs per dlm.
+220826: added logging function
 '''
 # %%
 # Import Modules and functions
