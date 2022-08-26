@@ -15,7 +15,7 @@ To use, run the grab_fish_angle.run() , which calls grab_fish_angle.grab_fish_an
 NOTE
 220505: shortened bout align window
 220718: IEI detection changed to 100ms after and 100ms before speed passes speed threshold. Speed threshold set to 3.5mm/s
-
+220826: max angular acceleration filter now applys to moving average (window 3) of angaccel. filtering out about 10% epochs per dlm.
 '''
 # %%
 # Import Modules and functions
@@ -32,7 +32,7 @@ import math
 from preprocessing.read_dlm import read_dlm
 from preprocessing.analyze_dlm_v4 import analyze_dlm_resliced
 global program_version
-program_version = 'V4.2.220815'
+program_version = 'V4.3.220826'
 # %%
 # Define functions
 def grp_by_epoch(df):
@@ -820,7 +820,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
         # YZ 2020.5.27 change to swimSpeed
         epoch_pause_yvel = grouped_df.apply(lambda e: e.loc[e['swimSpeed']<BASELINE_THRESHOLD,'yvel'].mean()),
         epoch_bout_yvel = grouped_df.apply(lambda e: e.loc[e['swimSpeed']>PROPULSION_THRESHOLD,'yvel'].mean()),
-        x_dir = grouped_df.apply(lambda e: e.loc[e['swimSpeed']>PROPULSION_THRESHOLD,'yvel'].mean()),
+        yvel_mean = grouped_df.apply(lambda e: e.loc[e['swimSpeed']>PROPULSION_THRESHOLD,'yvel'].mean()),
     ).reset_index()
 
     print(".", end='')

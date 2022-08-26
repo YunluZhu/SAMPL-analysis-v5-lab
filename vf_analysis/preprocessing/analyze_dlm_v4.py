@@ -130,7 +130,8 @@ def displ_dist_vel_filter(df,MAX_DIST_TRAVEL):
     )
     # exclude epochs with improbably large angular accel. numpy calculation is faster
     f3 = grp_by_epoch(f2).filter(
-        lambda g: np.nanmax(np.abs(g['angAccel'].values)) <= MAX_ANG_ACCEL
+        lambda g: np.nanmax(np.abs(g['angAccel'].rolling(3, center=True).mean())) <= MAX_ANG_ACCEL
+        # lambda g: np.nanmax(np.abs(g['angAccel'])) <= MAX_ANG_ACCEL
     )
     print(".", end="")
     return f3
