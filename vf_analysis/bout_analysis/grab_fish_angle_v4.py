@@ -23,6 +23,7 @@ NOTE
 import sys
 import os
 import glob
+import configparser
 import pandas as pd # pandas library
 import numpy as np # numpy
 from collections import defaultdict
@@ -40,6 +41,39 @@ program_version = 'V4.3.220826'
 
 # %%
 # Define functions
+
+def read_parameters(ini_file):
+    config = configparser.ConfigParser()
+    config.read(ini_file)
+    box_number = config.getint('User-defined parameters','Box number')
+    genotype = config.get('User-defined parameters','Genotype').replace('"','')
+    age = config.getint('User-defined parameters','Age')
+    notes = config.get('User-defined parameters','Notes').replace('"','')
+    initials = config.get('User-defined parameters','Inititals').replace('"','')
+    light_cycle = config.getint('User-defined parameters','Light cycle')
+    dir = config.get('User-defined parameters','Save data to?').replace('"','')
+    line_1 = config.getint('User-defined parameters','Mom line number')
+    line_2 = config.getint('User-defined parameters','Dad line number')
+    cross_id = config.get('User-defined parameters','cross ID').replace('"','')
+    num_fish = config.getint('User-defined parameters','Num fish')
+    filename = config.get('User-defined parameters','Filename').replace('"','')
+    parameters = pd.DataFrame({
+        'box_number':box_number,
+        'genotype':genotype,
+        'age':age,
+        'notes':notes,
+        'initials':initials,
+        'light_cycle':light_cycle,
+        'dir':dir,
+        'line_1':line_1,
+        'line_2':line_2,
+        'cross_id':cross_id,
+        'num_fish':num_fish,
+        'filename':filename,
+    }, index=[0])
+    return parameters
+
+
 def grp_by_epoch(df):
     '''Group df by 'epochNum'''
     return df.groupby('epochNum', sort=False)
@@ -930,6 +964,24 @@ def run(filenames, folder, frame_rate):
     total_bouts_aligned = 0
     metadata_from_bouts = pd.DataFrame()
 
+    # read ini files of dlm files, if there's any
+    par_files = [name.split(".dlm")[0]+" parameters.ini" for name in filenames]
+    all_ini_files = glob.glob(f"{folder}/.ini")
+    ini_files_to_read = list(set(par_files).intersection(all_ini_files))
+    exp_parameters = pd.DataFrame()
+    if ini_files_to_read:
+        for i, this_par_file in enumerate(ini_files_to_read):
+            this_par = read_parameters(this_par_file)
+            this_par = this_par.assign(
+                dlm_loc = filenames[i],
+                dlm_size = os.path.getsize(filenames[i]),
+                ini_loc = this_par_file,
+                )
+            exp_parameters = pd.concat([exp_parameters, this_par],ignore_index=True)
+        exp_parameters = exp_parameters.sort_values(by=['filename']).reset_index(drop=True)
+        exp_parameters.to_csv(f"{folder}/dlm metadata ini.csv")
+
+    # analyze dlm
     for i, file in enumerate(filenames):
         logger.info(f"File {i}: {file[-19:]}")
         raw = read_dlm(i, file)
@@ -968,25 +1020,24 @@ def run(filenames, folder, frame_rate):
 
     # %%
     # concat metadata from bouts and metadata from ini. save in parent folder (condition folder)
-    # read csv
+    metadata_from_bouts.reset_index(drop=True, inplace=True)
+    metadata_from_bouts = metadata_from_bouts.sort_values(by=['filename']).reset_index(drop=True)
+    if_exp_metadata_arrScript = glob.glob(f"{folder}/*metadata.csv")
+    if not ini_files_to_read:   # if no ini file detected
+        if if_exp_metadata_arrScript:   # pull metadata from metadata.csv if possible
+            if_exp_metadata_arrScript = if_exp_metadata_arrScript[0]
+            exp_metadata_arrScript = pd.read_csv(if_exp_metadata_arrScript, index_col=0)
 
-    csv_file = glob.glob(f"{folder}/*metadata.csv")
-    if csv_file:
-        csv_file = csv_file[0]
-        metadata_ini = pd.read_csv(csv_file, index_col=0)
-        # sort by filename
-        metadata_ini = metadata_ini.sort_values(by=['filename']).reset_index(drop=True)
-        metadata_from_bouts = metadata_from_bouts.sort_values(by=['filename'])
-        metadata_from_bouts.reset_index(drop=True,inplace=True)
-        # concat metadata
-        metadata_merged = pd.concat([metadata_ini, metadata_from_bouts], axis=1)
-        # get parent folder dir
-        condition_folder = os.path.dirname(folder)
-        # get metadata csv name
-        csv_file_name = os.path.basename(csv_file)
-        metadata_merged.to_csv(os.path.join(condition_folder,f"ana {csv_file_name}"))
-    else:
-        metadata_from_bouts.to_csv(os.path.join(folder,f"ana metadata.csv"))
+            exp_metadata_arrScript = exp_metadata_arrScript.sort_values(by=['filename']).reset_index(drop=True)
+            metadata_merged = metadata_from_bouts.merge(exp_metadata_arrScript, on='filename')
+    else:   # if metadata detected, exp_parameters should have values
+        metadata_merged = metadata_from_bouts.merge(exp_parameters, on='filename')
+
+    # get parent folder dir
+    condition_folder = os.path.dirname(folder)
+    exp_name = os.path.basename(folder)
+    # get metadata csv name
+    metadata_merged.to_csv(os.path.join(condition_folder,f"{exp_name} metadata.csv"))
 
     total_bouts_aligned = metadata_from_bouts['aligned_bout'].sum()
     # %%
