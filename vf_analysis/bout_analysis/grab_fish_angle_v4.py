@@ -966,7 +966,7 @@ def run(filenames, folder, frame_rate):
 
     # read ini files of dlm files, if there's any
     par_files = [name.split(".dlm")[0]+" parameters.ini" for name in filenames]
-    all_ini_files = glob.glob(f"{folder}/.ini")
+    all_ini_files = glob.glob(f"{folder}/*.ini")
     ini_files_to_read = list(set(par_files).intersection(all_ini_files))
     exp_parameters = pd.DataFrame()
     if ini_files_to_read:
@@ -979,7 +979,7 @@ def run(filenames, folder, frame_rate):
                 )
             exp_parameters = pd.concat([exp_parameters, this_par],ignore_index=True)
         exp_parameters = exp_parameters.sort_values(by=['filename']).reset_index(drop=True)
-        exp_parameters.to_csv(f"{folder}/dlm metadata ini.csv")
+        exp_parameters.to_csv(f"{folder}/dlm metadata.csv")
 
     # analyze dlm
     for i, file in enumerate(filenames):
