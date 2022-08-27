@@ -23,6 +23,7 @@ from tqdm import tqdm
 
 def vf_analysis(root,frame_rate):
     logger = log_vf_ana('vf_ana_log')
+    logger.info(f"Analysis Started!")
     logger.info(f"Root dir: {root}")
     logger.info(f"Frame Rate: {frame_rate}")
     # for progress bar and time estimation (2022.0126 update)
