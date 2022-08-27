@@ -941,8 +941,8 @@ def run(filenames, folder, frame_rate):
     Concatinate results from different .dlm files
     '''
     logger = log_vf_ana('vf_ana_log')
-    logger.info(f"Program ver: {program_version}")
     logger.info(f'Folder analyzed: {folder}')
+    logger.info(f"Program ver: {program_version}")
 
     # initialize output vars
     grabbed_all = pd.DataFrame()
