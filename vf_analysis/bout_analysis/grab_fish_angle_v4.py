@@ -1030,6 +1030,9 @@ def run(filenames, folder, frame_rate):
 
             exp_metadata_arrScript = exp_metadata_arrScript.sort_values(by=['filename']).reset_index(drop=True)
             metadata_merged = metadata_from_bouts.merge(exp_metadata_arrScript, on='filename')
+        else:  # there's nothing. user must have manually transferred dlm files to this folder
+            metadata_merged = pd.DataFrame()
+            logger.warning("No metadata detected!")
     else:   # if metadata detected, exp_parameters should have values
         metadata_merged = metadata_from_bouts.merge(exp_parameters, on='filename')
 
