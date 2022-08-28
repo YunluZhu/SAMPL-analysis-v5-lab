@@ -986,10 +986,14 @@ def run(filenames, folder, frame_rate):
         logger.info(f"File {i}: {file[-19:]}")
         raw = read_dlm(i, file)
         analyzed, fish_length = analyze_dlm_resliced(raw, i, file, folder, frame_rate)
+        if type(analyzed) == str:
+            print(analyzed)
+            logger.warning(analyzed)
+            continue
         res = grab_fish_angle(analyzed, fish_length,frame_rate)
         if type(res) == str:
             print(res)
-            logger.warning(f"{res}")
+            logger.warning(res)
             continue 
         this_metadata = {
             'filename':os.path.basename(file)[0:15],

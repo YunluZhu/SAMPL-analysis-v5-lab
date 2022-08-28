@@ -197,7 +197,8 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
     
     # Apply filters
     ana_f = dur_y_x_filter(ana,MAX_DELTA_T)
-
+    if ana_f.empty:
+        return "> no usable epoch detected > dlm file skipped", 0
     # %%
     # Calculate displacement, distance traveled, angular velocity, angular acceleration and filter epochs
 
