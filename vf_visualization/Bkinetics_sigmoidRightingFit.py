@@ -22,7 +22,7 @@ from plot_functions.plt_tools import (jackknife_mean, set_font_type, defaultPlot
 set_font_type()
 # defaultPlotting()
 # %%
-pick_data = 's'
+pick_data = 'wt_daylight'
 which_zeitgeber = 'all'
 # %%
 def sigmoid_fit(x_val, y_val, x_range_to_fit,func,**kwargs):

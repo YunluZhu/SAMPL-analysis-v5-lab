@@ -55,8 +55,8 @@ except:
 
 # %%
 POSTURE_SEP = 5 #deg
-MIN_DATA_SIZE = 50
-HIGH_DATA_SIZE = 80
+MIN_DATA_SIZE = 0
+HIGH_DATA_SIZE = 100
 HIGH_IEI_SIZE = 100
 time50ms = int(0.05 * FRAME_RATE)
 time100ms = int(0.1 * FRAME_RATE)
@@ -212,10 +212,11 @@ sns.scatterplot(
 fish_bout_number = all_feature_data.groupby('fish_id').size().reset_index()
 fish_bout_number.columns = ['fish_id','bout_num']
 print(fish_bout_number)
+print(f'mean of all tau boxes: {fish_bout_number.iloc[1:,1].mean()}')
 
-print(fish_bout_number.iloc[1:,1].mean())
 
 high_bout_fish = fish_bout_number.loc[fish_bout_number['bout_num'] > HIGH_DATA_SIZE,'fish_id'].values
+print(f'selected fish: {high_bout_fish}')
 
 high_bout_data = all_feature_data.loc[all_feature_data['fish_id'].isin(high_bout_fish),:]
 # high_bout_kinetics = all_kinetics.loc[all_kinetics['fish_id'].isin(high_bout_fish),:]
@@ -297,8 +298,8 @@ print(power_ana_res)
 power_ana_res['sampleSize'].mean()
 # %%
 print(power_ana_res)
-fish_list = [22080501, 22080511, 22080513, 22080515, 22080516]
-
+# fish_list = [22080501, 22080511, 22080513, 22080515, 22080516]
+fish_list = list(high_bout_fish[1:])
 check_fish = power_ana_res.loc[:,['feature']+fish_list]
 check_fish = check_fish.set_index('feature')
 
@@ -314,8 +315,8 @@ IEI_zscore_adj = IEI_zscore_adj.to_frame().T
 check_fish_combined = pd.concat([check_fish,IEI_zscore_adj],axis=0,join="inner")
 check_fish_combined.mean()
 # %%
-x = [1098,1049,960,2345]
-y = [0.080822,0.146382,0.350546,0.472061]
+# x = [1098,1049,960,2345]
+# y = [0.080822,0.146382,0.350546,0.472061]
 
-sns.scatterplot(x=x,y=y)
+# sns.scatterplot(x=x,y=y)
 # %%

@@ -28,7 +28,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'for_paper'
+pick_data = 'for_paper_wt'
 which_ztime = 'day'
 root, FRAME_RATE = get_data_dir(pick_data)
 
@@ -46,7 +46,7 @@ except:
 all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
 all_ibi_cond, _, _  = get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
 # %% tidy data
-all_feature_cond['direction'] = pd.cut(all_feature_cond['pitch_peak'],[-90,10,90],labels=['DN','UP'])
+all_feature_cond['direction'] = pd.cut(all_feature_cond['pitch_initial'],[-90,10,90],labels=['DN','UP'])
 
 all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
 all_ibi_cond = all_ibi_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
@@ -362,6 +362,7 @@ g = sns.displot(data=toplt,
                 x='pitch_prep_phase',y='angvel_prep_phase',
                 col="dpf", row="condition",col_order=all_cond1,hue='condition')
 g.set(xlim=(-15, 30),ylim=(-10,10))
+plt.savefig(fig_dir+"/angvel_prep_phase v pitch_prep_phase.pdf",format='PDF')
 
 # %%
 toplt = all_feature_cond
@@ -370,6 +371,8 @@ g = sns.displot(data=toplt,
                 col="dpf", row="condition",col_order=all_cond1,
                 kind='kde'
                 )
+plt.savefig(fig_dir+"/traj_peak v pitch_peak.pdf",format='PDF')
+
 # g.set(xlim=(-15, 30),ylim=(-10,10))
 
 # %%

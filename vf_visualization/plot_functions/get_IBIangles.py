@@ -35,6 +35,7 @@ def get_IBIangles(root, FRAME_RATE,**kwargs):
         for subpath, subdir_list, subfile_list in os.walk(folder):
             # if folder is not empty
             if subdir_list:
+                subdir_list.sort()
                 # reset for each condition
                 ibi_features = pd.DataFrame()
                 # loop through each sub-folder (experiment) under each condition

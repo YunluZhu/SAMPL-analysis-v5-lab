@@ -76,22 +76,22 @@ all_kinetics = all_feature_cond.groupby(['dpf']).apply(
 #                                 bins=[-91,10,91],
 #                                 labels=['dn','up'])
 #     all_feature_UD = pd.concat([all_feature_UD,group])
-    
+
 # %%
 # Plots
 # %% histogram
 all_feature_UD = all_feature_cond
 toplt = all_feature_UD
 feature_to_plt = 'pitch_initial'
-sns.displot(data=toplt,x=feature_to_plt, kde=True, 
+sns.displot(data=toplt,x=feature_to_plt, kde=True,
             col="dpf", row="condition",col_order=all_cond1,hue='condition',
             facet_kws={'sharey':False})
 plt.savefig(fig_dir+f"/{feature_to_plt} distribution.pdf",format='PDF')
 
 # %% kde
 feature_to_plt = 'pitch_initial'
-g = sns.FacetGrid(data=all_feature_UD, 
-                col="dpf", 
+g = sns.FacetGrid(data=all_feature_UD,
+                col="dpf",
                 row="ztime",
                 col_order=all_cond1,hue='condition',
                 sharey=False,
@@ -107,14 +107,14 @@ toplt = all_feature_UD
 feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','bout_traj']
 
 for feature in feature_to_plt:
-    g = sns.FacetGrid(data=toplt, 
+    g = sns.FacetGrid(data=toplt,
                 col="dpf", row="direction",col_order=all_cond1,hue='condition',
                 sharey=False,
                 )
     g.map(sns.kdeplot,feature)
     g.add_legend()
     plt.savefig(fig_dir+f"/{feature} distribution.pdf",format='PDF')
-    
+
 toplt = all_feature_UD
 feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','bout_traj']
 # %%
@@ -122,10 +122,10 @@ feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','a
 toplt = all_feature_UD
 feature_to_plt = 'propBoutIEI'
 sns.displot(data=all_ibi_cond,
-            x=feature_to_plt, 
+            x=feature_to_plt,
             log_scale=True,
-            # kde=True, 
-            col="dpf", 
+            # kde=True,
+            col="dpf",
             # stat='density',
             # row="condition",
             col_order=all_cond1,
@@ -136,8 +136,8 @@ sns.displot(data=all_ibi_cond,
 plt.savefig(fig_dir+f"/{feature_to_plt} distribution.pdf",format='PDF')
 # %%
 # IBI posture
-g = sns.FacetGrid(data=all_ibi_cond, 
-                col="dpf", 
+g = sns.FacetGrid(data=all_ibi_cond,
+                col="dpf",
                 row="ztime",
                 col_order=all_cond1,hue='condition',
                 sharey=False,
@@ -152,7 +152,7 @@ toplt = all_feature_UD
 feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','bout_traj']
 
 for feature in feature_to_plt:
-    g = sns.catplot(data=toplt, 
+    g = sns.catplot(data=toplt,
                     y = feature,
                     x='condition',
                 col="dpf", row="direction",col_order=all_cond1,hue='condition',
@@ -212,7 +212,7 @@ plt.savefig(fig_dir+f"/{yname} v {xname}.pdf",format='PDF')
 # %%
 toplt = all_feature_cond
 # steering
-g = sns.displot(data=toplt, 
+g = sns.displot(data=toplt,
                 y='traj_peak',x='pitch_peak',
                 col="dpf", row="condition",col_order=all_cond1,hue='condition')
 g.add_legend()
@@ -220,8 +220,8 @@ g.add_legend()
 plt.savefig(fig_dir+"/traj_peak v pitch_peak.pdf",format='PDF')
 
 # set point
-g = sns.displot(data=toplt, 
-                y='pitch_initial',x='rot_total',
+g = sns.displot(data=toplt,
+                y='pitch_pre_bout',x='rot_total',
                 col="dpf", row="condition",col_order=all_cond1,hue='condition')
 g.add_legend()
 
@@ -229,14 +229,14 @@ g.set(ylim=(-40,50))
 plt.savefig(fig_dir+"/pitch_initial v rot_total.pdf",format='PDF')
 
 #righting
-g = sns.displot(data=toplt, 
+g = sns.displot(data=toplt,
                 y='rot_l_decel',x='pitch_pre_bout',
                 col="dpf", row="condition",col_order=all_cond1,hue='condition')
 g.add_legend()
 
 plt.savefig(fig_dir+"/rot_l_decel v pitch_pre_bout.pdf",format='PDF')
 
-# g = sns.relplot(data=toplt, 
+# g = sns.relplot(data=toplt,
 #                 y='rot_l_decel',x='pitch_pre_bout',
 #                 col="dpf", row="condition",col_order=all_cond1,hue='spd_peak', kind='scatter', alpha=0.2)
 # g.add_legend()
@@ -244,7 +244,7 @@ plt.savefig(fig_dir+"/rot_l_decel v pitch_pre_bout.pdf",format='PDF')
 
 
 #corr
-g = sns.displot(data=toplt, 
+g = sns.displot(data=toplt,
                 y='rot_l_decel',x='rot_late_accel',
                 col="dpf", row="condition",col_order=all_cond1,hue='condition')
 g.add_legend()
@@ -255,7 +255,7 @@ plt.savefig(fig_dir+"/rot_l_decel v rot_late_accel.pdf",format='PDF')
 # atk angle - pitch
 toplt = all_feature_cond
 
-# g = sns.displot(data=toplt, 
+# g = sns.displot(data=toplt,
 #                 y='atk_ang',x='pitch_peak',
 #                 col="dpf", row="condition",col_order=all_cond1,
 #                 hue='condition',
@@ -265,7 +265,7 @@ toplt = all_feature_cond
 # g.set(ylim=(-50,50),
 #       xlim=(-30,40))
 # plt.savefig(fig_dir+"/atk_ang v pitch_initial.pdf",format='PDF')
-g = sns.jointplot(data=toplt.loc[toplt['dpf']=='07',:], 
+g = sns.jointplot(data=toplt.loc[toplt['dpf']=='07',:],
                 y='atk_ang',x='pitch_peak',
                 hue='condition',
                 kind='kde',
@@ -287,7 +287,7 @@ toplt = all_feature_UD
 # toplt = toplt.loc[toplt['bins']=='0',:]
 
 
-g = sns.displot(data=toplt, 
+g = sns.displot(data=toplt,
                 y='angvel_chg',x='angvel_initial_phase',
                 col="dpf", row="condition",col_order=all_cond1,
                 hue='condition',
@@ -302,10 +302,10 @@ plt.savefig(fig_dir+"/angvel_chg v angvel_initial_phase.pdf",format='PDF')
 # post angvel vs prep pitch
 toplt = all_feature_UD
 
-g = sns.displot(data=toplt, 
+g = sns.displot(data=toplt,
                 y='angvel_post_phase',
                 x='pitch_initial',
-                col="dpf", 
+                col="dpf",
                 row="condition",col_order=all_cond1,
                 hue='condition',
                 )
@@ -318,10 +318,10 @@ plt.savefig(fig_dir+"/angvel_post_phase v pitch_initial.pdf",format='PDF')
 # post angvel vs prepp pitch
 toplt = all_feature_UD
 
-g = sns.displot(data=toplt, 
+g = sns.displot(data=toplt,
                 y='angvel_post_phase',
                 x='pitch_end',
-                col="dpf", 
+                col="dpf",
                 row="condition",col_order=all_cond1,
                 hue='condition',
                 )
@@ -342,7 +342,7 @@ p = sns.FacetGrid(
 p.map(sns.regplot,"pitch_end", "angvel_post_phase",
       x_bins=8,
       ci=95,
-      
+
       scatter_kws={"s": 10,},
       )
 p.set(ylim=(-5,8),
@@ -358,7 +358,7 @@ plt.savefig(fig_dir+"/angvel_post_phase v pitch_end fit.pdf",format='PDF')
 
 # %%
 toplt = all_feature_cond
-g = sns.displot(data=toplt, 
+g = sns.displot(data=toplt,
                 x='pitch_prep_phase',y='angvel_prep_phase',
                 col="dpf", row="condition",col_order=all_cond1,hue='condition')
 g.set(xlim=(-15, 30),ylim=(-10,10))
@@ -366,7 +366,7 @@ plt.savefig(fig_dir+"/angvel_prep_phase v pitch_prep_phase.pdf",format='PDF')
 
 # %%
 toplt = all_feature_cond
-g = sns.displot(data=toplt, 
+g = sns.displot(data=toplt,
                 x='pitch_peak',y='traj_peak', hue='direction',
                 col="dpf", row="condition",col_order=all_cond1,
                 kind='kde'
@@ -378,14 +378,14 @@ plt.savefig(fig_dir+"/traj_peak v pitch_peak.pdf",format='PDF')
 # %%
 # IBI features
 toplt = all_ibi_cond
-g = sns.displot(data=toplt, 
+g = sns.displot(data=toplt,
                 x='propBoutIEI_pitch',y='propBoutIEI_angVel',
                 col="dpf", row="condition",col_order=all_cond1,hue='condition')
 g.set(xlim=(-15, 30),ylim=(-10,10))
 # %%
 # IBI frequency
 toplt = all_ibi_cond
-g = sns.displot(data=toplt, 
+g = sns.displot(data=toplt,
                 x='propBoutIEI_pitch',y='y_boutFreq',
                 col="dpf", row="condition",col_order=all_cond1,hue='condition')
 g.set(xlim=(-20, 40),ylim=(0,4))
@@ -403,7 +403,7 @@ plt.savefig(fig_dir+"/IEI freq pitch.pdf",format='PDF')
 # )
 # toplt = toplt.loc[toplt['angvel_percent_recover']<0,:]
 # toplt = toplt.loc[toplt['condition']==all_cond2[0],:]
-# g = sns.displot(data=toplt, 
+# g = sns.displot(data=toplt,
 #                 y='angvel_percent_recover',
 #                 x='angvel_initial_phase',
 #                 col="dpf", col_order=all_cond1,
@@ -427,7 +427,7 @@ plt.savefig(fig_dir+"/IEI freq pitch.pdf",format='PDF')
 # )
 # # toplt = toplt.loc[toplt['pitch_percent_recover']<0,:]
 # toplt = toplt.loc[toplt['condition']==all_cond2[0],:]
-# g = sns.displot(data=toplt.sample(n=1000), 
+# g = sns.displot(data=toplt.sample(n=1000),
 #                 y='pitch_percent_recover',
 #                 x='pitch_initial',
 #                 col="dpf", col_order=all_cond1,
@@ -444,7 +444,7 @@ plt.savefig(fig_dir+"/IEI freq pitch.pdf",format='PDF')
 
 # # %%
 
-# g = sns.displot(data=toplt, 
+# g = sns.displot(data=toplt,
 #                 y='rot_l_decel',x='pitch_prep_phase',
 #                 col="dpf", row="condition",col_order=all_cond1,hue='condition')
 # # plt.savefig(fig_dir+"/rot_l_decel v pitch_pre_bout.pdf",format='PDF')
@@ -459,8 +459,8 @@ plt.savefig(fig_dir+"/IEI freq pitch.pdf",format='PDF')
 # )
 # toplt = toplt.loc[toplt['spd_bins']=='fast',:]
 
-# g = sns.displot(data=toplt, 
-#                 y='atk_ang',x='rot_pre_bout', 
+# g = sns.displot(data=toplt,
+#                 y='atk_ang',x='rot_pre_bout',
 #                 col="dpf",col_order=all_cond1, row="condition",hue='condition')
 # g.set(ylim=(-75,75),xlim=(-5,10))
 

@@ -29,7 +29,7 @@ from plot_functions.get_bout_kinetics import get_bout_kinetics
 set_font_type()
 defaultPlotting()
 # %%
-pick_data = 'otog' # all or specific data
+pick_data = 'for_paper_wt' # all or specific data
 # pick_data = 'tan_lesion' # all or specific data
 # for day night split
 which_zeitgeber = 'day'
@@ -41,7 +41,7 @@ peak_idx , total_aligned = get_index(FRAME_RATE)
 # TSP_THRESHOLD = [-np.Inf,-50,50,np.Inf]
 # spd_bins = np.arange(3,24,3)
 
-folder_name = f'B_kinetics_z{which_zeitgeber}_forPaper'
+folder_name = f'B_kinetics_z{which_zeitgeber}_forPaper_newANA'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -82,7 +82,8 @@ if which_zeitgeber == 'all':
 # by speed bins
 toplt = kinetics_bySpd_jackknife
 cat_cols = ['jackknife_group','condition','expNum','dpf','ztime']
-all_features = [c for c in toplt.columns if c not in cat_cols]
+# all_features = [c for c in toplt.columns if c not in cat_cols]
+all_features = ['steering_gain','righting_gain']
 
 for feature_toplt in (all_features):
     g = sns.relplot(
@@ -93,12 +94,15 @@ for feature_toplt in (all_features):
         x = 'average_speed',
         y = feature_toplt,
         kind = 'line',
+        err_style='bars',
+        ci = 95,
         marker = True,
     )
     if 'steer' in feature_toplt:
-        g.set(ylim=(1.08, 1.6))
+        g.set(ylim=(1.05, 1.52))
     elif 'righting' in feature_toplt:
-        g.set(ylim=(0.01, 0.15))
+        g.set(ylim=(0.01, 0.16))
+    g.set(xlim=(6, 20))
     filename = os.path.join(fig_dir,f"{feature_toplt}_z{which_zeitgeber}_ztime_bySpd.pdf")
     plt.savefig(filename,format='PDF')
 # for feature_toplt in (all_features):
@@ -118,8 +122,8 @@ for feature_toplt in (all_features):
 # %% Compare by condition
 toplt = kinetics_jackknife
 cat_cols = ['jackknife_group','condition','expNum','dpf','ztime']
-all_features = [c for c in toplt.columns if c not in cat_cols]
-# print('plot jackknife data')
+# all_features = [c for c in toplt.columns if c not in cat_cols]
+all_features = ['steering_gain_jack','righting_gain_jack']
 
 for feature_toplt in (all_features):
     g = sns.catplot(
@@ -129,10 +133,10 @@ for feature_toplt in (all_features):
         x = 'condition',
         order=all_cond2,
         y = feature_toplt,
+        linestyles = '',
         kind = 'point',
         marker = True,
         aspect=.4,
-        
     )
     g.map(sns.lineplot,'condition',feature_toplt,estimator=None,
       units='jackknife_group',
@@ -143,11 +147,12 @@ for feature_toplt in (all_features):
       alpha=0.2,)
     g.add_legend()
     if 'steer' in feature_toplt:
-        g.set(ylim=(1.12, 1.4))
+        g.set(ylim=(1.1, 1.42))
     elif 'righting' in feature_toplt:
-        g.set(ylim=(0.04, 0.14))
-
+        g.set(ylim=(0.03, 0.14))
 
     sns.despine(offset=10, trim=False)
     filename = os.path.join(fig_dir,f"{feature_toplt}_z{which_zeitgeber}_byCondition.pdf")
     plt.savefig(filename,format='PDF')
+
+# %%

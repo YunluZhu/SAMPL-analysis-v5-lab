@@ -27,7 +27,7 @@ defaultPlotting()
 set_font_type()
 # %%
 # Paste root directory here
-pick_data = 'tan_lesion'
+pick_data = 'tau_bkg'
 which_zeitgeber = 'all'
 DAY_RESAMPLE = 0
 NIGHT_RESAMPLE = 0

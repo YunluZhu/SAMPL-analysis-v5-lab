@@ -28,10 +28,10 @@ from plot_functions.get_IBIangles import get_IBIangles
 set_font_type()
 defaultPlotting()
 # %%
-pick_data = 'tan_lesion'
+pick_data = 'tau_bkg'
 which_ztime = 'all'
 
-RESAMPLE = 0  # how many bouts to take per  exp/ztime/condition
+RESAMPLE = 700  # how many bouts to take per  exp/ztime/condition
 
 root, FRAME_RATE = get_data_dir(pick_data)
 

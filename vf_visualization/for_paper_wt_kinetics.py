@@ -21,7 +21,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'tan_lesion'
+pick_data = 'for_paper_wt'
 which_ztime = 'day'
 root, FRAME_RATE = get_data_dir(pick_data)
 folder_name = pick_data
@@ -67,9 +67,6 @@ all_feature_UD = all_feature_cond.assign(
 
 all_feature_UD = all_feature_UD.dropna().reset_index(drop=True)
 
-
-
-
 # %%
 # # get kinetics by spd
 # kinetics_spd = all_feature_UD.groupby(['speed_bins','condition','dpf']).apply(
@@ -79,7 +76,8 @@ all_feature_UD = all_feature_UD.dropna().reset_index(drop=True)
 # by speed bins
 toplt = kinetics_bySpd_jackknife
 cat_cols = ['jackknife_group','condition','expNum','dpf','ztime']
-all_features = [c for c in toplt.columns if c not in cat_cols]
+# all_features = [c for c in toplt.columns if c not in cat_cols]
+all_features = ['steering_gain','righting_gain']
 
 for feature_toplt in (all_features):
     g = sns.relplot(
@@ -90,8 +88,11 @@ for feature_toplt in (all_features):
         x = 'average_speed',
         y = feature_toplt,
         kind = 'line',
+        ci=95,
+        err_style='bars',
         marker = True,
     )
+    g.set(xlim=(6, 20))
     filename = os.path.join(fig_dir,f"{feature_toplt}_z{which_ztime}_ztime_bySpd.pdf")
     plt.savefig(filename,format='PDF')
 # %%
@@ -132,7 +133,7 @@ plt.savefig(fig_dir+f"/{feature_to_plt} distribution.pdf",format='PDF')
 
 all_feature_UD = all_feature_UD.assign(
     deviationFromSet = np.abs(all_feature_UD['pitch_pre_bout']-set_point),
-    mean_speed_byDir = all_feature_UD.groupby('direction')['spd_peak'].transform('mean'),
+    mean_speed_byDir = all_feature_UD.groupby('direction')['spd_peak'].transform('median'),
     absRightingRot = np.abs(toplt['rot_l_decel'])
 )
 all_feature_UD = all_feature_UD.assign(
@@ -143,7 +144,7 @@ all_feature_UD.loc[all_feature_UD['spd_peak']>all_feature_UD['mean_speed_byDir']
 
 # %%
 # check speed
-mean_spd_per_dir = all_feature_UD.groupby('direction')['spd_peak'].mean()
+mean_spd_per_dir = all_feature_UD.groupby('direction')['spd_peak'].median()
 
 toplt = all_feature_UD
 feature_to_plt = 'spd_peak'
@@ -166,7 +167,7 @@ plt.savefig(fig_dir+f"/{feature_to_plt} distribution.pdf",format='PDF')# %%
 # %%
 
 toplt = all_feature_UD
-toplt = all_feature_UD.loc[all_feature_UD['deviationFromSet']>5]
+toplt = all_feature_UD.loc[all_feature_UD['deviationFromSet']>8]
 
 g = sns.FacetGrid(data=toplt,
             col="direction", 
@@ -176,11 +177,12 @@ g = sns.FacetGrid(data=toplt,
             hue='speed_2bin',
             # hue='direction',
             sharey=False,
-            aspect=0.8
+            sharex=False,
+            aspect=1
             )
-g.map(sns.regplot,'deviationFromSet','absRightingRot',x_bins=6)
+g.map(sns.regplot,'deviationFromSet','absRightingRot',x_bins=5)
 # g.map(sns.scatterplot,'pitch_pre_bout','percent_corrected',alpha=0.1)
-g.set(xlim=(5,22))
+# g.set(xlim=(6, 20))
 
 g.add_legend()
 plt.savefig(fig_dir+f"/absRighting vs deviation from set UP DN speed.pdf",format='PDF')
@@ -197,9 +199,9 @@ g = sns.FacetGrid(data=toplt,
             hue='condition',
             # hue='direction',
             sharey=True,
-            aspect=0.8
+            aspect=1
             )
-g.map(sns.regplot,'deviationFromSet','absRightingRot',x_bins=6)
+g.map(sns.regplot,'deviationFromSet','absRightingRot',x_bins=5)
 # g.map(sns.scatterplot,'pitch_pre_bout','percent_corrected',alpha=0.1)
 g.set(xlim=(5,22))
 
