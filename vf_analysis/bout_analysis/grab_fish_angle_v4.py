@@ -129,7 +129,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     '''
     # %%
     # Constants
-    PROPULSION_THRESHOLD = 3.5  # mm/s, speed threshold above which samples are considered propulsion
+    PROPULSION_THRESHOLD = 4  # mm/s, speed threshold above which samples are considered propulsion
     BASELINE_THRESHOLD = 2  # mm/s, speed threshold below which samples are considered at baseline (not propelling)
     SAMPLE_RATE = sample_rate  # Hz
     MIN_SWIM_INTERVAL = 0.1  # s, minimum swim interval duration
