@@ -10,7 +10,7 @@ Run `vf_analysis/vf_analysis_....py` to analyze .dlm files. Then, run individual
 
 ## Version notes
 
-**UPDATE log** (v4.1.220610)
+**v4.1.220610**
 
 1. Shortened aligned bout duration
 2. Added arrangement scripts
@@ -18,10 +18,20 @@ Run `vf_analysis/vf_analysis_....py` to analyze .dlm files. Then, run individual
 4. New Fin-Body algorithm
 5. Visualization code now takes zeitgeber time (ztime) as a second input (other than `root`). Legal inputs are: `'day'`, `'night'`, and `'all'`.
 
-**To dos** (220610)
+**v4.3.220826**
 
-- a table describing parameters
+1. Fixed a filter error on angular acceleration in analyze_dlm_v4.py. Now yields 50-80% more bouts
+2. Added logging function. One log file will be generated the first time you run the ana code and will be updated every time you analyze a dataset.
+3. Added the ability to skip dlm with no alignable bouts. With this version, to prevent error during ana process, just search under the root folder for “dlm”, delete any dlm file that are <1MB. Then you are safe to run the ana code.
+4. Metadata handling updated. Can read ini files directly in the grab_fish_angle script and export metadata as a csv in parent folder
+5. New visualization scripts.
+
+**To dos** (220901)
+
 - change condition names to cond1 and cond2 from dpf/condition
+- look at parameters for steering fit
+- separate up down by pre bout pitch at set point
+- use ODR model for righting fit & set point calc
 
 ## Prerequisites and tips
 
