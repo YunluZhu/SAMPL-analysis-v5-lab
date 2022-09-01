@@ -160,30 +160,7 @@ for i , g_row in enumerate(g.axes):
                     x='decel rotation', y=what_to_fit, 
                     hue='speed_bins',alpha=0.5,
                     ax=ax)
-    
-# filename = os.path.join(fig_dir,"pre_bout pitch VS decel rotation.pdf")
-# plt.savefig(filename,format='PDF')
 
-# plt.figure()
-
-# g = sns.relplot(x='decel rotation',y=what_to_fit, data=all_y, 
-#                 kind='line',
-#                 col='speed_bins', col_order=all_cond2,
-#                 row = 'ztime', row_order=all_ztime,
-#                 hue='dpf', hue_order = all_cond1, 
-#                 ci='sd',
-#                 )
-# for i , g_row in enumerate(g.axes):
-#     for j, ax in enumerate(g_row):
-#         sns.lineplot(data=all_binned_average.loc[
-#             (all_binned_average['condition']==all_cond2[j]) & (all_binned_average['ztime']==all_ztime[i]),:
-#                 ], 
-#                     x='decel rotation', y=what_to_fit, 
-#                     hue='dpf',alpha=0.5,
-#                     ax=ax)
-    
-# filename = os.path.join(fig_dir,"pre_bout pitch VS decel rotation by cond1.pdf")
-# plt.savefig(filename,format='PDF')
 # %%
 # plot coefs
 plt.close()
