@@ -27,10 +27,10 @@ defaultPlotting()
 set_font_type()
 # %%
 # Paste root directory here
-pick_data = 'tau_bkg'
+pick_data = 'tau_long'
 which_zeitgeber = 'all'
-DAY_RESAMPLE = 0
-NIGHT_RESAMPLE = 0
+DAY_RESAMPLE = 1000
+NIGHT_RESAMPLE = 500
 
 # %%
 # ztime_dict = {}
@@ -77,10 +77,10 @@ all_ztime.sort()
     
 # %%
 # sanity check
-cat_cols = ['dpf','condition','ztime','exp']
-check_df = IBI_angles.groupby(cat_cols).size().reset_index()
-check_df.columns = ['dpf','condition','ztime','exp','bout_num']
-sns.catplot(data=check_df,x='exp',y='bout_num',col='ztime',row='dpf',hue='condition',kind='bar')
+# cat_cols = ['dpf','condition','ztime','exp']
+# check_df = IBI_angles.groupby(cat_cols).size().reset_index()
+# check_df.columns = ['dpf','condition','ztime','exp','bout_num']
+# sns.catplot(data=check_df,x='exp',y='bout_num',col='ztime',row='dpf',hue='condition',kind='bar')
 
 # %% jackknife for day bouts
 # not the best code - jackknife and resample to be wrapped into a function

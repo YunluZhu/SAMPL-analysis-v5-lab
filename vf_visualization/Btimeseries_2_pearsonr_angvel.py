@@ -20,10 +20,10 @@ set_font_type()
 # %%
 # Paste root directory here
 # if_plot_by_speed = True
-pick_data = 's'
+pick_data = 'tau_long'
 root, FRAME_RATE= get_data_dir(pick_data)
 
-folder_name = f'corr_timed'
+folder_name = f'angvel_corr_timeSeries'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 

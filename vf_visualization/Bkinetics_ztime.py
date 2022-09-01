@@ -29,10 +29,10 @@ from plot_functions.get_bout_kinetics import get_bout_kinetics
 set_font_type()
 defaultPlotting()
 # %%
-pick_data = 'for_paper_wt' # all or specific data
+pick_data = 'tau_long' # all or specific data
 # for day night split
-which_zeitgeber = 'all'
-
+which_zeitgeber = 'day' # day night all
+SAMPLE_NUM = 1000
 # %%
 # def main(pick_data):
 root, FRAME_RATE = get_data_dir(pick_data)
@@ -40,7 +40,7 @@ peak_idx , total_aligned = get_index(FRAME_RATE)
 # TSP_THRESHOLD = [-np.Inf,-50,50,np.Inf]
 # spd_bins = np.arange(3,24,3)
 
-folder_name = f'B_kinetics_z{which_zeitgeber}'
+folder_name = f'B_kinetics_z{which_zeitgeber}_sample{SAMPLE_NUM}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -51,14 +51,13 @@ except:
     print('Notes: re-writing old figures')
 
 # %%
-all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond1, all_cond2 = get_bout_kinetics(root, FRAME_RATE, ztime=which_zeitgeber)
+all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond1, all_cond2 = get_bout_kinetics(root, FRAME_RATE, ztime=which_zeitgeber, sample=SAMPLE_NUM)
 all_cond1.sort()
 all_cond2.sort()
 # adjust condition order
 
 # %%
 sns.set_style("ticks")
-
 
 #plot ztime
 if which_zeitgeber == 'all':

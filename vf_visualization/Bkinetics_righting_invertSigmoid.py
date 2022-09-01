@@ -22,8 +22,9 @@ from plot_functions.plt_tools import (jackknife_mean, set_font_type, defaultPlot
 set_font_type()
 # defaultPlotting()
 # %%
-pick_data = 'wt_daylight'
-which_zeitgeber = 'all'
+pick_data = 'tau_long'
+which_zeitgeber = 'day'
+DAY_RESAMPLE = 1000
 # %%
 def sigmoid_fit(x_val, y_val, x_range_to_fit,func,**kwargs):
     # lower_bounds = [0.1,-20,-100,1]
@@ -73,7 +74,7 @@ X_RANGE = np.arange(-5,8.01,0.01)
 BIN_WIDTH = 0.3
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
-folder_name = f'B_righting_sigFit_z{which_zeitgeber}'
+folder_name = f'B_righting_invertSigFit_z{which_zeitgeber}_sample{DAY_RESAMPLE}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -97,7 +98,13 @@ all_binned_average = pd.DataFrame()
 
 df_tofit = all_feature_cond.loc[all_feature_cond['spd_peak']>6,:]
 
-
+if DAY_RESAMPLE != 0:
+    df_tofit = all_feature_cond.groupby(
+            ['dpf','condition','expNum']
+            ).sample(
+                    n=DAY_RESAMPLE,
+                    replace=True
+                    )
 for (cond_abla,cond_dpf), for_fit in df_tofit.groupby(['condition','dpf']):
     expNum = for_fit['expNum'].max()
     jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))

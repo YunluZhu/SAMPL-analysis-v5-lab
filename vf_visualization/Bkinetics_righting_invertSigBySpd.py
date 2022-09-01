@@ -22,7 +22,7 @@ from plot_functions.plt_tools import (jackknife_mean, set_font_type, defaultPlot
 set_font_type()
 # defaultPlotting()
 # %%
-pick_data = 's'
+pick_data = 'tau_long'
 which_zeitgeber = 'day'
 what_to_fit = 'pitch_pre_bout'
 # %%

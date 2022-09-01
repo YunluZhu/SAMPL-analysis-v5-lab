@@ -45,7 +45,7 @@ def jackknife_std(df,all_features):
     return jackknife_df_std
 # %%
 # Paste root directory here
-pick_data = 'tau_long'
+pick_data = 'tau_bkg'
 which_zeitgeber = 'all'
 DAY_RESAMPLE = 1000
 NIGHT_RESAMPLE = 500
@@ -107,10 +107,10 @@ all_features = ['pitch_initial',
                 'rot_pre_bout', 
                 'rot_l_accel', 
                 'rot_l_decel',
-                'rot_early_accel', 
-                'rot_late_accel', 
-                'rot_early_decel',
-                'rot_late_decel', 
+                # 'rot_early_accel', 
+                # 'rot_late_accel', 
+                # 'rot_early_decel',
+                # 'rot_late_decel', 
                 'bout_traj', 
                 'bout_displ', 
                 'atk_ang', 
@@ -144,6 +144,7 @@ if which_zeitgeber != 'day':
     jackknifed_night_std = jackknife_std(all_feature_night,all_features)
 
 jackknifed_std = pd.concat([jackknifed_day_std,jackknifed_night_std]).reset_index(drop=True)
+std_by_exp = all_feature_cond.groupby(cond_cols+['expNum'])[all_features].std().reset_index()
 # %% ignore this
 
 # # %%
@@ -159,11 +160,11 @@ jackknifed_std = pd.concat([jackknifed_day_std,jackknifed_night_std]).reset_inde
 # plt.savefig(filename,format='PDF')
 
 # %% 
-# raw pitch day vs night
+# raw pitch by exp day vs night
 
 if which_zeitgeber == 'all':
     for feature in all_features:
-        g = sns.catplot(data=jackknifed_std,
+        g = sns.catplot(data=std_by_exp,
                         col='dpf',row='condition',
                         x='ztime', y=feature,
                         hue='dpf',
@@ -171,149 +172,97 @@ if which_zeitgeber == 'all':
                         kind='point',
                         aspect=0.6)
         g.map(sns.lineplot,'ztime',feature,estimator=None,
-        units='excluded_exp',
-        data = jackknifed_std,
+        units='expNum',
+        data = std_by_exp,
         alpha=0.2,)
-        filename = os.path.join(fig_dir,f"day-night {feature} std.pdf")
+        filename = os.path.join(fig_dir,f"by_exp {feature} std day-night.pdf")
         plt.savefig(filename,format='PDF')
         plt.close()
 
-# %%
 # pitch cond vs ctrl
+for feature in all_features:
+    g = sns.catplot(data=std_by_exp,
+                    col='dpf',
+                    row='ztime',
+                    x='condition', y=feature,
+                    hue='expNum',
+                    ci=None,
+                    # markers=['d','d'],
+                    sharey=False,
+                    kind='point',
+                    aspect=.6
+                    )
+    g.map(sns.lineplot,'condition',feature,estimator=None,
+        units='expNum',
+        data = std_by_exp,
+        alpha=0.2,)
+    filename = os.path.join(fig_dir,f"by_exp {feature} std cond individual.pdf")
+    plt.savefig(filename,format='PDF')
+    plt.close()
 
-g = sns.catplot(data=jackknifed_std,
-                col='dpf',
-                row='ztime',
-                x='condition', y='IBI_pitch',
-                hue='excluded_exp',
-                ci=None,
-                # markers=['d','d'],
-                sharey=False,
-                kind='point',
-                aspect=.5
-                )
-g.map(sns.lineplot,'condition','IBI_pitch',estimator=None,
-      units='excluded_exp',
-      data = jackknifed_std,
-      alpha=0.2,)
-filename = os.path.join(fig_dir,f"{feature} exp repeats.pdf")
-plt.savefig(filename,format='PDF')
-
-
-g = sns.catplot(data=jackknifed_std,
-                col='dpf',row='ztime',
-                x='condition', y='IBI_pitch',
-                hue='dpf',
-                ci='sd',
-                kind='point')
-g.map(sns.lineplot,'condition','IBI_pitch',estimator=None,
-    units='excluded_exp',
-    data = jackknifed_std,
-    alpha=0.2,)
-filename = os.path.join(fig_dir,f"{feature} cond.pdf")
-plt.savefig(filename,format='PDF')
+    g = sns.catplot(data=std_by_exp,
+                    col='dpf',row='ztime',
+                    x='condition', y=feature,
+                    hue='dpf',
+                    ci='sd',
+                    kind='point',
+                    aspect=.6)
+    g.map(sns.lineplot,'condition',feature,estimator=None,
+        units='expNum',
+        data = std_by_exp,
+        alpha=0.2,)
+    filename = os.path.join(fig_dir,f"by_exp {feature} std cond mean.pdf")
+    plt.savefig(filename,format='PDF')
+    plt.close()
 
 # %%
-# jackknifed resampled per repeat
-# mean cond vs ctrl
-
-plt.close()
-g = sns.catplot(data=jackknifed_std,
-                col='dpf',
-                row='ztime',
-                x='condition', y='jackknifed_mean',
-                hue='condition',
-                ci='sd', 
-                # markers=['d','d'],
-                sharey=False,
-                kind='point',
-                aspect=.8
-                )
-g.map(sns.lineplot,'condition','jackknifed_mean',estimator=None,
-      units='excluded_exp',
-      data = jackknifed_std,
-      color='grey',
-      alpha=0.2,)
-g.add_legend()
-sns.despine(offset=10)
-filename = os.path.join(fig_dir,"std of IBI pitch - jackknifed resasmpled.pdf")
-plt.savefig(filename,format='PDF')
+# jackknifed resampled  std
+for feature in all_features:
+    g = sns.catplot(data=jackknifed_std,
+                    col='dpf',
+                    row='ztime',
+                    x='condition', y=feature,
+                    hue='condition',
+                    ci='sd', 
+                    # markers=['d','d'],
+                    sharey=False,
+                    kind='point',
+                    aspect=.8
+                    )
+    g.map(sns.lineplot,'condition',feature,estimator=None,
+        units='excluded_exp',
+        data = jackknifed_std,
+        color='grey',
+        alpha=0.2,)
+    g.add_legend()
+    sns.despine(offset=10)
+    filename = os.path.join(fig_dir,f"jackknifed {feature} std.pdf")
+    plt.savefig(filename,format='PDF')
+    plt.close()
 
 # jackknifed resampled per repeat
 # mean cond vs ctrl
 # plot on same scale
+    g = sns.catplot(data=jackknifed_std,
+                    col='dpf',
+                    row='ztime',
+                    x='condition', y=feature,
+                    hue='condition',
+                    ci='sd', 
+                    # markers=['d','d'],
+                    sharey='row',
+                    kind='point',
+                    aspect=.8
+                    )
+    g.map(sns.lineplot,'condition',feature,estimator=None,
+        units='excluded_exp',
+        data = jackknifed_std,
+        color='grey',
+        alpha=0.2,)
+    g.add_legend()
+    sns.despine(offset=10)
+    filename = os.path.join(fig_dir,f"jackknifed {feature} std sharey.pdf")
+    plt.savefig(filename,format='PDF')
 
-plt.close()
-g = sns.catplot(data=jackknifed_std,
-                col='dpf',
-                row='ztime',
-                x='condition', y='jackknifed_mean',
-                hue='condition',
-                ci='sd', 
-                # markers=['d','d'],
-                sharey='row',
-                kind='point',
-                aspect=.8
-                )
-g.map(sns.lineplot,'condition','jackknifed_mean',estimator=None,
-      units='excluded_exp',
-      data = jackknifed_std,
-      color='grey',
-      alpha=0.2,)
-g.add_legend()
-sns.despine(offset=10)
-filename = os.path.join(fig_dir,"std of IBI pitch - jackknifed sharey.pdf")
-plt.savefig(filename,format='PDF')
 
-# %%
-# jackknifed resampled per repeat
-# std cond vs ctrl
-
-plt.close()
-g = sns.catplot(data=jackknifed_std,
-                col='dpf',
-                row='ztime',
-                x='condition', y='jackknifed_std',
-                hue='condition',
-                ci='sd', 
-                # markers=['d','d'],
-                sharey=False,
-                kind='point',
-                aspect=.8
-                )
-g.map(sns.lineplot,'condition','jackknifed_std',estimator=None,
-      units='excluded_exp',
-      data = jackknifed_std,
-      color='grey',
-      alpha=0.2,)
-g.add_legend()
-sns.despine(offset=10)
-filename = os.path.join(fig_dir,"std of IBI pitch - jackknifed resasmpled.pdf")
-plt.savefig(filename,format='PDF')
-
-# jackknifed resampled per repeat
-# std cond vs ctrl
-# plot on same scale
-
-plt.close()
-g = sns.catplot(data=jackknifed_std,
-                col='dpf',
-                row='ztime',
-                x='condition', y='jackknifed_std',
-                hue='condition',
-                ci='sd', 
-                # markers=['d','d'],
-                sharey='row',
-                kind='point',
-                aspect=.8
-                )
-g.map(sns.lineplot,'condition','jackknifed_std',estimator=None,
-      units='excluded_exp',
-      data = jackknifed_std,
-      color='grey',
-      alpha=0.2,)
-g.add_legend()
-sns.despine(offset=10)
-filename = os.path.join(fig_dir,"std of IBI pitch - jackknifed sharey.pdf")
-plt.savefig(filename,format='PDF')
 # %%

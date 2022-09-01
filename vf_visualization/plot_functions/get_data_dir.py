@@ -72,15 +72,18 @@ def get_data_dir(pick_data):
         
 
     # dataset for method paper
-    elif pick_data == 'for_paper_wt':
-        root = "/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/WT_DD_7dpf"
-        fr = 166
+    # elif pick_data == 'for_paper_wt':
+    #     root = "/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/WT_DD_7dpf"
+    #     fr = 166
     elif pick_data == 'for_paper_tan':
         root = "/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/TAN_lesion"
         fr = 40    
     elif pick_data == 'for_paper_otog':
         root = "/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/otog"
         fr = 166
+    elif pick_data == 'for_paper_7dd':
+        root = "/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/DD_07dpf"
+        fr = 166        
         
         
         

@@ -5,7 +5,29 @@ from plot_functions.plt_tools import day_night_split
 from plot_functions.get_index import get_index
 from plot_functions.plt_tools import jackknife_list
 from plot_functions.get_bout_features import (get_bout_features,extract_bout_features_v4)
+from numpy.polynomial.polynomial import Polynomial
 from scipy.stats import pearsonr 
+from scipy.optimize import curve_fit
+
+
+def sigmoid_fit2(x_val, y_val,func,revFunc,**kwargs):
+    x0=[0.1, -10, 4, -5]
+    p0 = tuple(x0)
+    popt, pcov = curve_fit(func,x_val, y_val, 
+                           p0 = p0,
+                        )
+    x = revFunc(0,*popt)
+    output_coef = pd.DataFrame(data=popt).transpose()
+    p_sigma = np.sqrt(np.diag(pcov))
+    return output_coef, x, p_sigma
+
+def sigfunc_4free(x, a, b, c, d):
+    y = c + (d)/(1 + np.exp(-(a*(x + b))))
+    return y
+
+def revSigfun(x,a,b,c,d):
+    y = (-1)*b - np.log(d/(x-c)-1)/a
+    return y
 
 def jackknife_kinetics(df,col):
     """_summary_
@@ -32,62 +54,33 @@ def jackknife_kinetics(df,col):
 
 def get_kinetics(df):
     righting_fit = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_l_decel'], deg=1)
-    righting_fit_initial = np.polyfit(x=df['pitch_initial'], y=df['rot_l_decel'], deg=1)
-    # righting_fit_late = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_late_decel'], deg=1)
-
     steering_fit = np.polyfit(x=df['pitch_peak'], y=df['traj_peak'], deg=1)
-    # if 'direction' in df.columns:
-    #     righting_fit_dn = np.polyfit(x=df.loc[df['direction']=='dive','pitch_pre_bout'], 
-    #                                 y=df.loc[df['direction']=='dive','rot_l_decel'], 
-    #                                 deg=1)
-    #     righting_fit_up = np.polyfit(x=df.loc[df['direction']=='climb','pitch_pre_bout'], 
-    #                                 y=df.loc[df['direction']=='climb','rot_l_decel'], 
-    #                                 deg=1)
-        # corr_rot_lateAccel_decel_up = pearsonr(
-        #     x=df.loc[df['direction']=='climb','rot_late_accel'],
-        #     y=df.loc[df['direction']=='climb','rot_l_decel'])
-
-    # angvel_correct_fit_dn = np.polyfit(x=df.loc[df['angvel_initial_phase']<0,'angvel_initial_phase'],
-    #                                     y=df.loc[df['angvel_initial_phase']<0,'angvel_chg'], 
-    #                                     deg=1)
-    # angvel_correct_fit_up = np.polyfit(x=df.loc[df['angvel_initial_phase']>0,'angvel_initial_phase'],
-    #                                     y=df.loc[df['angvel_initial_phase']>0,'angvel_chg'], 
-    #                                     deg=1)   
-
-    # posture_deviation = np.polyfit(x=df['pitch_peak'], y=df['tsp'], deg=1)
-    set_point_new = np.polyfit(x=df['rot_total'], y=df['pitch_initial'], deg=1)
-    set_point_ori = np.polyfit(x=df['rot_l_decel'], y=df['pitch_pre_bout'], deg=1)
-
+    set_point_ori = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_l_decel'], deg=1)
     corr_rot_accel_decel = pearsonr(x=df['rot_l_accel'],
                                     y=df['rot_l_decel'])
     corr_rot_lateAccel_decel = pearsonr(x=df['rot_late_accel'],
                             y=df['rot_l_decel'])
-
-    # corr_rot_earlyAccel_decel = pearsonr(x=df['rot_early_accel'],
-    #                         y=df['rot_l_decel'])
     corr_rot_preBout_decel = pearsonr(x=df['rot_pre_bout'],
                             y=df['rot_l_decel'])
-    # corr_rot_accel_decel = pearsonr(y=df['rot_l_accel'],
-    #                                 x=df['rot_l_decel'])
+    
+    # sigmoid fit
+    # righting_coef, righting_x_intersect, sigma = sigmoid_fit2(
+    #         df['pitch_pre_bout'],
+    #         df['rot_l_decel'], 
+    #         func=sigfunc_4free, 
+    #         revFunc=revSigfun
+    #     )
+    # sig_righting_gain = -1 * righting_coef.iloc[0,0]*(righting_coef.iloc[0,3])/4
     
     kinetics = pd.Series(data={
         'righting_gain': -1 * righting_fit[0],
-        'righting_fit_initial': -1 * righting_fit_initial[0],
-        # 'righting_gain_late': -1 * righting_fit_late[0],
-
         'steering_gain': steering_fit[0],
         'corr_rot_accel_decel': corr_rot_accel_decel[0],
         'corr_rot_lateAccel_decel': corr_rot_lateAccel_decel[0],
-
-        # 'corr_rot_earlyAccel_decel': corr_rot_earlyAccel_decel[0],
         'corr_rot_preBout_decel': corr_rot_preBout_decel[0],
-        # 'posture_deviation_slope': posture_deviation[0],
-        # 'posture_deviation_y': posture_deviation[1],
-        # 'set_point_new':set_point_new[1],
-        'set_point':set_point_ori[1],
-
-        # 'angvel_gain_neg': -1 * angvel_correct_fit_dn[0],
-        # 'angvel_gain_pos': -1 * angvel_correct_fit_up[0],
+        'set_point':-set_point_ori[1]/set_point_ori[0],
+        # 'sig_righting_gain': sig_righting_gain,
+        # 'sig_set_point': righting_x_intersect,
     })
     if 'direction' in df.columns:
         direction_kinetics = pd.Series(data={
@@ -99,9 +92,43 @@ def get_kinetics(df):
         kinetics = pd.concat([kinetics, direction_kinetics])
     return kinetics
 
+
+def get_kinetics_sigmoid(df):
+    righting_fit = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_l_decel'], deg=1)
+    steering_fit = np.polyfit(x=df['pitch_peak'], y=df['traj_peak'], deg=1)
+    set_point_ori = np.polyfit(x=df['rot_l_decel'], y=df['pitch_pre_bout'], deg=1)
+
+    corr_rot_accel_decel = pearsonr(x=df['rot_l_accel'],
+                                    y=df['rot_l_decel'])
+    corr_rot_lateAccel_decel = pearsonr(x=df['rot_late_accel'],
+                            y=df['rot_l_decel'])
+    corr_rot_preBout_decel = pearsonr(x=df['rot_pre_bout'],
+                            y=df['rot_l_decel'])
+    
+    kinetics = pd.Series(data={
+        'righting_gain': -1 * righting_fit[0],
+        'steering_gain': steering_fit[0],
+        'corr_rot_accel_decel': corr_rot_accel_decel[0],
+        'corr_rot_lateAccel_decel': corr_rot_lateAccel_decel[0],
+        'corr_rot_preBout_decel': corr_rot_preBout_decel[0],
+        'set_point':set_point_ori[1],
+    })
+    if 'direction' in df.columns:
+        direction_kinetics = pd.Series(data={
+            # 'righting_gain_dn':  -1 * righting_fit_dn[0],
+            # 'righting_gain_up':  -1 * righting_fit_up[0],
+            # 'corr_rot_lateAccel_decel_up': corr_rot_lateAccel_decel_up[0],
+            
+        })
+        kinetics = pd.concat([kinetics, direction_kinetics])
+    return kinetics
+
+
+
+
 def get_bout_kinetics(root, FRAME_RATE,**kwargs):
     if_calc_bySpeed = 1
-    
+    sample_num = 0
     peak_idx , total_aligned = get_index(FRAME_RATE)
     T_start = -0.3
     T_end = 0.25
@@ -118,6 +145,8 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
     for key, value in kwargs.items():
         if key == 'ztime':
             which_zeitgeber = value
+        if key == 'sample':
+            sample_num = value
 
     all_conditions = []
     folder_paths = []
@@ -213,6 +242,14 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
         speed_bins = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1)),
     )
     
+    if sample_num != 0:
+        all_feature_cond = all_feature_cond.groupby(
+                ['dpf','condition','expNum','ztime']
+                ).sample(
+                        n=sample_num,
+                        replace=True
+                        )
+            
     # calculate jackknifed kinetics
     kinetics_jackknife = pd.DataFrame()
     for name, group in all_feature_cond.groupby(['condition','dpf','ztime']):

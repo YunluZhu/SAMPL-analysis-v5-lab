@@ -28,7 +28,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'otog'
+pick_data = 'tau_bkg'
 which_ztime = 'day'
 root, FRAME_RATE = get_data_dir(pick_data)
 

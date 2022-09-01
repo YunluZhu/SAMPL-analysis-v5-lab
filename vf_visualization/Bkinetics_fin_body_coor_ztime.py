@@ -21,8 +21,8 @@ from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlott
 set_font_type()
 defaultPlotting(size=16)
 # %%
-pick_data = 's'
-which_zeitgeber = 'all' # day / night / all
+pick_data = 'tau_long'
+which_zeitgeber = 'day' # day / night / all
 
 # %%
 def sigmoid_fit(df, x_range_to_fit,func,**kwargs):
