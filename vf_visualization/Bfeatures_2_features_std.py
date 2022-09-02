@@ -134,11 +134,11 @@ if which_zeitgeber != 'day':
     all_feature_night = all_feature_cond.loc[
         all_feature_cond['ztime']=='night',:
             ]
-    if DAY_RESAMPLE != 0:  # if resampled
+    if NIGHT_RESAMPLE != 0:  # if resampled
         all_feature_night = all_feature_night.groupby(
                 ['dpf','condition','expNum']
                 ).sample(
-                        n=DAY_RESAMPLE,
+                        n=NIGHT_RESAMPLE,
                         replace=True
                         )
     jackknifed_night_std = jackknife_std(all_feature_night,all_features)

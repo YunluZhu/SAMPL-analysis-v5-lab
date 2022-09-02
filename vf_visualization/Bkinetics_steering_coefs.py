@@ -22,15 +22,16 @@ from plot_functions.plt_tools import (jackknife_mean, set_font_type, defaultPlot
 set_font_type()
 # defaultPlotting()
 # %%
-pick_data = 'wt_daylight'
-which_zeitgeber = 'day' # Day only!!!!!!!
+pick_data = 'tau_bkg'
+which_zeitgeber = 'all' # Day only!!!!!!!
 DAY_RESAMPLE = 1000
+NIGHT_RESAMPLE = 500
 
 # %%
 # Select data and create figure folder
 root, FRAME_RATE = get_data_dir(pick_data)
 
-X_RANGE = np.arange(-30,30,0.1)
+X_RANGE = np.arange(-30,40,0.1)
 BIN_WIDTH = 1
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
@@ -61,14 +62,43 @@ def func(x,k,b):
     return y
 
 # df_tofit = all_feature_cond.loc[all_feature_cond['spd_peak']>5,:]
-df_tofit = all_feature_cond
-if DAY_RESAMPLE != 0:
-    df_tofit = all_feature_cond.groupby(
-            ['dpf','condition','expNum']
-            ).sample(
-                    n=DAY_RESAMPLE,
-                    replace=True
-                    )
+# df_tofit = all_feature_cond
+# if DAY_RESAMPLE != 0:
+#     df_tofit = all_feature_cond.groupby(
+#             ['dpf','condition','expNum']
+#             ).sample(
+#                     n=DAY_RESAMPLE,
+#                     replace=True
+#                     )
+
+all_feature_day = pd.DataFrame()
+if which_zeitgeber != 'night':
+    all_feature_day = all_feature_cond.loc[
+        all_feature_cond['ztime']=='day',:
+            ]
+    if DAY_RESAMPLE != 0:  # if resampled
+        all_feature_day = all_feature_day.groupby(
+                ['dpf','condition','expNum']
+                ).sample(
+                        n=DAY_RESAMPLE,
+                        replace=True
+                        )
+
+all_feature_night = pd.DataFrame()
+if which_zeitgeber != 'day':
+    all_feature_night = all_feature_cond.loc[
+        all_feature_cond['ztime']=='night',:
+            ]
+    if NIGHT_RESAMPLE != 0:  # if resampled
+        all_feature_night = all_feature_night.groupby(
+                ['dpf','condition','expNum']
+                ).sample(
+                        n=NIGHT_RESAMPLE,
+                        replace=True
+                        )
+
+
+df_tofit = pd.concat([all_feature_day,all_feature_night],ignore_index=True)
 
 for (cond1,cond2,this_ztime), for_fit in df_tofit.groupby(['condition','dpf','ztime']):
     expNum = for_fit['expNum'].max()
@@ -114,6 +144,8 @@ g = sns.relplot(x='x',y='y', data=all_y,
                 hue='condition',
                 ci='sd',
                 )
+g.set(xlim=(-30, 40))
+g.set(ylim=(-30, 40))
 
 filename = os.path.join(fig_dir,"steering fit.pdf")
 plt.savefig(filename,format='PDF')
@@ -142,22 +174,29 @@ for feature in ['k',	'y_intersect',	'x_intersect']:
     filename = os.path.join(fig_dir,f"coef by age {feature}.pdf")
     plt.savefig(filename,format='PDF')
 
-# # %%
-# for feature in ['upper','lower','x_off','growth','gain','slope']:
-#     p = sns.catplot(
-#         data = all_coef_comp, y=feature,x='condition',kind='point',join=False,
-#         col='dpf', col_order=all_cond1,ci='sd',
-#         row = 'ztime', row_order=all_ztime,
-#         # units=excluded_exp,
-#         hue='condition', 
-#         hue_order = all_cond2,
-#         aspect=0.2*len(all_cond2),
-#     )
-#     p.map(sns.lineplot,'condition',feature,estimator=None,
-#         units='excluded_exp',
-#         color='grey',
-#         alpha=0.2,
-#         data=all_coef_comp)
-#     filename = os.path.join(fig_dir,f"coef by age {feature}.pdf")
-#     plt.savefig(filename,format='PDF')
-# # %%
+
+# %%
+plt.close()
+    
+for feature in ['k',	'y_intersect',	'x_intersect']:
+    p = sns.catplot(
+        data = all_coef, y=feature,x='ztime',kind='point',join=False,
+        col='condition',
+        ci='sd',
+        row = 'dpf', 
+        # units=excluded_exp,
+        hue='condition', dodge=True,
+        hue_order = all_cond2,
+        aspect=0.6
+    )
+    p.map(sns.lineplot,'ztime',feature,
+          estimator=None,
+        units='excluded_exp',
+        # hue='condition',
+        color='grey',
+        alpha=0.2,
+        data=all_coef)
+    filename = os.path.join(fig_dir,f"coef by ztime {feature}.pdf")
+    plt.savefig(filename,format='PDF')
+
+# %%
