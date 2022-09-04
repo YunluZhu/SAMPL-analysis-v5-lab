@@ -37,9 +37,9 @@ NIGHT_RESAMPLE = 500
 
 root, FRAME_RATE = get_data_dir(pick_data)
 if DAY_RESAMPLE+NIGHT_RESAMPLE > 0:
-    folder_name = f'IBI_pitch_z{which_zeitgeber}_resample_zD{DAY_RESAMPLE}_zN{NIGHT_RESAMPLE}'
+    folder_name = f'IBI1_pitch_z{which_zeitgeber}_resample_zD{DAY_RESAMPLE}_zN{NIGHT_RESAMPLE}'
 else:
-    folder_name = f'IBI_pitch_z{which_zeitgeber}'
+    folder_name = f'IBI1_pitch_z{which_zeitgeber}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 

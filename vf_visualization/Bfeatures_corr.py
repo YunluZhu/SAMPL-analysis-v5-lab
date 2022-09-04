@@ -29,7 +29,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'tau_long'
+pick_data = 'tau_bkg'
 which_ztime = 'all'
 root, FRAME_RATE = get_data_dir(pick_data)
 # spd_bins = [5,10,15,20,25]

@@ -1,10 +1,5 @@
 '''
-Plot pre-pitch vs. decel rotation and fit with a sigmoid
-Identical to righting gain flipped by y=x
 
-zeitgeber time? Yes
-jackknife? Yes
-resampled? No
 '''
 
 #%%
@@ -51,7 +46,7 @@ X_RANGE = np.arange(-20,30,0.1)
 BIN_WIDTH = 1
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
-folder_name = f'B_righting_non_inverted_sigFit_z{which_zeitgeber}_sample{DAY_RESAMPLE}'
+folder_name = f'BK3_righting_non_inverted_sigFit_z{which_zeitgeber}_sample{DAY_RESAMPLE}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 

@@ -1,10 +1,5 @@
 '''
-Plot pre-pitch vs. decel rotation and fit with a sigmoid
-Identical to righting gain flipped by y=x
 
-zeitgeber time? Yes
-jackknife? Yes
-resampled? No
 '''
 
 #%%
@@ -22,7 +17,7 @@ from plot_functions.plt_tools import (jackknife_mean, set_font_type, defaultPlot
 set_font_type()
 # defaultPlotting()
 # %%
-pick_data = 'tau_bkg'
+pick_data = 'blind'
 which_zeitgeber = 'all' # Day only!!!!!!!
 DAY_RESAMPLE = 1000
 NIGHT_RESAMPLE = 500
@@ -35,7 +30,7 @@ X_RANGE = np.arange(-30,40,0.1)
 BIN_WIDTH = 1
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
-folder_name = f'B_steering_z{which_zeitgeber}_sample{DAY_RESAMPLE}'
+folder_name = f'BK5_steering_z{which_zeitgeber}_sample{DAY_RESAMPLE}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -162,7 +157,7 @@ for feature in ['k',	'y_intersect',	'x_intersect']:
         # units=excluded_exp,
         hue='condition', dodge=True,
         hue_order = all_cond2,
-        aspect=0.6
+        aspect=0.6, sharey='row'
     )
     p.map(sns.lineplot,'condition',feature,
           estimator=None,
@@ -173,7 +168,6 @@ for feature in ['k',	'y_intersect',	'x_intersect']:
         data=all_coef)
     filename = os.path.join(fig_dir,f"coef by age {feature}.pdf")
     plt.savefig(filename,format='PDF')
-
 
 # %%
 plt.close()

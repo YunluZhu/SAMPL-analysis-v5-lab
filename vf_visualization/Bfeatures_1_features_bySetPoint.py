@@ -31,16 +31,14 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'tan_lesion'
+pick_data = 'tau_long'
 which_ztime = 'day'
-DAY_RESAMPLE = 0
+DAY_RESAMPLE = 1000
 
 # %%
 root, FRAME_RATE = get_data_dir(pick_data)
-# spd_bins = [5,10,15,20,25]
-# posture_bins = [-50,-20,-10,-5,0,5,10,15,20,25,50]
 
-folder_name = f'BF1_z{which_ztime}_sample{DAY_RESAMPLE}'
+folder_name = f'BF1_bySetPoint_z{which_ztime}_sample{DAY_RESAMPLE}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -54,7 +52,7 @@ except:
 all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
 # all_ibi_cond, _, _  = get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
 # %% tidy data
-all_feature_cond = all_feature_cond.loc[all_feature_cond['spd_peak']>4]
+# all_feature_cond = all_feature_cond.loc[all_feature_cond['spd_peak']>4]
 all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
 # all_ibi_cond = all_ibi_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
 
@@ -63,30 +61,22 @@ all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset
 
 
 # %%
-# assign up and down by set point
-# # get kinetics for separating up and down
-# all_kinetics = all_feature_cond.groupby(['dpf']).apply(
-#                         lambda x: get_kinetics(x)
-#                         ).reset_index()
-# all_feature_UD = pd.DataFrame()
-# all_feature_cond = all_feature_cond.assign(direction=np.nan)
-# for key, group in all_feature_cond.groupby(['dpf']):
-#     this_setvalue = all_kinetics.loc[all_kinetics['dpf']==key,'set_point'].to_list()[0]
-#     print(this_setvalue)
-#     group['direction'] = pd.cut(group['pitch_initial'],
-#                                 bins=[-1000,this_setvalue,1000],
-#                                 labels=['dn','up'])
-#     all_feature_UD = pd.concat([all_feature_UD,group])
-    
+
 # assign up and down 
 
 all_feature_UD = pd.DataFrame()
 all_feature_cond = all_feature_cond.assign(direction=np.nan)
-for key, group in all_feature_cond.groupby(['dpf']):
-    group['direction'] = pd.cut(group['pitch_initial'],
-                                bins=[-1000,10,1000],
+for (this_dpf,this_cond,this_ztime), group in all_feature_cond.groupby(['dpf','condition','ztime']):
+    set_point = get_kinetics(group)['set_point']
+    group['direction'] = pd.cut(group['pitch_pre_bout'],
+                                bins=[-90,set_point,90],
                                 labels=['dn','up'])
-    all_feature_UD = pd.concat([all_feature_UD,group]) 
+    group = group.assign(
+        dpf = this_dpf,
+        condition = this_cond,
+        ztime = this_ztime
+    )
+    all_feature_UD = pd.concat([all_feature_UD,group],ignore_index=True) 
 
 # %%
 # Plots
@@ -125,7 +115,8 @@ for feature in feature_to_plt:
     g = sns.catplot(data=toplt, 
                     y = feature,
                     x='condition',
-                    col="dpf", row="direction",col_order=all_cond1,hue='condition',
+                    col="dpf", col_order=all_cond1,
+                    row="direction",hue='condition',
                     sharey=False,
                     kind='point', marker=['d','d'],
                     aspect=.8,
@@ -140,7 +131,7 @@ for feature in feature_to_plt:
     sns.despine(offset=10, trim=False)
     filename = os.path.join(fig_dir,f"jackknifed val {feature}.pdf")
     plt.savefig(filename,format='PDF')
-    # plt.close()
+    plt.close()
     
 # %%
 toplt = mean_data
@@ -166,5 +157,5 @@ for feature in feature_to_plt:
     sns.despine(offset=10, trim=False)
     filename = os.path.join(fig_dir,f"raw val {feature}.pdf")
     plt.savefig(filename,format='PDF')
-    # plt.close()
+    plt.close()
 # %%

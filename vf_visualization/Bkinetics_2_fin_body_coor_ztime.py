@@ -72,7 +72,7 @@ X_RANGE = np.arange(-5,10.01,0.01)
 BIN_WIDTH = 0.3
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
-folder_name = f'B_fin_body_z{which_zeitgeber}'
+folder_name = f'BK2_fin_body_z{which_zeitgeber}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 

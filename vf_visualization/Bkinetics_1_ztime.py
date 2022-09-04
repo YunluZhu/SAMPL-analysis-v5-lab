@@ -40,7 +40,7 @@ peak_idx , total_aligned = get_index(FRAME_RATE)
 # TSP_THRESHOLD = [-np.Inf,-50,50,np.Inf]
 # spd_bins = np.arange(3,24,3)
 
-folder_name = f'B_kinetics_z{which_zeitgeber}_sample{SAMPLE_NUM}'
+folder_name = f'BK1_z{which_zeitgeber}_sample{SAMPLE_NUM}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 

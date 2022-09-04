@@ -35,7 +35,7 @@ RESAMPLE = 1000  # how many bouts to take per  exp/ztime/condition
 
 root, FRAME_RATE = get_data_dir(pick_data)
 
-folder_name = f'IBI_timing_z{which_ztime}_sample{RESAMPLE}'
+folder_name = f'IBI2_timing_z{which_ztime}_sample{RESAMPLE}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 

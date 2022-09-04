@@ -92,6 +92,15 @@ def get_kinetics(df):
         kinetics = pd.concat([kinetics, direction_kinetics])
     return kinetics
 
+def get_set_point(df):
+    righting_fit = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_l_decel'], deg=1)
+    # steering_fit = np.polyfit(x=df['pitch_peak'], y=df['traj_peak'], deg=1)
+    kinetics = pd.Series(data={
+        'righting_gain': -1 * righting_fit[0],
+        # 'steering_gain': steering_fit[0],
+        'set_point':-1 * righting_fit[1]/righting_fit[0],
+    })
+    return kinetics
 
 def get_kinetics_sigmoid(df):
     righting_fit = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_l_decel'], deg=1)

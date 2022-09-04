@@ -1,9 +1,5 @@
 '''
-Plot bout features at different peak speeds (use BIN_NUM to specify bin numbers) as a function of time (index range specified by idxRANGE)
-with posture neg and posture pos bouts separated
-Change all_features for the features to plot
 
-zeitgeber time? No
 '''
 
 #%%
@@ -13,21 +9,22 @@ import pandas as pd # pandas library
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
-import math
+from scipy import stats
 from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
 from plot_functions.get_index import get_index
-
 from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_split)
+from plot_functions.get_bout_kinetics import get_set_point
 from tqdm import tqdm
+import matplotlib as mpl
 set_font_type()
 
 # %%
 # Paste root directory here
-if_plot_by_speed = False
-pick_data = 's'
+# if_plot_by_speed = True
+pick_data = 'tau_long'
 root, FRAME_RATE= get_data_dir(pick_data)
 
-folder_name = f'BT1_features_Tseries'
+folder_name = f'angvel_corr_timeSeries'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -37,14 +34,14 @@ try:
 except:
     print('Notes: re-writing old figures')
     
-BIN_NUM = 4
 peak_idx , total_aligned = get_index(FRAME_RATE)
 idxRANGE = [peak_idx-int(0.3*FRAME_RATE),peak_idx+int(0.2*FRAME_RATE)]
+spd_bins = np.arange(5,25,4)
 
 # %% features for plotting
 all_features = [
     'propBoutAligned_speed', 
-    # 'propBoutAligned_accel',    # angular accel calculated using raw angular vel
+    'propBoutAligned_accel',    # angular accel calculated using raw angular vel
     'linear_accel', 
     'propBoutAligned_pitch', 
     'propBoutAligned_angVel',   # smoothed angular velocity
@@ -72,8 +69,29 @@ all_features = [
 
 # %%
 # CONSTANTS
+# %%
+T_INITIAL = -0.25 #s
+T_PREP_200 = -0.2
+T_PREP_150 = -0.15
+T_PRE_BOUT = -0.10 #s
+T_POST_BOUT = 0.1 #s
+T_post_150 = 0.15
+T_END = 0.2
+T_MID_ACCEL = -0.05
+T_MID_DECEL = 0.05
+
+
+idx_initial = int(peak_idx + T_INITIAL * FRAME_RATE)
+idx_pre_bout = int(peak_idx + T_PRE_BOUT * FRAME_RATE)
+idx_post_bout = int(peak_idx + T_POST_BOUT * FRAME_RATE)
+idx_mid_accel = int(peak_idx + T_MID_ACCEL * FRAME_RATE)
+idx_mid_decel = int(peak_idx + T_MID_DECEL * FRAME_RATE)
+idx_end = int(peak_idx + T_END * FRAME_RATE)
+
+
 HEADING_LIM = 90
 
+# %%
 all_conditions = []
 folder_paths = []
 # get the name of all folders under root
@@ -148,139 +166,87 @@ all_around_peak_data = all_around_peak_data.assign(
                                     bout_number = grp.ngroup(),
                                 )
 all_around_peak_data = all_around_peak_data.assign(
-                                    speed_bin = pd.cut(all_around_peak_data['peak_speed'],BIN_NUM,labels = np.arange(BIN_NUM))
+                                    speed_bin = pd.cut(all_around_peak_data['peak_speed'],spd_bins,labels = np.arange(len(spd_bins)-1))
                                 )
-print("speed buckets:")
-print('--mean')
-print(all_around_peak_data.groupby('speed_bin')['peak_speed'].agg('mean'))
-print('--min')
-print(all_around_peak_data.groupby('speed_bin')['peak_speed'].agg('min'))
-print('--max')
-print(all_around_peak_data.groupby('speed_bin')['peak_speed'].agg('max'))
+# %%
+# assign dnup by set point
+# NOTE bouts for set point calc are separated by cond1 (dpf), change as needed
+idx_initial_phase = np.arange(idx_initial,idx_pre_bout)
+exp_data_all = pd.DataFrame()
+for this_dpf, group in all_around_peak_data.groupby('dpf'):
+    pitch_pre_bout = group.loc[group.idx==idx_pre_bout,'propBoutAligned_pitch'].values
+    pitch_peak = group.loc[group.idx==int(peak_idx),'propBoutAligned_pitch'].values
+    pitch_post_bout = group.loc[group.idx==idx_post_bout,'propBoutAligned_pitch'].values
+    rot_l_decel = pitch_post_bout - pitch_peak
+    bout_features = pd.DataFrame(data={'pitch_pre_bout':pitch_pre_bout,'rot_l_decel':rot_l_decel})
+    set_point = get_set_point(bout_features)['set_point']
 
-# Peak data and pitch segmentation
-idx_initial = int(peak_idx -0.25 * FRAME_RATE)
-peak_data = all_around_peak_data.loc[all_around_peak_data['idx']==peak_idx].reset_index(drop=True)
-peak_data = peak_data.assign(
-    pitch_initial = all_around_peak_data.loc[all_around_peak_data['idx']==idx_initial,'propBoutAligned_pitch'].values
+    grp = group.groupby(np.arange(len(group))//(idxRANGE[1]-idxRANGE[0]))
+    this_dpf_res = group.assign(
+                                pitch_pre_bout = np.repeat(pitch_pre_bout,(idxRANGE[1]-idxRANGE[0])),
+                                bout_number = grp.ngroup(),
+                                dpf = this_dpf,
+                                )
+    angvel_initial_phase = group.loc[group['idx'].isin(idx_initial_phase),:].groupby('bout_number')['propBoutAligned_angVel'].mean().values, 
+    this_dpf_res = this_dpf_res.assign(
+                                angvel_initial_phase = np.repeat(pitch_pre_bout,(idxRANGE[1]-idxRANGE[0])),
+                                direction = pd.cut(this_dpf_res['pitch_pre_bout'],[-90,set_point,90],labels = ['Nose-down', 'Nose-up'])
+                                )
+    exp_data_all = pd.concat([exp_data_all,this_dpf_res])
+
+# print("speed buckets:")
+# print('--mean')
+# print(all_around_peak_data.groupby('speed_bin')['peak_speed'].agg('mean'))
+# print('--min')
+# print(all_around_peak_data.groupby('speed_bin')['peak_speed'].agg('min'))
+# print('--max')
+# print(all_around_peak_data.groupby('speed_bin')['peak_speed'].agg('max'))
+
+# %%
+# correlation with pre bout pitch
+
+cat_cols = ['condition','direction','dpf']
+grp_cols = cat_cols + ['time_ms']
+
+corr_angvel = exp_data_all.groupby(grp_cols).apply(
+    lambda y: stats.pearsonr(y['angvel_initial_phase'].values,y['ang_accel_of_SMangVel'].values)[0]
 )
-peak_grp = peak_data.groupby(['expNum','condition'],as_index=False)
+corr_angvel.name = 'corr'
+corr_angvel = corr_angvel.reset_index()
 
-# assign by pitch
-neg_pitch_bout_num = peak_data.loc[peak_data['pitch_initial']<10,'bout_number']
-pos_pitch_bout_num = peak_data.loc[peak_data['pitch_initial']>10,'bout_number']
-all_around_peak_data = all_around_peak_data.assign(
-    pitch_dir = 'neg_pitch' 
-)
-all_around_peak_data.loc[all_around_peak_data['bout_number'].isin(pos_pitch_bout_num.values),'pitch_dir'] = 'pos_pitch'
-
-# assign by traj
-neg_traj_bout_num = peak_data.loc[peak_data['propBoutAligned_instHeading']<0,'bout_number']
-pos_traj_bout_num = peak_data.loc[peak_data['propBoutAligned_instHeading']>0,'bout_number']
-all_around_peak_data = all_around_peak_data.assign(
-    traj_dir = 'neg_traj' 
-)
-all_around_peak_data.loc[all_around_peak_data['bout_number'].isin(pos_traj_bout_num.values),'traj_dir'] = 'pos_traj'
-
-# %% speed binned plots
-# leave out the fastest bin
-toplt = all_around_peak_data.loc[all_around_peak_data['speed_bin']<BIN_NUM-1,:]
-# toplt = all_around_peak_data
-
-if if_plot_by_speed:
-    print('Plotting features binned by speed...')
-    for feature_toplt in tqdm(all_features):
-        p = sns.relplot(
-        data = toplt, x = 'time_ms', y = feature_toplt, row = 'speed_bin',
-        col='dpf',
-        hue = 'condition',
-        hue_order=all_cond2,
-        style = 'dpf',
-        style_order=all_cond1,
-        # ci='sd',
-        kind = 'line',aspect=3, height=2
-        )
-        p.map(plt.axvline, x=0, linewidth=1, color=".5", zorder=0)
-        plt.savefig(fig_dir+f"/{pick_data}_bySpd_{feature_toplt}.pdf",format='PDF')
-
-# %% pitch neg and pos only
-toplt = all_around_peak_data
-
-print('Plotting features binned by pitch dir...')
-for feature_toplt in tqdm(all_features):
-    p = sns.relplot(
-        data = toplt, x = 'time_ms', y = feature_toplt, row = 'pitch_dir',
-        col='dpf',
-        hue = 'condition',
-        hue_order=all_cond2,
-        style = 'dpf',
-        style_order=all_cond1,
-        # ci='sd',
-        kind = 'line',aspect=3, height=2
-    )
-    p.map(plt.axvline, x=0, linewidth=1, color=".5", zorder=0)
-    plt.savefig(fig_dir+f"/{pick_data}_byPitch_{feature_toplt}.pdf",format='PDF')
-    plt.close()
-    
-# %% pitch neg and pos longitudinally separate by condition
-toplt = all_around_peak_data
-
-print('Plotting features binned by pitch dir...')
-for feature_toplt in tqdm(all_features):
-    p = sns.relplot(
-        data = toplt, x = 'time_ms', y = feature_toplt, 
-        row = 'pitch_dir',
-        col='condition', 
-        hue = 'dpf',
-        hue_order=all_cond1,
-        style = 'dpf',
-        style_order=all_cond1,
-        # ci='sd',
-        kind = 'line',aspect=3, height=2,
-        facet_kws={'sharey': False, 'sharex': True}
-    )
-    
-    p.map(plt.axvline, x=0, linewidth=1, color=".5", zorder=0)
-    plt.savefig(fig_dir+f"/{pick_data}_lgtdn_byPitch_{feature_toplt}.pdf",format='PDF')
-    plt.close()
-# %% traj neg and pos only
-toplt = all_around_peak_data
-
-print('Plotting features binned by traj dir...')
-for feature_toplt in tqdm(all_features):
-    p = sns.relplot(
-    data = toplt, x = 'time_ms', y = feature_toplt, row = 'traj_dir',
+g = sns.relplot(
+    row='direction',
     col='dpf',
-    hue = 'condition',
-    hue_order=all_cond2,
-    style = 'dpf',
-    style_order=all_cond1,
-    # ci='sd',
-    kind = 'line',aspect=3, height=2
+    hue='condition',
+    x='time_ms',y='corr',
+    data=corr_angvel,
+    kind='line',
+    # palette="flare", 
+    # hue_norm=mpl.colors.LogNorm()
     )
-    p.map(plt.axvline, x=0, linewidth=1, color=".5", zorder=0)
-    plt.savefig(fig_dir+f"/{pick_data}_byTraj_{feature_toplt}.pdf",format='PDF')
-    plt.close()
+g.set(xlim=(-200,200))
+plt.savefig(fig_dir+f"/angaccel corr by dir and cond.pdf",format='PDF')
 
-# %% pitch neg and pos and Speed
-if if_plot_by_speed:
-    # # leave out the fastest bin
-    toplt = all_around_peak_data.loc[all_around_peak_data['speed_bin']<BIN_NUM-1,:]
+# %%
+# ignore dir
+cat_cols = ['condition','dpf']
+grp_cols = cat_cols + ['time_ms']
 
-    print('Plotting features binned by speed with neg and pos pitch separated...')
-    for feature_toplt in tqdm(all_features):
-        g = sns.relplot(
-        data = toplt, x = 'time_ms', y = feature_toplt, 
-        row = 'speed_bin', col = 'pitch_dir',
-        
-        hue = 'condition',
-        hue_order=all_cond2,
-        style = 'dpf',
-        style_order=all_cond1,
-        kind = 'line',aspect=3, height=2
-        )
-        g.map(plt.axvline, x=0, linewidth=1, color=".5", zorder=0)
-        plt.savefig(fig_dir+f"/{pick_data}_bySpdPitch   _{feature_toplt}.pdf",format='PDF')
-        plt.close()
+corr_angvel = exp_data_all.groupby(grp_cols).apply(
+    lambda y: stats.pearsonr(y['angvel_initial_phase'].values,y['propBoutAligned_accel'].values)[0]
+)
+corr_angvel.name = 'corr'
+corr_angvel = corr_angvel.reset_index()
 
+g = sns.relplot(
+    hue='condition',
+    x='time_ms',y='corr',
+    data=corr_angvel,
+    kind='line',
+    col='dpf',
+    # palette="flare", 
+    # hue_norm=mpl.colors.LogNorm()
+    )
+g.set(xlim=(-200,200))
+plt.savefig(fig_dir+f"/angaccel corr by cond.pdf",format='PDF')
 # %%

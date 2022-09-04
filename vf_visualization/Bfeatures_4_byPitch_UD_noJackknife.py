@@ -41,7 +41,7 @@ posture_bins = [-25,-10,-5,0,5,10,15,20,25,50]
 # %% get data dir and frame rate
 root, FRAME_RATE = get_data_dir(pick_data)
 
-folder_name = f'B4_byPitch_features_vs_{bin_by}'
+folder_name = f'BF4_byPitch_features_vs_{bin_by}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 

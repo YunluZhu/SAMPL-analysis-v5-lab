@@ -35,7 +35,7 @@ RESAMPLE = 0
 
 root, FRAME_RATE = get_data_dir(pick_data)
 
-folder_name = f'IBI_timingUD_z{which_ztime}'
+folder_name = f'IBI2_timingUD_z{which_ztime}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 

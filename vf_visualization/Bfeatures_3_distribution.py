@@ -4,8 +4,6 @@ Plots histogram/kde of bout/IBI features. Plots 2D distribution of features.
 
 If there are specific features you're interested in, just change the x and y in the plot functions
 
-zeitgeber time? Yes
-jackknifed? No
 '''
 
 #%%
@@ -32,7 +30,7 @@ pick_data = 'tau_bkg'
 which_ztime = 'day'
 root, FRAME_RATE = get_data_dir(pick_data)
 
-folder_name = f'B3_feature_distribution_z{which_ztime}'
+folder_name = f'BF3_distribution_z{which_ztime}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 

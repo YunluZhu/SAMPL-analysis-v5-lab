@@ -95,7 +95,7 @@ all_features = {
 }
 # %%
 # generate figure folder
-folder_name = 'timeseries_raw'
+folder_name = 'E_timeseries_raw'
 fig_dir = "/Users/yunluzhu/Documents/Lab2/Manuscripts/2022-07_Behavior_apparatus/movie_figures"
 
 try:

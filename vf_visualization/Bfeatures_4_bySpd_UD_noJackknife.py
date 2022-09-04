@@ -40,7 +40,7 @@ spd_bins = np.arange(5,25,4)
 
 posture_bins = [-50,-20,-10,-5,0,5,10,15,20,25,50]
 
-folder_name = f'B4_bySpd_UD_noJackknife'
+folder_name = f'BF4_bySpd_UD_noJackknife'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
