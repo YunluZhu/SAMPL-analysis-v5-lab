@@ -35,7 +35,7 @@ root, FRAME_RATE = get_data_dir(pick_data)
 # spd_bins = [5,10,15,20,25]
 # posture_bins = [-50,-20,-10,-5,0,5,10,15,20,25,50]
 
-folder_name = f'B_corr_z{which_ztime}'
+folder_name = f'BF_corr_z{which_ztime}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
