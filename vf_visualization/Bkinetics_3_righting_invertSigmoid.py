@@ -185,12 +185,13 @@ all_coef.columns = ['a','b','c','d','slope','dpf','condition','excluded_exp','zt
 all_coef_comp = all_coef.assign(
     upper = all_coef['c'].values,
     lower = all_coef['c'].values + all_coef['d'].values,
+    height = all_coef['d'].values,
     x_off = all_coef['b'].values,
     growth = all_coef['a'].values,
     gain = -1/(all_coef['slope'])
 )
     
-for feature in ['upper','lower','x_off','growth','gain','slope']:
+for feature in ['upper','lower','x_off','growth','gain','slope','height']:
     p = sns.catplot(
         data = all_coef_comp, y=feature,x='dpf',kind='point',join=False,
         col_order=all_cond1,ci='sd',
@@ -208,7 +209,7 @@ for feature in ['upper','lower','x_off','growth','gain','slope']:
     plt.savefig(filename,format='PDF')
 
 # %%
-for feature in ['upper','lower','x_off','growth','gain','slope']:
+for feature in ['upper','lower','x_off','growth','gain','slope','height']:
     p = sns.catplot(
         data = all_coef_comp, y=feature,x='condition',kind='point',join=False,
         col='dpf', col_order=all_cond1,ci='sd',
