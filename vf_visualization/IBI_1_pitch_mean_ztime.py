@@ -27,7 +27,7 @@ defaultPlotting()
 set_font_type()
 # %%
 # Paste root directory here
-pick_data = 'tau_long'
+pick_data = 'lesion'
 which_zeitgeber = 'all'
 DAY_RESAMPLE = 1000
 NIGHT_RESAMPLE = 500
@@ -101,7 +101,7 @@ if which_zeitgeber != 'night':
                         )
     cat_cols = ['condition','dpf','ztime']
     for (this_cond, this_dpf, this_ztime), group in IBI_angles_day_resampled.groupby(cat_cols):
-        jackknife_idx = jackknife_resampling(np.array(list(range(IBI_angles_day_resampled['expNum'].max()+1))))
+        jackknife_idx = jackknife_resampling(np.array(list(range(group['expNum'].max()+1))))
         for excluded_exp, idx_group in enumerate(jackknife_idx):
             this_std = group.loc[group['expNum'].isin(idx_group),['IBI_pitch']].std().to_frame(name='jackknifed_std')
             this_mean = group.loc[group['expNum'].isin(idx_group),['IBI_pitch']].mean()

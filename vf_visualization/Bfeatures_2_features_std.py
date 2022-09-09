@@ -25,7 +25,7 @@ def jackknife_std(df,all_features):
     jackknife_df_std = pd.DataFrame()
     cat_cols = ['condition','dpf','ztime']
     for (this_cond, this_dpf, this_ztime), group in df.groupby(cat_cols):
-        jackknife_idx = jackknife_resampling(np.array(list(range(df['expNum'].max()+1))))
+        jackknife_idx = jackknife_resampling(np.array(list(range(group['expNum'].max()+1))))
         for excluded_exp, idx_group in enumerate(jackknife_idx):
             this_std = group.loc[group['expNum'].isin(idx_group),all_features].std().to_frame().T
             # this_mean = group.loc[group['expNum'].isin(idx_group),all_features].mean().to_frame().T
@@ -37,7 +37,7 @@ def jackknife_std(df,all_features):
     return jackknife_df_std
 # %%
 # Paste root directory here
-pick_data = 'tau_bkg'
+pick_data = 'lesion'
 which_zeitgeber = 'all'
 DAY_RESAMPLE = 1000
 NIGHT_RESAMPLE = 500

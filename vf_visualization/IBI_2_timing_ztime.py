@@ -28,10 +28,10 @@ from plot_functions.get_IBIangles import get_IBIangles
 set_font_type()
 defaultPlotting()
 # %%
-pick_data = 'tau_long'
-which_ztime = 'all'
+pick_data = 'lesion'
+which_ztime = 'day'
 
-RESAMPLE = 1000  # how many bouts to take per  exp/ztime/condition
+RESAMPLE = 700  # how many bouts to take per  exp/ztime/condition
 
 root, FRAME_RATE = get_data_dir(pick_data)
 
@@ -50,6 +50,7 @@ except:
 # SAMPLES_PER_BIN = 70  # this adjusts the density of raw data points on the fitted parabola
 BIN_WIDTH = 3  # this adjusts the density of raw data points on the fitted parabola
 X_RANGE_FULL = range(-30,51,1)
+frequency_th = 3 / 40 * FRAME_RATE
 
 def distribution_binned_average(df, bin_width):
     '''
@@ -86,6 +87,10 @@ def parabola_fit1(df, X_RANGE_to_fit = X_RANGE_FULL):
 # %%
 IBI_angles, cond1_all, cond2_all= get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
 IBI_angles = IBI_angles.assign(y_boutFreq=1/IBI_angles['propBoutIEI'])
+IBI_angles = IBI_angles.loc[IBI_angles['y_boutFreq']<frequency_th]
+IBI_angles = IBI_angles.loc[IBI_angles['propBoutIEI_angVel'].abs()<30]
+IBI_angles = IBI_angles.loc[IBI_angles['propBoutIEI_pitch'].abs()<65]
+
 # %%
 
 jackknifed_coef = pd.DataFrame()
@@ -100,7 +105,7 @@ if RESAMPLE !=0:
         replace=True,
         )
 for (this_cond, this_dpf, this_ztime), group in IBI_sampled.groupby(cat_cols):
-    jackknife_idx = jackknife_resampling(np.array(list(range(IBI_angles['expNum'].max()+1))))
+    jackknife_idx = jackknife_resampling(np.array(list(range(group['expNum'].max()+1))))
     for excluded_exp, idx_group in enumerate(jackknife_idx):
         this_df_toFit = group.loc[group['expNum'].isin(idx_group),['propBoutIEI_pitch','y_boutFreq','propBoutIEI']].reset_index(drop=True)
         this_df_toFit.dropna(inplace=True)
@@ -149,7 +154,8 @@ for i , g_row in enumerate(g.axes):
                     hue='condition',alpha=0.2,
                     ax=ax)
 g.set(xlim=(-30, 50),
-      ylim=(0,4))
+    #   ylim=(0,4)
+      )
     
 filename = os.path.join(fig_dir,f"IEI timing sample{RESAMPLE}.pdf")
 plt.savefig(filename,format='PDF')
