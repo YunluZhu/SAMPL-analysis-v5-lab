@@ -126,7 +126,7 @@ if which_zeitgeber != 'day':
                         )
     cat_cols = ['condition','dpf','ztime']
     for (this_cond, this_dpf, this_ztime), group in IBI_angles_night_resampled.groupby(cat_cols):
-        jackknife_idx = jackknife_resampling(np.array(list(range(IBI_angles_night_resampled['expNum'].max()+1))))
+        jackknife_idx = jackknife_resampling(np.array(list(range(group['expNum'].max()+1))))
         for excluded_exp, idx_group in enumerate(jackknife_idx):
             this_std = group.loc[group['expNum'].isin(idx_group),['IBI_pitch']].std().to_frame(name='jackknifed_std')
             this_mean = group.loc[group['expNum'].isin(idx_group),['IBI_pitch']].mean()
