@@ -21,9 +21,10 @@ from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlott
 set_font_type()
 defaultPlotting(size=16)
 # %%
-pick_data = 'tau_long'
+pick_data = 'wt_fin'
 which_zeitgeber = 'day' # day / night / all
-
+DAY_RESAMPLE = 2000
+NIGHT_RESAMPLE = 500
 # %%
 def sigmoid_fit(df, x_range_to_fit,func,**kwargs):
     lower_bounds = [0.1,-20,-100,1]
@@ -92,6 +93,34 @@ if FRAME_RATE > 100:
 elif FRAME_RATE == 40:
     all_feature_cond.drop(all_feature_cond[all_feature_cond['spd_peak']<4].index, inplace=True)
 
+
+# %%
+IBI_angles_day_resampled = pd.DataFrame()
+IBI_angles_night_resampled = pd.DataFrame()
+
+if which_zeitgeber != 'night':
+    IBI_angles_day_resampled = all_feature_cond.loc[
+        all_feature_cond['ztime']=='day',:
+            ]
+    if DAY_RESAMPLE != 0:  # if resampled
+        IBI_angles_day_resampled = IBI_angles_day_resampled.groupby(
+                ['dpf','condition','expNum']
+                ).sample(
+                        n=DAY_RESAMPLE,
+                        replace=True
+                        )
+if which_zeitgeber != 'day':
+    IBI_angles_night_resampled = all_feature_cond.loc[
+        all_feature_cond['ztime']=='night',:
+            ]
+    if NIGHT_RESAMPLE != 0:  # if resampled
+        IBI_angles_night_resampled = IBI_angles_night_resampled.groupby(
+                ['dpf','condition','expNum']
+                ).sample(
+                        n=NIGHT_RESAMPLE,
+                        replace=True
+                        )
+all_feature_cond = pd.concat([IBI_angles_day_resampled,IBI_angles_night_resampled],ignore_index=True)
 # %% fit sigmoid - master
 all_coef = pd.DataFrame()
 all_y = pd.DataFrame()
@@ -135,7 +164,7 @@ all_coef.columns=['k','xval','min','height',
 all_ztime = list(set(all_coef['ztime']))
 all_ztime.sort()
 # %%
-# plt.close()
+# plot bout frequency vs IBI pitch and fit with parabola
 defaultPlotting(size=12)
 
 plt.figure()
@@ -161,7 +190,7 @@ plt.savefig(filename,format='PDF')
 # plt.show()
 
 # %%
-# plot slope
+# plot 
 # plt.close()
 defaultPlotting(size=12)
 plt.figure()
@@ -199,7 +228,7 @@ for coef_name in ['k','xval','min','height','slope']:
     )
     p.map(sns.lineplot,'condition',coef_name,estimator=None,
         units='excluded_exp',
-        hue='condition',
+        color='grey',
         alpha=0.2,
         data=all_coef)
     sns.despine(offset=10)
