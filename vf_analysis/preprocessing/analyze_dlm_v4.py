@@ -1,25 +1,10 @@
 '''
 Analyze Free Vertical (YZ 2021.06.18)
-- Functions:
-    1. Takes one raw dataframe, reslice epochs based on epoch number and fish number (210618 UPDATE)
-    2. Truncate
-    3. Calculate and filter for epoch duration, displacement, headx-x moving direction, angular velocity, angular acceleration 
-    4. Add a distance filter
-    5. Return an analyzed dataframe and a fish length dataframe
-- Includes: 
-    1. analyzeFreeVerticalGrouped2 (by DEE)
-    2. angular acceleration filter in GrabFishAngelAll
-- Purpose of Python version by YZ:
-    1. Rewrite of analyzeFreeVerticalGrouped2.m & GrabFishAngleAll.m for faster runtime (5s per .dlm)
-    3. Adjust filters:
-- Notes:
-    1. Results of filtered epochs may be slightly different from Matlab results, due to the angVel smooth function
-        Matlab smooth handles top/end values differently. Here, top values without enought window (smooth span) are returned as NA
-    2. Due to the float64 data type, calculations are more accurate in Python version.
-    
-    
-    
-To be changed:
+1. Takes one raw dataframe, reslice epochs based on epoch number and fish number (210618 UPDATE)
+2. Truncate
+3. Calculate and filter for epoch duration, displacement, headx-x moving direction, angular velocity, angular acceleration 
+4. Add a distance filter
+5. Return an analyzed dataframe and a fish length dataframe
 '''
 # %%
 # Import Modules and functions
@@ -152,7 +137,6 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
         resliced = epoch_reslice(raw) # reslice epochs if more than one fish in FOV, generating new epoch numbers
     else:
         resliced = raw  # disabled, gen 2 boxes only include fish num == 0
-        
     # Smooth x and y coordinates
     if frame_rate > 100:  # if not data from gen 1 boxes
         resliced['absx'] = smooth_series_ML(resliced.loc[:,'absx'],XY_SM_WSZ)

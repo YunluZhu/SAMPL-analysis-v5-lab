@@ -1,5 +1,5 @@
 '''
-Read one .dlm file and return a dataframe
+Read one .dlm file and return a dataframe containing extracted features
 Modified from:
 analyzeFreeVerticalGrouped2.m by DEE 1.30.2015
     "the LabView code returns a value to mark an "epoch," which is a continuous series of frames that had at least one identified particle 
