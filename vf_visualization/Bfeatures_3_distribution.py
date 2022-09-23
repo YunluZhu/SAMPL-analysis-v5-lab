@@ -26,7 +26,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'tau_bkg'
+pick_data = 'wt_fin'
 which_ztime = 'day'
 root, FRAME_RATE = get_data_dir(pick_data)
 
@@ -353,6 +353,19 @@ plt.savefig(fig_dir+"/angvel_post_phase v pitch_end fit.pdf",format='PDF')
 
 
 # %% 2d distribution
+toplt = all_feature_cond
+spd_bins = [3,7,100]
+
+toplt = toplt.assign(
+    spd_bins = pd.cut(toplt['spd_peak'],bins=spd_bins,labels=['slow','fast'])
+)
+toplt = toplt.loc[toplt['spd_bins']=='fast',:]
+# toplt = toplt.groupby('dpf').sample(n=30000)
+g = sns.displot(data=toplt,
+                y='atk_ang',x='rot_pre_bout',
+                col="dpf",col_order=all_cond1, row="condition",hue='condition')
+g.set(ylim=(-40,40),xlim=(-5,10))
+plt.savefig(fig_dir+"/atk_ang v rot_pre_bout _speed filtered.pdf",format='PDF')
 
 # %%
 toplt = all_feature_cond
