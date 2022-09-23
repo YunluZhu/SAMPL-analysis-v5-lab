@@ -154,6 +154,8 @@ def main(root):
                             # for the files matching current condition, move dlm
                             tmp_dest_file = os.path.join(dest_dir,f"{row['filename']}.dlm")
                             shutil.copyfile(row['dlm_loc'],tmp_dest_file)
+                            dest_ini = os.path.join(path,str(row['fish_id']),f"{row['filename']} parameters.ini")
+                            shutil.copyfile(row['ini_loc'],dest_ini)
                             # save metadata
                             tmp_dest_file = os.path.join(dest_dir,f"{date} metadata.csv")
                             this_cond_metadata.to_csv(tmp_dest_file)

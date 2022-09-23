@@ -18,6 +18,10 @@ What does it need from you:
 
 NOTE
 condition folders are hardcoded
+
+UPDATE 220923: 
+move ini with dlm files
+add option to arrange DD data
 '''
 
 # %%
@@ -167,13 +171,16 @@ def main(root):
                             path = path_q_sibs
                         dest = os.path.join(path,str(row['fish_id']),f"{row['filename']}.dlm")
                         shutil.copyfile(row['dlm_loc'],dest)
+                        dest = os.path.join(path,str(row['fish_id']),f"{row['filename']} parameters.ini")
+                        shutil.copyfile(row['ini_loc'],dest)
                 print("new data organized. please to archive ori data files!")
                 break
             else:
                 confirm = input("- Proceed? (y/n): ")
 
 if __name__ == "__main__":
-    root = "/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD"
+    light_cond = input("Light condition? DD/LD: ")
+    root = f"/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF {light_cond}"
     
     dir_confirm = input(f"- Is this the correct root dir?\n {root} (y/n): ")
     if dir_confirm == 'n':
