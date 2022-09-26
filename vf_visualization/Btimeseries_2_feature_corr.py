@@ -24,7 +24,7 @@ set_font_type()
 pick_data = 'wt_daylight'
 root, FRAME_RATE= get_data_dir(pick_data)
 
-folder_name = f'corr_timeSeries_newAtk'
+folder_name = f'BT2_corr_features'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
