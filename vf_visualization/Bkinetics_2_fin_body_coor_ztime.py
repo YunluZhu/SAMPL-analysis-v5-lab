@@ -1,7 +1,7 @@
 '''
 Fin-body ratio with new definitions slightly different from eLife 2019. Works well.
 
-plot attack angle vs. pre bout rotation, fit with a sigmoid w/ 4-free parameters
+plot attack angle vs. early body change (-250 to -50 ms), fit with a sigmoid w/ 4-free parameters
 
 zeitgeber time? Yes
 '''
@@ -50,7 +50,7 @@ def sigmoid_fit(df, x_range_to_fit,func,**kwargs):
             upper_bounds[3] = value+0.01
             
     p0 = tuple(x0)
-    popt, pcov = curve_fit(func, df['rot_pre_bout'], df['atk_ang'], 
+    popt, pcov = curve_fit(func, df['rot_early_body_change'], df['atk_ang'], 
                         #    maxfev=2000, 
                            p0 = p0,
                            bounds=(lower_bounds,upper_bounds))
@@ -135,7 +135,7 @@ for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['condi
             for_fit.loc[for_fit['expNum'].isin(idx_group)], X_RANGE, func=sigfunc_4free
         )
         slope = coef.iloc[0,0]*(coef.iloc[0,3]) / 4
-        fitted_y.columns = ['Attack angle','Pre-bout rotation']
+        fitted_y.columns = ['Attack angle','Early body rotation']
         all_y = pd.concat([all_y, fitted_y.assign(
             dpf=cond_dpf,
             condition=cond_abla,
@@ -149,8 +149,8 @@ for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['condi
             excluded_exp = excluded_exp,
             ztime=cond_ztime,
             )])
-    binned_df = distribution_binned_average(for_fit,by_col='rot_pre_bout',bin_col='atk_ang',bin=AVERAGE_BIN)
-    binned_df.columns=['Pre-bout rotation','atk_ang']
+    binned_df = distribution_binned_average(for_fit,by_col='rot_early_body_change',bin_col='atk_ang',bin=AVERAGE_BIN)
+    binned_df.columns=['Early body rotation','atk_ang']
     all_binned_average = pd.concat([all_binned_average,binned_df.assign(
         dpf=cond_dpf,
         condition=cond_abla,
@@ -169,7 +169,7 @@ defaultPlotting(size=12)
 
 plt.figure()
 
-g = sns.relplot(x='Pre-bout rotation',y='Attack angle', data=all_y, 
+g = sns.relplot(x='Early body rotation',y='Attack angle', data=all_y, 
                 kind='line',
                 col='dpf', col_order=all_cond1,
                 row = 'ztime', row_order=all_ztime,
@@ -180,11 +180,11 @@ for i , g_row in enumerate(g.axes):
         sns.lineplot(data=all_binned_average.loc[
             (all_binned_average['dpf']==all_cond1[j]) & (all_binned_average['ztime']==all_ztime[i]),:
                 ], 
-                    x='Pre-bout rotation', y='atk_ang', 
+                    x='Early body rotation', y='atk_ang', 
                     hue='condition',alpha=0.5,
                     ax=ax)
     
-filename = os.path.join(fig_dir,"attack angle vs pre-bout rotation.pdf")
+filename = os.path.join(fig_dir,"attack angle vs Early body rotation.pdf")
 plt.savefig(filename,format='PDF')
 
 # plt.show()

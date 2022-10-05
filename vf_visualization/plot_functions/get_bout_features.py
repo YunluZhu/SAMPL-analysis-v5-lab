@@ -121,7 +121,7 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
                                                 rot_body_30 = this_exp_features['pitch_body_end_30']-this_exp_features['pitch_initial_phase'],
 
                                                 rot_full_accel_phased=this_exp_features['pitch_peak_phase']-this_exp_features['pitch_initial_phase'],
-                                                rot_mid_accel_initial=this_exp_features['pitch_mid_accel']-this_exp_features['pitch_initial'],
+                                                rot_early_body_change=this_exp_features['pitch_mid_accel']-this_exp_features['pitch_initial'],
                                                 rot_25ms_accel_initial=this_exp_features['pitch_25ms_accel']-this_exp_features['pitch_initial'],
 
 
