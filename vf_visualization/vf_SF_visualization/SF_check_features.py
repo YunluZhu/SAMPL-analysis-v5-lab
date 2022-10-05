@@ -34,7 +34,7 @@ from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_
 set_font_type()
 # %%
 # Paste root directory here
-pick_data = 'sf ana'
+pick_data = 'sf DD'
 root, FRAME_RATE = get_data_dir(pick_data)
 peak_idx, total_aligned = get_index(FRAME_RATE)
 
@@ -49,9 +49,9 @@ except:
     print('fig folder already exist')
 
 # %%
-POSTURE_SEP = 4 #deg
+POSTURE_SEP = 10 #deg
 MIN_DATA_SIZE = 60
-HIGH_DATA_SIZE = 100
+HIGH_DATA_SIZE = 200
 HIGH_IEI_SIZE = 100
 time50ms = int(0.05 * FRAME_RATE)
 time100ms = int(0.1 * FRAME_RATE)
@@ -89,7 +89,6 @@ for folder in os.listdir(root):
             elif 'metadata.csv' in d:  # if a metadata
                 metadata_files.append(d)
                 
-# %%
 # get IEI pitch and std(pitch)
 
 all_IEI_angles = pd.DataFrame()
@@ -97,8 +96,11 @@ all_feature_data = pd.DataFrame()
 all_mean_data = pd.DataFrame()
 all_std_data = pd.DataFrame()
 all_kinetics = pd.DataFrame()
-
+fish_metadata = pd.DataFrame()
 folder_paths.sort()
+metadata_files.sort()
+
+assert len(folder_paths) == len(metadata_files)
 # go through each condition folders under the root
 for fish_idx, folder in enumerate(folder_paths):
     # get IEI pitch
@@ -144,7 +146,7 @@ for fish_idx, folder in enumerate(folder_paths):
         atk_ang = this_exp_features_day['traj'] - angles.loc[all_peak_idx-time50ms,'propBoutAligned_pitch'].values # new atk angles calculated using accel ang
         this_exp_features_day = this_exp_features_day.assign(
             atk_ang = atk_ang,
-            direction = pd.cut(this_exp_features_day['pitch_initial'],[-91,POSTURE_SEP,91],labels=['DOWN','UP']),
+            direction = pd.cut(this_exp_features_day['pitch_pre_bout'],[-91,POSTURE_SEP,91],labels=['DOWN','UP']),
             fish_id = this_fish_id,
             clutch_id = clutch_id,
             )
@@ -164,23 +166,28 @@ for fish_idx, folder in enumerate(folder_paths):
         all_IEI_angles = pd.concat([all_IEI_angles,this_body_angles], axis=0, ignore_index=True)
         all_kinetics = pd.concat([all_kinetics,this_exp_kinetics.to_frame().T], ignore_index=True)
 
-# get metadata for this dlm file      
-all_metadata = pd.DataFrame() 
-for metadata in metadata_files:
-    open_metadata = pd.read_csv(metadata, index_col=0)
-    this_metadata = open_metadata.loc[:,['box_number','light_cycle','num_fish','aligned_bout','fish_id']]
-    all_metadata = pd.concat([all_metadata,this_metadata], ignore_index=True)
-    
+        # deal with metadata
+        open_metadata = pd.read_csv(metadata_files[fish_idx], index_col=0)
+        this_metadata = pd.DataFrame(data={
+            'num_fish':open_metadata.groupby('box_number')['num_fish'].mean().sum(),
+            'aligned_bouts':open_metadata['aligned_bout'].sum(),
+            'fish_id': this_fish_id,
+            'clutch_id': clutch_id,
+            'number_of_boxes': open_metadata.groupby('box_number').ngroups,
+            # 'condition': this_exp_kinetics['condition']
+        },
+                                     index=[0])
+        
+
+        fish_metadata = pd.concat([fish_metadata,this_metadata], ignore_index=True)
+
+# %%
 cat_cols = ['condition','fish_id']
 all_mean_data = all_feature_data.groupby(cat_cols).mean().reset_index()
 all_std_data = all_feature_data.groupby(cat_cols).std().reset_index()
 all_std_IEI_angles = all_IEI_angles.groupby(cat_cols)['IEIpitch'].std().reset_index()
 all_std_IEI_angles['IEI_number'] = all_IEI_angles.groupby(cat_cols)['IEI_number'].first().values  
 # all_std_data = pd.concat([all_std_data,all_std_IEI_angles.loc[:,'IEIpitch']], axis=1)
-
-fish_metadata = all_metadata.groupby('fish_id').mean().reset_index()
-fish_metadata['aligned_bout'] = all_metadata.groupby('fish_id')['aligned_bout'].sum().values
-
 # %%
 # tidy up
 # all_mean_data.set_index('fish_id')
@@ -192,12 +199,12 @@ all_mean_data = all_mean_data.merge(fish_metadata, how='inner', on='fish_id')
 
 # %%
 # 
-all_mean_data.loc[all_mean_data['condition']=='tau','aligned_bout'].mean()
+all_mean_data.loc[all_mean_data['condition']=='tau','aligned_bouts'].mean()
 
 plt.figure()
 sns.histplot(
     data=all_mean_data,
-    x='aligned_bout',
+    x='aligned_bouts',
     bins=10
     )
 plt.figure()
@@ -208,10 +215,18 @@ sns.scatterplot(
     hue='condition'
     )
 
+# # %%
+# plt.figure()
+# sns.scatterplot(
+#     data=all_mean_data,
+#     y='aligned_bouts',
+#     x='fish_id',
+#     )
+# print(all_mean_data['fish_id'])
 # %%
-high_bout_data = all_feature_data.loc[all_feature_data['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bout>HIGH_DATA_SIZE,'fish_id']),:]
-high_bout_kinetics = all_kinetics.loc[all_kinetics['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bout>HIGH_DATA_SIZE,'fish_id']),:]
-# high_bout_IEI = all_IEI_angles.loc[all_IEI_angles['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bout>HIGH_DATA_SIZE,'fish_id']),:]
+high_bout_data = all_feature_data.loc[all_feature_data['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bouts>HIGH_DATA_SIZE,'fish_id']),:]
+high_bout_kinetics = all_kinetics.loc[all_kinetics['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bouts>HIGH_DATA_SIZE,'fish_id']),:]
+# high_bout_IEI = all_IEI_angles.loc[all_IEI_angles['fish_id'].isin(fish_metadata.loc[fish_metadata.aligned_bouts>HIGH_DATA_SIZE,'fish_id']),:]
 high_bout_IEI = all_IEI_angles.loc[all_IEI_angles.IEI_number > HIGH_IEI_SIZE]
 # NOTE 
 # traj and pitch worth to look at
@@ -222,39 +237,39 @@ high_bout_IEI = all_IEI_angles.loc[all_IEI_angles.IEI_number > HIGH_IEI_SIZE]
 
 
 # %%
-# z score by fish id
-cat_cols = ['condition', 'ztime', 'direction', 'fish_id','time','clutch_id']
-features = list(set(high_bout_data.columns).difference(set(cat_cols)))
-all_directions = ['DOWN',
-                  'UP']
+# # z score by fish id
+# cat_cols = ['condition', 'ztime', 'direction', 'fish_id','time','clutch_id']
+# features = list(set(high_bout_data.columns).difference(set(cat_cols)))
+# all_directions = ['DOWN',
+#                   'UP']
 
-high_bout_zScore = pd.DataFrame()
-for dir_toplt in all_directions:
-    data_toplt = high_bout_data.loc[high_bout_data.direction==dir_toplt,:]
-    sibs_data = data_toplt.loc[data_toplt.condition=='sibs',features]
-    sibs_mean = sibs_data.mean()
-    sibs_sd = sibs_data.std()
-    this_z = data_toplt.reset_index(drop=True)
-    for feature in features:
-        this_z.loc[:,feature] = this_z.groupby('fish_id')[feature].apply(
-                lambda x: (x-sibs_mean[feature])/sibs_sd[feature]
-                )
-    high_bout_zScore = pd.concat([high_bout_zScore,this_z],ignore_index=True) 
+# high_bout_zScore = pd.DataFrame()
+# for dir_toplt in all_directions:
+#     data_toplt = high_bout_data.loc[high_bout_data.direction==dir_toplt,:]
+#     sibs_data = data_toplt.loc[data_toplt.condition=='sibs',features]
+#     sibs_mean = sibs_data.mean()
+#     sibs_sd = sibs_data.std()
+#     this_z = data_toplt.reset_index(drop=True)
+#     for feature in features:
+#         this_z.loc[:,feature] = this_z.groupby('fish_id')[feature].apply(
+#                 lambda x: (x-sibs_mean[feature])/sibs_sd[feature]
+#                 )
+#     high_bout_zScore = pd.concat([high_bout_zScore,this_z],ignore_index=True) 
 
-high_bout_mean_zScore = pd.DataFrame()
-for dir_toplt in all_directions:
-    data_toplt = high_bout_data.loc[high_bout_data.direction==dir_toplt,:]
-    sibs_data = data_toplt.loc[data_toplt.condition=='sibs',features]
-    sibs_mean = sibs_data.mean()
-    sibs_sd = sibs_data.std()
-    this_z = data_toplt.reset_index(drop=True)
-    for feature in features:
-        this_z.loc[:,feature] = this_z.groupby('fish_id')[feature].apply(
-                lambda x: (x-sibs_mean[feature])/sibs_sd[feature]
-                )
-    high_bout_zScore = pd.concat([high_bout_zScore,this_z],ignore_index=True) 
+# high_bout_mean_zScore = pd.DataFrame()
+# for dir_toplt in all_directions:
+#     data_toplt = high_bout_data.loc[high_bout_data.direction==dir_toplt,:]
+#     sibs_data = data_toplt.loc[data_toplt.condition=='sibs',features]
+#     sibs_mean = sibs_data.mean()
+#     sibs_sd = sibs_data.std()
+#     this_z = data_toplt.reset_index(drop=True)
+#     for feature in features:
+#         this_z.loc[:,feature] = this_z.groupby('fish_id')[feature].apply(
+#                 lambda x: (x-sibs_mean[feature])/sibs_sd[feature]
+#                 )
+#     high_bout_zScore = pd.concat([high_bout_zScore,this_z],ignore_index=True) 
 
-# # %%
+# # # %%
 
 # corr = high_bout_zScore[features].sort_index(axis = 1).corr()
 
@@ -281,20 +296,6 @@ all_directions = ['DOWN',
 
 ### to update
 # calculate mean for each fish first, then z score
-# 
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 zscore_byClutch = pd.DataFrame()
@@ -397,7 +398,6 @@ for feature in feature_to_plt:
         x='condition',
         hue='fish_id',
         # units = 'fish_id',
-
         row='direction',
         col='clutch_id',
         kind='point',
@@ -408,6 +408,7 @@ for feature in feature_to_plt:
         )
     plt.savefig(fig_dir+f"/{feature} zScore byClutch.pdf",format='PDF')
 
+# %%
 for feature in feature_to_plt:
     plt.figure()
     g = sns.catplot(
@@ -481,7 +482,7 @@ data_toplt = high_bout_kinetics
 sns.relplot(
     data=data_toplt,
     x=data_toplt.index,
-    y='steering_gain',
+    y='righting_gain',
     kind='line',
     err_style='bars',
     size=0,

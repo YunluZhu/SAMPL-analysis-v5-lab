@@ -18,14 +18,20 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
     """
     T_INITIAL = -0.25 #s
     T_PREP_200 = -0.2
+    T_PREP_275 = -0.275
     T_PREP_150 = -0.15
     T_PRE_BOUT = -0.10 #s
     T_POST_BOUT = 0.1 #s
     T_post_150 = 0.15
     T_END = 0.2
     T_MID_ACCEL = -0.05
+    T_BODY_END_40 = -0.04
+    T_BODY_END_30 = -0.03
+
     T_MID_DECEL = 0.05
 
+    T_PRE_25 = -0.025
+    T_POST_25 = 0.025
     
     idx_initial = int(peak_idx + T_INITIAL * FRAME_RATE)
     idx_pre_bout = int(peak_idx + T_PRE_BOUT * FRAME_RATE)
@@ -33,16 +39,22 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
     idx_mid_accel = int(peak_idx + T_MID_ACCEL * FRAME_RATE)
     idx_mid_decel = int(peak_idx + T_MID_DECEL * FRAME_RATE)
     idx_end = int(peak_idx + T_END * FRAME_RATE)
+    idx_body_end_40 = int(peak_idx + T_BODY_END_40 * FRAME_RATE)
+    idx_body_end_30 = int(peak_idx + T_BODY_END_30 * FRAME_RATE)
     
     idx_prep_200 = int(peak_idx + T_PREP_200 * FRAME_RATE)
+    idx_pre_275 = int(peak_idx + T_PREP_275 * FRAME_RATE)
     idx_prep_150 = int(peak_idx + T_PREP_150 * FRAME_RATE)
     idx_post_150 = int(peak_idx + T_post_150 * FRAME_RATE)
+    idx_pre_25 = int(peak_idx + T_PRE_25 * FRAME_RATE)
+    idx_post_25 = int(peak_idx + T_POST_25 * FRAME_RATE)
     
-    idx_initial_phase = np.arange(idx_initial,idx_pre_bout)
-    idx_prep_phase = np.arange(idx_prep_200,idx_prep_150)
+    idx_initial_phase = np.arange(idx_pre_275,idx_initial)
+    idx_prep_phase = np.arange(idx_prep_200,idx_pre_bout)
     idx_accel_phase = np.arange(idx_pre_bout,peak_idx)
     idx_decel_phase = np.arange(peak_idx,idx_post_bout)
     idx_post_phase = np.arange(idx_post_150,idx_end)
+    idx_peak_phase = np.arange(idx_pre_25,idx_post_25)
     
     this_exp_features = pd.DataFrame(data={
         'pitch_initial':bout_data.loc[bout_data['idx']==idx_initial,'propBoutAligned_pitch'].values, 
@@ -51,6 +63,12 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
         'pitch_peak':bout_data.loc[bout_data['idx']==peak_idx,'propBoutAligned_pitch'].values, 
         'pitch_post_bout':bout_data.loc[bout_data['idx']==idx_post_bout,'propBoutAligned_pitch'].values, 
         'pitch_end': bout_data.loc[bout_data['idx']==idx_end,'propBoutAligned_pitch'].values, 
+        
+        'pitch_body_end_40':bout_data.loc[bout_data['idx']==idx_body_end_40,'propBoutAligned_pitch'].values, 
+        'pitch_body_end_30': bout_data.loc[bout_data['idx']==idx_body_end_30,'propBoutAligned_pitch'].values,       
+        
+        
+        'pitch_25ms_accel':bout_data.loc[bout_data['idx']==idx_pre_25,'propBoutAligned_pitch'].values, 
         
         'traj_initial':bout_data.loc[bout_data['idx']==idx_initial,'propBoutAligned_instHeading'].values, 
         'traj_pre_bout':bout_data.loc[bout_data['idx']==idx_pre_bout,'propBoutAligned_instHeading'].values, 
@@ -62,9 +80,11 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
         
         'angvel_initial_phase': bout_data.loc[bout_data['idx'].isin(idx_initial_phase),:].groupby('bout_num')['propBoutAligned_angVel'].mean().values, 
         'angvel_prep_phase': bout_data.loc[bout_data['idx'].isin(idx_prep_phase),:].groupby('bout_num')['propBoutAligned_angVel'].mean().values, 
-        'pitch_prep_phase': bout_data.loc[bout_data['idx'].isin(idx_prep_phase),:].groupby('bout_num')['propBoutAligned_pitch'].mean().values, 
         'angvel_post_phase': bout_data.loc[bout_data['idx'].isin(idx_post_phase),:].groupby('bout_num')['propBoutAligned_angVel'].mean().values, 
-
+        
+        'pitch_initial_phase': bout_data.loc[bout_data['idx'].isin(idx_initial_phase),:].groupby('bout_num')['propBoutAligned_pitch'].mean().values, 
+        'pitch_peak_phase': bout_data.query('idx in @idx_peak_phase').groupby('bout_num')['propBoutAligned_pitch'].mean().values, 
+        'traj_peak_phase': bout_data.query('idx in @idx_peak_phase').groupby('bout_num')['propBoutAligned_instHeading'].mean().values, 
         # 'angvel_accel_phase':
         # 'angvel_decel_phase':
         # 'angvel_post_phase':
@@ -86,17 +106,30 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
     this_exp_features = this_exp_features.assign(rot_total=this_exp_features['pitch_end']-this_exp_features['pitch_initial'],
                                                  rot_bout = this_exp_features['pitch_post_bout']-this_exp_features['pitch_pre_bout'],
                                                 rot_pre_bout=this_exp_features['pitch_pre_bout']-this_exp_features['pitch_initial'],
+
                                                 # rot_pre_50 = this_exp_features['pitch_mid_accel']-this_exp_features['pitch_initial'],
                                                 rot_l_accel=this_exp_features['pitch_peak']-this_exp_features['pitch_pre_bout'],
+                                                rot_full_accel=this_exp_features['pitch_peak']-this_exp_features['pitch_initial'],
                                                 rot_l_decel=this_exp_features['pitch_post_bout']-this_exp_features['pitch_peak'],
                                                 rot_early_accel = this_exp_features['pitch_mid_accel']-this_exp_features['pitch_pre_bout'],
                                                 rot_late_accel = this_exp_features['pitch_peak'] - this_exp_features['pitch_mid_accel'],
                                                 rot_early_decel = pitch_mid_decel-this_exp_features['pitch_peak'],
                                                 rot_late_decel = this_exp_features['pitch_post_bout'] - pitch_mid_decel,
+                                                #phased rotation for more robust calculation
+                                                rot_pre_bout_phased=this_exp_features['pitch_pre_bout']-this_exp_features['pitch_initial_phase'],
+                                                rot_body_40 = this_exp_features['pitch_body_end_40']-this_exp_features['pitch_initial_phase'],
+                                                rot_body_30 = this_exp_features['pitch_body_end_30']-this_exp_features['pitch_initial_phase'],
+
+                                                rot_full_accel_phased=this_exp_features['pitch_peak_phase']-this_exp_features['pitch_initial_phase'],
+                                                rot_mid_accel_initial=this_exp_features['pitch_mid_accel']-this_exp_features['pitch_initial'],
+                                                rot_25ms_accel_initial=this_exp_features['pitch_25ms_accel']-this_exp_features['pitch_initial'],
+
+
                                                 bout_traj = epochBouts_trajectory,
                                                 bout_displ = displ,
-                                                traj_deviation = this_exp_features['traj_pre_bout'] -  this_exp_features['pitch_pre_bout'],
+                                                traj_deviation = this_exp_features['traj_peak'] -  this_exp_features['pitch_initial'],
                                                 atk_ang = this_exp_features['traj_peak'] - this_exp_features['pitch_peak'],
+                                                atk_ang_phased = this_exp_features['traj_peak_phase'] - this_exp_features['pitch_peak_phase'],
                                                 # tsp_pre = this_exp_features['traj_pre_bout'] - this_exp_features['pitch_pre_bout'],
                                                 # tsp_peak = this_exp_features['traj_peak'] - this_exp_features['pitch_peak'],
                                                 angvel_chg = this_exp_features['angvel_post_phase'] - this_exp_features['angvel_initial_phase'] 

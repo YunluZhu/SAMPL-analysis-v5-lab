@@ -136,8 +136,9 @@ for condition_idx, folder in enumerate(folder_paths):
                 exp_data = exp_data.assign(ang_speed=exp_data['propBoutAligned_angVel'].abs(),
                                             yvel = exp_data['propBoutAligned_y'].diff()*FRAME_RATE,
                                             xvel = exp_data['propBoutAligned_x'].diff()*FRAME_RATE,
-                                            linear_accel = exp_data['propBoutAligned_speed'].diff(),
-                                            ang_accel_of_SMangVel = exp_data['propBoutAligned_angVel'].diff(),
+                                            # linear_accel = exp_data['propBoutAligned_speed'].diff(),
+                                            ang_accel = exp_data['propBoutAligned_angVel'].diff(),
+                                            tsp = exp_data['propBoutAligned_instHeading'] - exp_data['propBoutAligned_pitch']
                                            )
                 # assign frame number, total_aligned frames per bout
                 exp_data = exp_data.assign(idx=int(len(exp_data)/total_aligned)*list(range(0,total_aligned)))
@@ -234,21 +235,29 @@ for excluded_exp, idx_group in enumerate(idx_list):
         lambda group: group.loc[(group['idx']>(peak_idx-idx_dur275ms))&(group['idx']<(peak_idx-idx_dur250ms)), 
                                 'propBoutAligned_pitch'].mean()
     )
+    null_initial_angvel = grp.apply(
+        lambda group: group.loc[(group['idx']>(peak_idx-idx_dur275ms))&(group['idx']<(peak_idx-idx_dur250ms)), 
+                                'propBoutAligned_angVel'].mean()
+    )
     this_dpf_res = this_dpf_res.assign(
-        relative_pitch_change = this_dpf_res['propBoutAligned_pitch'].values - np.repeat(null_initial_pitch,(idxRANGE[1]-idxRANGE[0])).values
+        relative_pitch_change = this_dpf_res['propBoutAligned_pitch'].values - np.repeat(null_initial_pitch,(idxRANGE[1]-idxRANGE[0])).values,
+        relative_angvel_change = this_dpf_res['propBoutAligned_angVel'].values - np.repeat(null_initial_angvel,(idxRANGE[1]-idxRANGE[0])).values,
     )
     
     # correlation calculation
 
-    
     # Make a dictionary for correlation to be calculated
     corr_dict = {
-        "angVel_corr_preBoutPitch":['pitch_pre_bout','propBoutAligned_angVel'],
-        'angVel_corr_atkAng':['atk_ang','propBoutAligned_angVel'],
-        'angVel_corr_trajDeviation':['traj_deviation','propBoutAligned_angVel'],
-        'pitch_corr_traj':['propBoutAligned_pitch','propBoutAligned_instHeading'],
-        'rotFromInitial_corr_trajDeviation':['relative_pitch_change','traj_deviation'],
-        'rotFromInitial_corr_atkAng':['relative_pitch_change','atk_ang'],
+        # "angVel_corr_preBoutPitch":['pitch_pre_bout','propBoutAligned_angVel'],
+        # "angVel_corr_pitchPeak":['pitch_peak','propBoutAligned_angVel'],
+        # 'angVel_corr_atkAng':['atk_ang','propBoutAligned_angVel'],
+        # 'angVel_corr_trajDeviation':['traj_deviation','propBoutAligned_angVel'],
+        # 'pitch_corr_traj':['propBoutAligned_pitch','propBoutAligned_instHeading'],
+        # 'rotFromInitial_corr_trajDeviation':['relative_pitch_change','traj_deviation'],
+        # 'rotFromInitial_corr_atkAng':['relative_pitch_change','atk_ang'],
+        'angvelFromInitial_corr_atkAng':['relative_angvel_change','atk_ang'],
+
+        # 'tsp_corr_atkAng':['tsp','atk_ang'],
     }
     
     cat_cols = ['condition','dpf']
@@ -260,30 +269,21 @@ for excluded_exp, idx_group in enumerate(idx_list):
             corr_res = corr_thisName
         else:
             corr_res = corr_res.join(corr_thisName)
+    corr_res = corr_res.reset_index()
     corr_all = pd.concat([corr_all, corr_res])
     corr_all = corr_all.assign(
         exp_num = excluded_exp,
     )
-# # repeat by speed if needed
-#     cat_cols = ['condition','dpf','spd_peak']
-#     grp_cols = cat_cols + ['time_ms']
-#     for i, name in enumerate(corr_dict):
-#         [col1, col2] = corr_dict[name]
-#         corr_thisName = corr_calc(this_dpf_res, grp_cols, col1, col2, name)
-#         if i == 0:
-#             corr_res = corr_thisName
-#         else:
-#             corr_res = corr_res.join(corr_thisName)
-#     corr_bySpd = pd.concat([corr_bySpd, corr_res])
+    
 corr_all = corr_all.reset_index(drop=True)
-corr_bySpd = corr_bySpd.reset_index(drop=True)
+# corr_bySpd = corr_bySpd.reset_index(drop=True)
 
 # %%
 # ignore dir, ignore speed
 
 # plot angvel corr w. preBoutPitch/atkAngle/trajectory residual
 # plot inst traj. corr w. bout trajectory
-for corr_which in ['corr_preBoutPitch','corr_atkAng','corr_traj_deviation','corr_instTraj']:
+for corr_which in corr_dict.keys():
     g = sns.relplot(
         # col='condition',
         x='time_ms',
@@ -297,30 +297,29 @@ for corr_which in ['corr_preBoutPitch','corr_atkAng','corr_traj_deviation','corr
         height=3
         )
     g.set(xlim=(-250,200))
-    if corr_which=='corr_instTraj':
-        plt.savefig(fig_dir+f"/bout traj {corr_which}.pdf",format='PDF')
-    else:
-        plt.savefig(fig_dir+f"/angvel {corr_which}.pdf",format='PDF')
+    plt.savefig(fig_dir+f"/{corr_which}.pdf",format='PDF')
+
+# # %%
+# # by speed
+
+# for corr_which in ['corr_preBoutPitch','corr_atkAng','corr_traj_deviation','corr_instTraj']:
+#     g = sns.relplot(
+#         # hue='condition',
+#         x='time_ms',
+#         y=corr_which,
+#         data=corr_bySpd,
+#         col='speed_bin',
+#         kind='line',
+#         # col='dpf',
+#         hue='condition',
+#         ci='sd',
+#         aspect=1.2,
+#         height=3
+#         )
+#     g.set(xlim=(-250,200))
+#     if corr_which=='corr_instTraj':
+#         plt.savefig(fig_dir+f"/bySpd__bout traj {corr_which}.pdf",format='PDF')
+#     else:
+#         plt.savefig(fig_dir+f"/bySpd__angvel {corr_which}.pdf",format='PDF')
 
 # %%
-# by speed
-
-for corr_which in ['corr_preBoutPitch','corr_atkAng','corr_traj_deviation','corr_instTraj']:
-    g = sns.relplot(
-        # hue='condition',
-        x='time_ms',
-        y=corr_which,
-        data=corr_bySpd,
-        col='speed_bin',
-        kind='line',
-        # col='dpf',
-        hue='condition',
-        ci='sd',
-        aspect=1.2,
-        height=3
-        )
-    g.set(xlim=(-250,200))
-    if corr_which=='corr_instTraj':
-        plt.savefig(fig_dir+f"/bySpd__bout traj {corr_which}.pdf",format='PDF')
-    else:
-        plt.savefig(fig_dir+f"/bySpd__angvel {corr_which}.pdf",format='PDF')

@@ -216,7 +216,7 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
                         direction = pd.cut(this_ztime_exp_features['pitch_initial'],[-90,10,90],labels=['DN','UP'])
                         )
                     
-                    tsp_filter = pd.cut(this_ztime_exp_features['tsp_peak'],TSP_THRESHOLD,labels=['too_neg','select','too_pos'])
+                    tsp_filter = pd.cut(this_ztime_exp_features['atk_ang'],TSP_THRESHOLD,labels=['too_neg','select','too_pos'])
                     this_ztime_exp_features = this_ztime_exp_features.loc[tsp_filter=='select',:].reset_index(drop=True)
                     if this_ztime_exp_features.groupby('ztime').size().min() < 10:
                         print(f"Too few bouts for kinetic analysis, consider removing the dataset: exp")

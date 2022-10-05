@@ -29,10 +29,10 @@ from plot_functions.get_bout_kinetics import get_bout_kinetics
 set_font_type()
 defaultPlotting()
 # %%
-pick_data = 'tau_long' # all or specific data
+pick_data = 'tmp' # all or specific data
 # for day night split
 which_zeitgeber = 'day' # day night all
-SAMPLE_NUM = 1000
+SAMPLE_NUM = 0
 # %%
 # def main(pick_data):
 root, FRAME_RATE = get_data_dir(pick_data)

@@ -30,7 +30,7 @@ X_RANGE = np.arange(-30,40,0.1)
 BIN_WIDTH = 1
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
-folder_name = f'BK5_steering_z{which_zeitgeber}_sample{DAY_RESAMPLE}'
+folder_name = f'BK5_steering_phased_z{which_zeitgeber}_sample{DAY_RESAMPLE}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -100,7 +100,7 @@ for (cond1,cond2,this_ztime), for_fit in df_tofit.groupby(['condition','dpf','zt
     jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
     for excluded_exp, idx_group in enumerate(jackknife_idx):
         this_for_fit = for_fit.loc[for_fit['expNum'].isin(idx_group)]
-        k, y_intersect = np.polyfit(x = this_for_fit['pitch_peak'], 
+        k, y_intersect = np.polyfit(x = this_for_fit['pitch_peak_phase'], 
                           y = this_for_fit['traj_peak'],
                           deg = 1) 
         x_intersect = -1 * y_intersect / k

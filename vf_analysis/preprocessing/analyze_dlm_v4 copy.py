@@ -28,7 +28,7 @@ MIN_VERTICLE_VEL = -7 # (mm/s) max verdical displacement difference. Used to exc
 # Other parameters
 SCALE = 60           #(pix/mm) 
 SM_WINDOW_FOR_FILTER = 9     # smoothing
-SM_WINDOW_FOR_ANGVEL = 5
+SM_WINDOW_FOR_ANGVEL = 3
 
 # %%
 # Define functions

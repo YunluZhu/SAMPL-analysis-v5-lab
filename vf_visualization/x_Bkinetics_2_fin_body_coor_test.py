@@ -21,14 +21,15 @@ from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlott
 set_font_type()
 defaultPlotting(size=16)
 # %%
-pick_data = 'wt_fin'
-which_zeitgeber = 'day' # day / night / all
-DAY_RESAMPLE = 1000
-NIGHT_RESAMPLE = 500
+pick_data = 'wt_daylight'
+which_zeitgeber = 'all' # day / night / all
+DAY_RESAMPLE = 0
+NIGHT_RESAMPLE = 0
+bin_by_what = 'rot_mid_accel_initial'
 # %%
 def sigmoid_fit(df, x_range_to_fit,func,**kwargs):
     lower_bounds = [0.1,-20,-100,1]
-    upper_bounds = [5,20,2,100]
+    upper_bounds = [10,20,2,100]
     x0=[0.1, 1, -1, 20]
     
     for key, value in kwargs.items():
@@ -50,8 +51,8 @@ def sigmoid_fit(df, x_range_to_fit,func,**kwargs):
             upper_bounds[3] = value+0.01
             
     p0 = tuple(x0)
-    popt, pcov = curve_fit(func, df['rot_pre_bout'], df['atk_ang'], 
-                        #    maxfev=2000, 
+    popt, pcov = curve_fit(func, df[bin_by_what], df['atk_ang'], 
+                           maxfev=2000, 
                            p0 = p0,
                            bounds=(lower_bounds,upper_bounds))
     y = func(x_range_to_fit,*popt)
@@ -69,11 +70,11 @@ def sigfunc_4free(x, a, b, c, d):
 # Select data and create figure folder
 root, FRAME_RATE = get_data_dir(pick_data)
 
-X_RANGE = np.arange(-5,5.01,0.01)
+X_RANGE = np.arange(-5,8.01,0.01)
 BIN_WIDTH = 0.3
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
-folder_name = f'BK2_fin_body_z{which_zeitgeber}'
+folder_name = f'BK2_fin_body_test_z{which_zeitgeber}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -135,7 +136,7 @@ for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['condi
             for_fit.loc[for_fit['expNum'].isin(idx_group)], X_RANGE, func=sigfunc_4free
         )
         slope = coef.iloc[0,0]*(coef.iloc[0,3]) / 4
-        fitted_y.columns = ['Attack angle','Pre-bout rotation']
+        fitted_y.columns = ['atk_ang',bin_by_what]
         all_y = pd.concat([all_y, fitted_y.assign(
             dpf=cond_dpf,
             condition=cond_abla,
@@ -149,8 +150,8 @@ for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['condi
             excluded_exp = excluded_exp,
             ztime=cond_ztime,
             )])
-    binned_df = distribution_binned_average(for_fit,by_col='rot_pre_bout',bin_col='atk_ang',bin=AVERAGE_BIN)
-    binned_df.columns=['Pre-bout rotation','atk_ang']
+    binned_df = distribution_binned_average(for_fit,by_col=bin_by_what,bin_col='atk_ang',bin=AVERAGE_BIN)
+    feature_names = binned_df.columns
     all_binned_average = pd.concat([all_binned_average,binned_df.assign(
         dpf=cond_dpf,
         condition=cond_abla,
@@ -169,7 +170,7 @@ defaultPlotting(size=12)
 
 plt.figure()
 
-g = sns.relplot(x='Pre-bout rotation',y='Attack angle', data=all_y, 
+g = sns.relplot(x=feature_names[0],y=feature_names[1], data=all_y, 
                 kind='line',
                 col='dpf', col_order=all_cond1,
                 row = 'ztime', row_order=all_ztime,
@@ -180,11 +181,12 @@ for i , g_row in enumerate(g.axes):
         sns.lineplot(data=all_binned_average.loc[
             (all_binned_average['dpf']==all_cond1[j]) & (all_binned_average['ztime']==all_ztime[i]),:
                 ], 
-                    x='Pre-bout rotation', y='atk_ang', 
+                    x=feature_names[0],y=feature_names[1], 
                     hue='condition',alpha=0.5,
                     ax=ax)
+        ax.set_ylim(-10,10)
     
-filename = os.path.join(fig_dir,"attack angle vs pre-bout rotation.pdf")
+filename = os.path.join(fig_dir,f"{feature_names}.pdf")
 plt.savefig(filename,format='PDF')
 
 # plt.show()

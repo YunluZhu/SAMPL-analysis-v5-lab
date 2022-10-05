@@ -27,9 +27,9 @@ defaultPlotting()
 set_font_type()
 # %%
 # Paste root directory here
-pick_data = 'lesion'
-which_zeitgeber = 'all'
-DAY_RESAMPLE = 1000
+pick_data = 'tmp'
+which_zeitgeber = 'day'
+DAY_RESAMPLE = 0
 NIGHT_RESAMPLE = 500
 
 # %%

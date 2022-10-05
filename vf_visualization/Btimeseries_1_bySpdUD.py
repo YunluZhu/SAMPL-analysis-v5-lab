@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import math
 from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
 from plot_functions.get_index import get_index
-
+from scipy.signal import savgol_filter
 from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_split)
 from tqdm import tqdm
 set_font_type()
@@ -23,7 +23,7 @@ set_font_type()
 # %%
 # Paste root directory here
 if_plot_by_speed = False
-pick_data = 'wt_daylight'
+pick_data = 'tmp'
 root, FRAME_RATE= get_data_dir(pick_data)
 
 folder_name = f'BT1_features_Tseries'
@@ -66,13 +66,13 @@ all_features = [
     'ang_speed',
     'ang_accel_of_SMangVel',    # angular accel calculated using smoothed angVel
     # 'xvel', 'yvel',
+    'traj_cur',
 
 ]
 
 # %%
 # CONSTANTS
-HEADING_LIM = 90
-
+SMOOTH = 11
 all_conditions = []
 folder_paths = []
 # get the name of all folders under root
@@ -101,15 +101,15 @@ for condition_idx, folder in enumerate(folder_paths):
                 # for each sub-folder, get the path
                 exp_path = os.path.join(subpath, exp)
                 # get pitch                
-                exp_data = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout_aligned')#.loc[:,['propBoutAligned_angVel','propBoutAligned_speed','propBoutAligned_accel','propBoutAligned_heading','propBoutAligned_pitch']]
-                exp_data = exp_data.assign(ang_speed=exp_data['propBoutAligned_angVel'].abs(),
-                                            yvel = exp_data['propBoutAligned_y'].diff()*FRAME_RATE,
-                                            xvel = exp_data['propBoutAligned_x'].diff()*FRAME_RATE,
-                                            linear_accel = exp_data['propBoutAligned_speed'].diff(),
-                                            ang_accel_of_SMangVel = exp_data['propBoutAligned_angVel'].diff(),
+                raw = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout_aligned')#.loc[:,['propBoutAligned_angVel','propBoutAligned_speed','propBoutAligned_accel','propBoutAligned_heading','propBoutAligned_pitch']]
+                raw = raw.assign(ang_speed=raw['propBoutAligned_angVel'].abs(),
+                                            yvel = raw['propBoutAligned_y'].diff()*FRAME_RATE,
+                                            xvel = raw['propBoutAligned_x'].diff()*FRAME_RATE,
+                                            linear_accel = raw['propBoutAligned_speed'].diff(),
+                                            ang_accel_of_SMangVel = raw['propBoutAligned_angVel'].diff(),
                                            )
                 # assign frame number, total_aligned frames per bout
-                exp_data = exp_data.assign(idx=int(len(exp_data)/total_aligned)*list(range(0,total_aligned)))
+                raw = raw.assign(idx=int(len(raw)/total_aligned)*list(range(0,total_aligned)))
                 
                 # - get the index of the rows in exp_data to keep (for each bout, there are range(0:51) frames. keep range(20:41) frames)
                 bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,['aligned_time']]
@@ -117,9 +117,18 @@ for condition_idx, folder in enumerate(folder_paths):
                 # # if only need day or night bouts:
                 for i in day_night_split(bout_time,'aligned_time').index:
                     rows.extend(list(range(i*total_aligned+idxRANGE[0],i*total_aligned+idxRANGE[1])))
+                exp_data = raw.loc[rows,:]
                 exp_data = exp_data.assign(expNum = expNum,
-                                           exp_id = condition_idx*100+expNum)
-                around_peak_data = pd.concat([around_peak_data,exp_data.loc[rows,:]])
+                                      exp_id = condition_idx*100+expNum)
+                grp = exp_data.groupby(np.arange(len(exp_data))//(idxRANGE[1]-idxRANGE[0]))
+                angvel_smoothed = grp['propBoutAligned_angVel'].apply(
+                    lambda x: savgol_filter(x, 11, 3)
+                )
+                exp_data = exp_data.assign(
+                    # calculate curvature of trajectory (rad/mm) = angular velocity (rad/s) / linear speed (mm/s)
+                    traj_cur = angvel_smoothed/exp_data['propBoutAligned_speed'] * math.pi / 180
+                )
+                around_peak_data = pd.concat([around_peak_data,exp_data])
             # combine data from different conditions
             cond1 = all_conditions[condition_idx].split("_")[0]
             all_cond1.append(cond1)
@@ -157,29 +166,51 @@ print(all_around_peak_data.groupby('speed_bin')['peak_speed'].agg('min'))
 print('--max')
 print(all_around_peak_data.groupby('speed_bin')['peak_speed'].agg('max'))
 
+# %%
 # Peak data and pitch segmentation
-idx_initial = int(peak_idx -0.25 * FRAME_RATE)
+T_INITIAL = -0.25 #s
+T_PREP_200 = -0.2
+T_PREP_150 = -0.15
+T_PRE_BOUT = -0.10 #s
+T_POST_BOUT = 0.1 #s
+T_END = 0.2
+T_MID_ACCEL = -0.05
+T_MID_DECEL = 0.05
+idx_initial = int(peak_idx + T_INITIAL * FRAME_RATE)
+idx_pre_bout = int(peak_idx + T_PRE_BOUT * FRAME_RATE)
+idx_post_bout = int(peak_idx + T_POST_BOUT * FRAME_RATE)
+
+
 peak_data = all_around_peak_data.loc[all_around_peak_data['idx']==peak_idx].reset_index(drop=True)
 peak_data = peak_data.assign(
-    pitch_initial = all_around_peak_data.loc[all_around_peak_data['idx']==idx_initial,'propBoutAligned_pitch'].values
+    pitch_pre_bout = all_around_peak_data.loc[all_around_peak_data['idx']==idx_pre_bout,'propBoutAligned_pitch'].values,
 )
+
+yy = (all_around_peak_data.loc[all_around_peak_data['idx']==idx_post_bout,'propBoutAligned_y'].values - all_around_peak_data.loc[all_around_peak_data['idx']==idx_pre_bout,'propBoutAligned_y'].values)
+absxx = np.absolute((all_around_peak_data.loc[all_around_peak_data['idx']==idx_post_bout,'propBoutAligned_x'].values - all_around_peak_data.loc[all_around_peak_data['idx']==idx_pre_bout,'propBoutAligned_x'].values))
+epochBouts_trajectory = np.degrees(np.arctan(yy/absxx)) # direction of the bout, -90:90
+peak_data = peak_data.assign(
+    traj_deviation = epochBouts_trajectory - peak_data['pitch_pre_bout'].values
+)
+
+
 peak_grp = peak_data.groupby(['expNum','condition'],as_index=False)
 
 # assign by pitch
-neg_pitch_bout_num = peak_data.loc[peak_data['pitch_initial']<10,'bout_number']
-pos_pitch_bout_num = peak_data.loc[peak_data['pitch_initial']>10,'bout_number']
+neg_pitch_bout_num = peak_data.loc[peak_data['pitch_pre_bout']<10,'bout_number']
+pos_pitch_bout_num = peak_data.loc[peak_data['pitch_pre_bout']>10,'bout_number']
 all_around_peak_data = all_around_peak_data.assign(
     pitch_dir = 'neg_pitch' 
 )
 all_around_peak_data.loc[all_around_peak_data['bout_number'].isin(pos_pitch_bout_num.values),'pitch_dir'] = 'pos_pitch'
 
-# assign by traj
-neg_traj_bout_num = peak_data.loc[peak_data['propBoutAligned_instHeading']<0,'bout_number']
-pos_traj_bout_num = peak_data.loc[peak_data['propBoutAligned_instHeading']>0,'bout_number']
+# assign by traj deviation
+neg_trajDev_bout_num = peak_data.loc[peak_data['traj_deviation']<0,'bout_number']
+pos_trajDev_bout_num = peak_data.loc[peak_data['traj_deviation']>0,'bout_number']
 all_around_peak_data = all_around_peak_data.assign(
-    traj_dir = 'neg_traj' 
+    traj_deviation_dir = 'neg_traj_deviation' 
 )
-all_around_peak_data.loc[all_around_peak_data['bout_number'].isin(pos_traj_bout_num.values),'traj_dir'] = 'pos_traj'
+all_around_peak_data.loc[all_around_peak_data['bout_number'].isin(pos_trajDev_bout_num.values),'traj_deviation_dir'] = 'pos_traj_deviation'
 
 # %% speed binned plots
 # leave out the fastest bin
@@ -243,23 +274,23 @@ for feature_toplt in tqdm(all_features):
     plt.savefig(fig_dir+f"/{pick_data}_lgtdn_byPitch_{feature_toplt}.pdf",format='PDF')
     plt.close()
 # %% traj neg and pos only
-toplt = all_around_peak_data
+# toplt = all_around_peak_data
 
-print('Plotting features binned by traj dir...')
-for feature_toplt in tqdm(all_features):
-    p = sns.relplot(
-    data = toplt, x = 'time_ms', y = feature_toplt, row = 'traj_dir',
-    col='dpf',
-    hue = 'condition',
-    hue_order=all_cond2,
-    style = 'dpf',
-    style_order=all_cond1,
-    # ci='sd',
-    kind = 'line',aspect=3, height=2
-    )
-    p.map(plt.axvline, x=0, linewidth=1, color=".5", zorder=0)
-    plt.savefig(fig_dir+f"/{pick_data}_byTraj_{feature_toplt}.pdf",format='PDF')
-    plt.close()
+# print('Plotting features binned by traj deviation dir...')
+# for feature_toplt in tqdm(all_features):
+#     p = sns.relplot(
+#     data = toplt, x = 'time_ms', y = feature_toplt, row = 'traj_deviation_dir',
+#     col='dpf',
+#     hue = 'condition',
+#     hue_order=all_cond2,
+#     style = 'dpf',
+#     style_order=all_cond1,
+#     ci=None,
+#     kind = 'line',aspect=3, height=2
+#     )
+#     p.map(plt.axvline, x=0, linewidth=1, color=".5", zorder=0)
+#     plt.savefig(fig_dir+f"/{pick_data}_byTrajDeviation_{feature_toplt}.pdf",format='PDF')
+#     plt.close()
 
 # %% pitch neg and pos and Speed
 if if_plot_by_speed:

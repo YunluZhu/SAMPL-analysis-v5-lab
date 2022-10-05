@@ -37,8 +37,8 @@ def jackknife_std(df,all_features):
     return jackknife_df_std
 # %%
 # Paste root directory here
-pick_data = 'lesion'
-which_zeitgeber = 'all'
+pick_data = '7dd_bkg'
+which_zeitgeber = 'day'
 DAY_RESAMPLE = 1000
 NIGHT_RESAMPLE = 500
 

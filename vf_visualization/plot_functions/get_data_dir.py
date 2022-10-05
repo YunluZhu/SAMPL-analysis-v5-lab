@@ -55,6 +55,9 @@ def get_data_dir(pick_data):
     elif pick_data == 'sfld_combined':
         root = "/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF_LD_combined_7-9only_100mb-plus-singlefish"
         fr = 166
+    elif pick_data == 'sf DD':
+        root = "/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF DD/SF quantified"
+        fr = 166
         
         
     elif pick_data == 'lddd':
@@ -81,10 +84,12 @@ def get_data_dir(pick_data):
     elif pick_data == 'for_paper_otog':
         root = "/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/otog"
         fr = 166
-    elif pick_data == 'for_paper_7dd':
-        root = "/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/DD_07dpf"
+    elif pick_data == '7dd_bkg':
+        root = "/Volumes/LabData/manuscript data/2022-09 VF method v2/behavior data/DD_7dpf_bkg"
         fr = 166        
-        
+    elif pick_data == '7dd_all':
+        root = "/Volumes/LabData/manuscript data/2022-09 VF method v2/behavior data/DD_7dpf_combined"
+        fr = 166       
         
         
     elif pick_data == 'pc_lesion':
@@ -97,7 +102,7 @@ def get_data_dir(pick_data):
         root = "/Volumes/LabData/VF_FA KRH_Tan_lesion/reorganized"
         fr = 40    
     elif pick_data == 'otog':
-        root = "/Volumes/LabData/VF_data_in_use/otog/otog DD"
+        root = "/Volumes/LabData/manuscript data/2022-07 VF method archived for depth paper/behavior data/partial_data_for_ana/otog"
         fr = 166
     elif pick_data == 'blind':
         root = "/Volumes/LabData/VF_KRH_blind/reorganized"

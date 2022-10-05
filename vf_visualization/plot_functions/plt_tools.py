@@ -2,6 +2,9 @@ import matplotlib as mpl
 import seaborn as sns
 import pandas as pd
 import numpy as np
+from scipy.stats import linregress
+import matplotlib.pyplot as plt
+
 
 def set_font_type():
     mpl.rcParams['pdf.fonttype'] = 42
@@ -58,3 +61,22 @@ def distribution_binned_average(df, by_col, bin_col, bin):
     grp = df.groupby(bins)
     df_out = grp[[by_col,bin_col]].mean()
     return df_out
+
+def linReg_sampleSatter_plot(data,xcol,ycol,xmin,xmax,color):
+    xdata = data[xcol] 
+    ydata = data[ycol]
+    model_par = linregress(xdata, ydata)
+    slope, intercept, r_value, p_value, std_err = model_par
+    x = np.linspace(xmin,xmax,100)
+    y = slope*x+intercept
+    plt.figure(figsize=(4,4))
+    g = sns.scatterplot(x=xcol, 
+                        y=ycol, 
+                        data=data.sample(2000), 
+                        # marker='+',
+                        alpha = 0.1,
+                        color='grey',
+                        edgecolor="none",
+                        )
+    plt.plot(x, y, color=color)
+    return g, slope, intercept, r_value, p_value, std_err

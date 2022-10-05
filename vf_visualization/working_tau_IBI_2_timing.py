@@ -170,8 +170,55 @@ zScoreRes['condition'] = zScoreRes['condition'].map({
     '2tau':'cond', 
     'ctrl':'ctrl',
     'lesion':'cond'})
+
+#  percentage change vs individual control
+percent_chg = pd.DataFrame()
+
+for (dataset, cond1), group in coef_combined.groupby(['dataset','dpf']):
+    all_cond2 = list(set(group['condition']))
+    all_cond2.sort()
+    control_data = group.loc[group.condition == all_cond2[0]].reset_index(drop=True)
+    cond_data = group.loc[group.condition == all_cond2[1]].reset_index(drop=True)
+    output = pd.concat([(cond_data[item]-control_data[item])/control_data[item] * 100 for item in  coef_list], axis=1)
+    output = output.assign(
+        cond1 = cond1,
+        jackknife_num = group['jackknife num'],
+        dataset = dataset,
+        condition = cond_data['condition']
+    )
+    percent_chg = pd.concat([percent_chg, output],ignore_index=True)          
+percent_chg['condition'] = percent_chg['condition'].map({
+    '1sibs':'ctrl',
+    '2tau':'cond', 
+    'ctrl':'ctrl',
+    'lesion':'cond'})
+
+#  change vs individual control
+chg = pd.DataFrame()
+
+for (dataset, cond1), group in coef_combined.groupby(['dataset','dpf']):
+    all_cond2 = list(set(group['condition']))
+    all_cond2.sort()
+    control_data = group.loc[group.condition == all_cond2[0]].reset_index(drop=True)
+    cond_data = group.loc[group.condition == all_cond2[1]].reset_index(drop=True)
+    # mu = control_data[coef_list].mean()
+    # sigma = control_data[coef_list].std()
+    # cond_data = group.loc[group.condition == all_cond2[1]]
+    output = pd.concat([(cond_data[item]-control_data[item]) for item in  coef_list], axis=1)
+    output = output.assign(
+        cond1 = cond1,
+        jackknife_num = group['jackknife num'],
+        dataset = dataset,
+        condition = cond_data['condition']
+    )
+    chg = pd.concat([chg, output],ignore_index=True)          
+chg['condition'] = chg['condition'].map({
+    '1sibs':'ctrl',
+    '2tau':'cond', 
+    'ctrl':'ctrl',
+    'lesion':'cond'})
 # %%
-# plot all coef
+# plot zscore
 
 plt.close()
 col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
@@ -199,149 +246,66 @@ for i in np.arange(len(coef_list)):
         alpha=0.2,
         data=zScoreRes,
         )
-    filename = os.path.join(fig_dir,f"IBI coef{i} sample{RESAMPLE}.pdf")
+    filename = os.path.join(fig_dir,f"IBI coef{i} s{RESAMPLE} zScore.pdf")
     plt.savefig(filename,format='PDF')
 
 # %%
-# p = sns.catplot(
-#     data = jackknifed_coef, y='y intersect',x='condition',
-#     kind='point',join=False,
-#     col='dpf', col_order=cond1_all,
-#     ci='sd',
-#     row = 'ztime', row_order=all_ztime,
-#     hue='condition',
-#     hue_order = cond2_all,sharey=True,
-#     aspect=.8, 
-#     # markers=['d','d']
+# plot change vs individual
+plt.close()
+col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
+for i in np.arange(len(coef_list)):
+    p = sns.catplot(
+        data = percent_chg, y=col_to_plt[i],
+        x='cond1',
+        # row='dataset',
+        # col='cond1',
+        kind='bar',
+        # join=False,
+        # col='dataset',
+        # ci='sd',
+        # row = 'ztime', row_order=all_ztime,
+        hue='condition', 
+        # dodge=True,
+        # hue_order = cond2_all,
+        sharey=True,
+        aspect=1,
+    )
+    # p.map(sns.lineplot,'cond1',col_to_plt[i],
+    #     estimator=None,
+    #     units='jackknife_num',
+    #     color='grey',
+    #     alpha=0.2,
+    #     data=percent_chg,
+    #     )
+    filename = os.path.join(fig_dir,f"IBI coef{i} s{RESAMPLE} percentChg.pdf")
+    plt.savefig(filename,format='PDF')
 
-# )
-# p.map(sns.lineplot,'condition','y intersect',estimator=None,
-#     units='jackknife num',
-#     color='grey',
-#     alpha=0.2,
-#     data=jackknifed_coef)
-# %%
-
-# %%
-
-# %%
-# # plot all coef compare day night
-# plt.close()
-# col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
-# for i in np.arange(len(coef.columns)):
-#     p = sns.catplot(
-#         data = jackknifed_coef, y=col_to_plt[i],x='condition',
-#         kind='point',join=False,
-#         col='dpf',
-#         ci='sd',
-#         hue = 'ztime',
-#         # units=excluded_exp,
-#         dodge=True,
-#         # hue_order = cond1_all,
-#         sharey=False
-#     )
-#     p.map(sns.lineplot,'condition',col_to_plt[i],estimator=None,
-#         units='jackknife num',
-#         hue='ztime',
-#         alpha=0.2,
-#         data=jackknifed_coef)
-#     filename = os.path.join(fig_dir,f"IBI coef{i} day-night sample{RESAMPLE}.pdf")
-#     plt.savefig(filename,format='PDF')
-
-# # %%
-# # plot sensitivity
-# plt.close()
-# col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
-# p = sns.catplot(
-#     data = jackknifed_coef, y='sensitivity',x='condition',
-#     kind='point',join=False,
-#     col='dpf', col_order=cond1_all,
-#     ci='sd',
-#     row = 'ztime', row_order=all_ztime,
-#     hue='condition', 
-#     hue_order = cond2_all,sharey=True,
-#     aspect=.8, 
-#     # markers=['d','d'],
-# )
-# p.map(sns.lineplot,'condition','sensitivity',estimator=None,
-#     units='jackknife num',
-#     color='grey',
-#     alpha=0.2,
-#     data=jackknifed_coef)
-# filename = os.path.join(fig_dir,f"IBI sensitivity sample{RESAMPLE}.pdf")
-# plt.savefig(filename,format='PDF')
-
-# # %%
-# # plot x intersect
-# plt.close()
-# col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
-# p = sns.catplot(
-#     data = jackknifed_coef, y='x intersect',x='condition',
-#     kind='point',join=False,
-#     col='dpf', col_order=cond1_all,
-#     ci='sd',
-#     row = 'ztime', row_order=all_ztime,
-#     hue='condition',
-#     hue_order = cond2_all,sharey=True,
-#     aspect=.8, 
-#     # markers=['d','d']
-
-# )
-# p.map(sns.lineplot,'condition','x intersect',estimator=None,
-#     units='jackknife num',
-#     color='grey',
-#     alpha=0.2,
-#     data=jackknifed_coef)
-# filename = os.path.join(fig_dir,f"IBI base posture sample{RESAMPLE}.pdf")
-# plt.savefig(filename,format='PDF')
-
-# # %%
-# # plot baseline bout rate
-# plt.close()
-# col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
-# p = sns.catplot(
-#     data = jackknifed_coef, y='y intersect',x='condition',
-#     kind='point',join=False,
-#     col='dpf', col_order=cond1_all,
-#     ci='sd',
-#     row = 'ztime', row_order=all_ztime,
-#     hue='condition',
-#     hue_order = cond2_all,sharey=True,
-#     aspect=.8, 
-#     # markers=['d','d']
-
-# )
-# p.map(sns.lineplot,'condition','y intersect',estimator=None,
-#     units='jackknife num',
-#     color='grey',
-#     alpha=0.2,
-#     data=jackknifed_coef)
-# filename = os.path.join(fig_dir,f"IBI baseline rate sample{RESAMPLE}.pdf")
-# plt.savefig(filename,format='PDF')
-# # %%
-# # test code
-
-# plt.close()
-# p = sns.catplot(
-#     data = jackknifed_coef, y='sensitivity',x='condition',
-#     kind='point',
-#     col='dpf',
-#     ci='sd',
-#     row = 'ztime', 
-#     hue='jackknife num', 
-#     # hue_order = cond2_all,
-#     sharey=True,
-#     aspect=.8, 
-#     # markers=['d','d'],
-# )
-# # p.map(sns.lineplot,'condition','sensitivity',
-# #     #   estimator=None,
-# #     # units='jackknife num',
-# #     hue='jackknife num',
-# #     alpha=0.2,
-# #     data=jackknifed_coef)
-
-
-# # %%
-
+plt.close()
+col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
+for i in np.arange(len(coef_list)):
+    p = sns.catplot(
+        data = chg, y=col_to_plt[i],
+        x='cond1',
+        # row='dataset',
+        # col='cond1',
+        kind='bar',
+        # join=False,
+        # col='dataset',
+        # ci='sd',
+        # row = 'ztime', row_order=all_ztime,
+        hue='condition', 
+        # dodge=True,
+        # hue_order = cond2_all,
+        sharey=True,
+        aspect=1,
+    )
+    # p.map(sns.lineplot,'cond1',col_to_plt[i],
+    #     estimator=None,
+    #     units='jackknife_num',
+    #     color='grey',
+    #     alpha=0.2,
+    #     data=percent_chg,
+    #     )
+    filename = os.path.join(fig_dir,f"IBI coef{i} s{RESAMPLE} chg.pdf")
+    plt.savefig(filename,format='PDF')
 # %%

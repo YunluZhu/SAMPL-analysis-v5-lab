@@ -17,7 +17,6 @@ NOTE
 220718: IEI detection changed to 100ms after and 100ms before speed passes speed threshold. Speed threshold set to 3.5mm/s
 220826: max angular acceleration filter now applys to moving average (window 3) of angaccel. filtering out about 10% epochs per dlm.
 220826: added logging function
-220929: replace x and y by headx heady for displ, dist, velocity calculation. smooth angle by 3 in read_dlm.py
 '''
 # %%
 # Import Modules and functions
@@ -37,7 +36,7 @@ from preprocessing.analyze_dlm_v4 import analyze_dlm_resliced
 from bout_analysis.logger import log_vf_ana
 
 global program_version
-program_version = 'V4.4'
+program_version = 'V4.3.220826'
 
 
 # %%

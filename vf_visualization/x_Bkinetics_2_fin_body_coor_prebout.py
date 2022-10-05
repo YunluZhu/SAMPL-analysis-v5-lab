@@ -23,8 +23,7 @@ defaultPlotting(size=16)
 # %%
 pick_data = 'wt_fin'
 which_zeitgeber = 'day' # day / night / all
-DAY_RESAMPLE = 1000
-NIGHT_RESAMPLE = 500
+
 # %%
 def sigmoid_fit(df, x_range_to_fit,func,**kwargs):
     lower_bounds = [0.1,-20,-100,1]
@@ -50,7 +49,7 @@ def sigmoid_fit(df, x_range_to_fit,func,**kwargs):
             upper_bounds[3] = value+0.01
             
     p0 = tuple(x0)
-    popt, pcov = curve_fit(func, df['rot_pre_bout'], df['atk_ang'], 
+    popt, pcov = curve_fit(func, df['rot_pre_bout'], df['traj_deviation'], 
                         #    maxfev=2000, 
                            p0 = p0,
                            bounds=(lower_bounds,upper_bounds))
@@ -69,11 +68,11 @@ def sigfunc_4free(x, a, b, c, d):
 # Select data and create figure folder
 root, FRAME_RATE = get_data_dir(pick_data)
 
-X_RANGE = np.arange(-5,5.01,0.01)
+X_RANGE = np.arange(-5,10.01,0.01)
 BIN_WIDTH = 0.3
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
-folder_name = f'BK2_fin_body_z{which_zeitgeber}'
+folder_name = f'BK2_fin_body_trajDeviation_z{which_zeitgeber}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -93,34 +92,6 @@ if FRAME_RATE > 100:
 elif FRAME_RATE == 40:
     all_feature_cond.drop(all_feature_cond[all_feature_cond['spd_peak']<4].index, inplace=True)
 
-
-# %%
-IBI_angles_day_resampled = pd.DataFrame()
-IBI_angles_night_resampled = pd.DataFrame()
-
-if which_zeitgeber != 'night':
-    IBI_angles_day_resampled = all_feature_cond.loc[
-        all_feature_cond['ztime']=='day',:
-            ]
-    if DAY_RESAMPLE != 0:  # if resampled
-        IBI_angles_day_resampled = IBI_angles_day_resampled.groupby(
-                ['dpf','condition','expNum']
-                ).sample(
-                        n=DAY_RESAMPLE,
-                        replace=True
-                        )
-if which_zeitgeber != 'day':
-    IBI_angles_night_resampled = all_feature_cond.loc[
-        all_feature_cond['ztime']=='night',:
-            ]
-    if NIGHT_RESAMPLE != 0:  # if resampled
-        IBI_angles_night_resampled = IBI_angles_night_resampled.groupby(
-                ['dpf','condition','expNum']
-                ).sample(
-                        n=NIGHT_RESAMPLE,
-                        replace=True
-                        )
-all_feature_cond = pd.concat([IBI_angles_day_resampled,IBI_angles_night_resampled],ignore_index=True)
 # %% fit sigmoid - master
 all_coef = pd.DataFrame()
 all_y = pd.DataFrame()
@@ -149,8 +120,8 @@ for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['condi
             excluded_exp = excluded_exp,
             ztime=cond_ztime,
             )])
-    binned_df = distribution_binned_average(for_fit,by_col='rot_pre_bout',bin_col='atk_ang',bin=AVERAGE_BIN)
-    binned_df.columns=['Pre-bout rotation','atk_ang']
+    binned_df = distribution_binned_average(for_fit,by_col='rot_pre_bout',bin_col='traj_deviation',bin=AVERAGE_BIN)
+    binned_df.columns=['Pre-bout rotation','traj_deviation']
     all_binned_average = pd.concat([all_binned_average,binned_df.assign(
         dpf=cond_dpf,
         condition=cond_abla,
@@ -180,7 +151,7 @@ for i , g_row in enumerate(g.axes):
         sns.lineplot(data=all_binned_average.loc[
             (all_binned_average['dpf']==all_cond1[j]) & (all_binned_average['ztime']==all_ztime[i]),:
                 ], 
-                    x='Pre-bout rotation', y='atk_ang', 
+                    x='Pre-bout rotation', y='traj_deviation', 
                     hue='condition',alpha=0.5,
                     ax=ax)
     
