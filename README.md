@@ -38,12 +38,24 @@ Run `vf_analysis/vf_analysis_....py` to analyze .dlm files. Then, run individual
 Build with Python3.8. See `environment.yml` for required packages.
 
 1. Conda environment is recommended. Download miniconda here: <https://docs.conda.io/en/latest/miniconda.html>
-2. To get required packages, try loading the `docs/environment.yml` YML file.
-3. Setting up conda envs can be the most time-consuming step. Be patient and prepare to Google a lot.
-4. Visual Studio Code is a good IDE and is compatible with Jupyter Notebook
-5. VS code Python Extension supports Interactive Window
+2. Setting up conda envs can be the most time-consuming step. Be patient and prepare to Google a lot.
+3. Visual Studio Code is a good IDE and is compatible with Jupyter Notebook
+4. VS code Python Extension supports Interactive Window
     - You can create cells on a Python file by typing `# %%`
     - Use `Shift`+`Enter` to run a cell, the output will be shown in an interactive window
+
+### Required packages
+
+1. Essential packages can be found in `docs/environment_clean.yml`
+2. Below is a list of essential packages:
+  - numpy
+  - pandas
+  - tqdm
+  - scipy
+  - matplotlib
+  - seaborn
+  - scikit-learn
+  - astropy 
 
 ## Usage
 
