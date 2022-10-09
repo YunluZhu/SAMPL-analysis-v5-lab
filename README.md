@@ -56,6 +56,7 @@ Build with Python3.8. See `environment.yml` for required packages.
   - seaborn
   - scikit-learn
   - astropy 
+  - pytables
 
 ## Usage
 
