@@ -90,6 +90,9 @@ def get_data_dir(pick_data):
     elif pick_data == '7dd_all':
         root = "/Volumes/LabData/manuscript data/2022-09 VF method v2/behavior data/DD_7dpf_combined"
         fr = 166       
+    elif pick_data == 'for_paper_7ld':
+        root = '/Volumes/LabData/manuscript data/2022-09 VF method v2/behavior data/LD_7dpf_only'
+        fr = 166
         
         
     elif pick_data == 'pc_lesion':
@@ -107,7 +110,9 @@ def get_data_dir(pick_data):
     elif pick_data == 'blind':
         root = "/Volumes/LabData/VF_KRH_blind/reorganized"
         fr = 40    
-        
+    elif pick_data == '14LD_fin':
+        root = '/Volumes/LabData/VF_FA_finAmp_14'
+        fr = 166
         
     elif pick_data == 'tmp':
         root = input("Dir? ")

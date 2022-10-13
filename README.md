@@ -26,12 +26,13 @@ Run `vf_analysis/vf_analysis_....py` to analyze .dlm files. Then, run individual
 4. Metadata handling updated. Can read ini files directly in the grab_fish_angle script and export metadata as a csv in parent folder
 5. New visualization scripts.
 
-**To dos** (220901)
+**v4.4 221013**
+
+1. Parameters redefined. See parameter table below for details
+
+**To dos**
 
 - change condition names to cond1 and cond2 from dpf/condition
-- look at parameters for steering fit
-- separate up down by pre bout pitch at set point
-- use ODR model for righting fit & set point calc
 
 ## Prerequisites and tips
 
@@ -55,7 +56,7 @@ Build with Python3.8. See `environment.yml` for required packages.
   - matplotlib
   - seaborn
   - scikit-learn
-  - astropy 
+  - astropy
   - pytables
 
 ## Usage

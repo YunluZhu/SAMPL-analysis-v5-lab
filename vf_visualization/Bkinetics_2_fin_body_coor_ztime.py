@@ -21,7 +21,7 @@ from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlott
 set_font_type()
 defaultPlotting(size=16)
 # %%
-pick_data = 'wt_fin'
+pick_data = '7dd_all'
 which_zeitgeber = 'day' # day / night / all
 DAY_RESAMPLE = 1000
 NIGHT_RESAMPLE = 500
@@ -64,12 +64,11 @@ def sigfunc_4free(x, a, b, c, d):
     y = c + (d)/(1 + np.exp(-(a*(x + b))))
     return y
 
-
 # %%
 # Select data and create figure folder
 root, FRAME_RATE = get_data_dir(pick_data)
 
-X_RANGE = np.arange(-5,5.01,0.01)
+X_RANGE = np.arange(-5,10.01,0.01)
 BIN_WIDTH = 0.3
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
@@ -87,47 +86,47 @@ except:
 all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime = which_zeitgeber)
 
 # %% tidy data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+df_toplt = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
 if FRAME_RATE > 100:
-    all_feature_cond.drop(all_feature_cond[all_feature_cond['spd_peak']<7].index, inplace=True)
+    df_toplt.drop(df_toplt[df_toplt['spd_peak']<7].index, inplace=True)
 elif FRAME_RATE == 40:
-    all_feature_cond.drop(all_feature_cond[all_feature_cond['spd_peak']<4].index, inplace=True)
+    df_toplt.drop(df_toplt[df_toplt['spd_peak']<4].index, inplace=True)
 
-
+# df_toplt.drop(df_toplt[df_toplt['pitch_pre_bout']<0].index, inplace=True)
 # %%
-IBI_angles_day_resampled = pd.DataFrame()
-IBI_angles_night_resampled = pd.DataFrame()
+angles_day_resampled = pd.DataFrame()
+angles_night_resampled = pd.DataFrame()
 
 if which_zeitgeber != 'night':
-    IBI_angles_day_resampled = all_feature_cond.loc[
-        all_feature_cond['ztime']=='day',:
+    angles_day_resampled = df_toplt.loc[
+        df_toplt['ztime']=='day',:
             ]
     if DAY_RESAMPLE != 0:  # if resampled
-        IBI_angles_day_resampled = IBI_angles_day_resampled.groupby(
+        angles_day_resampled = angles_day_resampled.groupby(
                 ['dpf','condition','expNum']
                 ).sample(
                         n=DAY_RESAMPLE,
                         replace=True
                         )
 if which_zeitgeber != 'day':
-    IBI_angles_night_resampled = all_feature_cond.loc[
-        all_feature_cond['ztime']=='night',:
+    angles_night_resampled = df_toplt.loc[
+        df_toplt['ztime']=='night',:
             ]
     if NIGHT_RESAMPLE != 0:  # if resampled
-        IBI_angles_night_resampled = IBI_angles_night_resampled.groupby(
+        angles_night_resampled = angles_night_resampled.groupby(
                 ['dpf','condition','expNum']
                 ).sample(
                         n=NIGHT_RESAMPLE,
                         replace=True
                         )
-all_feature_cond = pd.concat([IBI_angles_day_resampled,IBI_angles_night_resampled],ignore_index=True)
+df_toplt = pd.concat([angles_day_resampled,angles_night_resampled],ignore_index=True)
 # %% fit sigmoid - master
 all_coef = pd.DataFrame()
 all_y = pd.DataFrame()
 all_binned_average = pd.DataFrame()
 
 
-for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['condition','dpf','ztime']):
+for (cond_abla,cond_dpf,cond_ztime), for_fit in df_toplt.groupby(['condition','dpf','ztime']):
     expNum = for_fit['expNum'].max()
     jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
     for excluded_exp, idx_group in enumerate(jackknife_idx):

@@ -22,7 +22,8 @@ from tqdm import tqdm
 
 # %%
 
-print('- Figure 2: Bout parameter time series ± SD')
+print('- Figure 6')
+set_font_type()
 
 # choose the time duration to plot. 
 # total aligned duration = [-0.5, 0.4] (sec) around time of peak speed
@@ -40,7 +41,10 @@ all_features = {
     'propBoutAligned_angVel':'ang vel (deg*s-1)',   # smoothed angular velocity
     'propBoutAligned_angSpeed': 'ang speed (deg*s-1)', 
     'absolute_pitch_change':'absolute pitch chg (deg)',
-    # 'propBoutAligned_accel':'ang accel (deg*s-2)',    # angular accel calculated using raw angular vel
+    'propBoutAligned_accel':'ang accel (deg*s-2)',    # angular accel calculated using raw angular vel
+    'abs_ang_accel_of_angvel':'abs_ang_accel_of_angvel',
+    
+    
     # 'propBoutInflAligned_accel',
     # 'propBoutAligned_instHeading', 
     # 'propBoutAligned_x':'x position (mm)',
@@ -59,20 +63,16 @@ all_features = {
 }
 # %%
 # Select data and create figure folder
-pick_data = 'all_7dd'
+pick_data = '7dd_all'
 which_ztime = 'day'
 root, FRAME_RATE = get_data_dir(pick_data)
 
 folder_name = f'{pick_data} parameter time series'
 fig_dir2 = os.path.join(get_figure_dir('Fig_2'), folder_name)
-fig_dir4 = os.path.join(get_figure_dir('Fig_4'), folder_name)
+fig_dir6 = os.path.join(get_figure_dir('Fig_6'), folder_name)
 
 try:
-    os.makedirs(fig_dir2)
-except:
-    pass
-try:
-    os.makedirs(fig_dir4)
+    os.makedirs(fig_dir6)
 except:
     pass
 # %%
@@ -83,6 +83,10 @@ idx_dur300ms = int(0.3*FRAME_RATE)
 idx_dur250ms = int(0.25*FRAME_RATE)
 all_conditions = []
 folder_paths = []
+all_cond1 = []
+all_cond2 = []
+exp_data_all = pd.DataFrame()
+
 for folder in os.listdir(root):
     if folder[0] != '.':
         folder_paths.append(root+'/'+folder)
@@ -96,16 +100,18 @@ for condition_idx, folder in enumerate(folder_paths):
         # if folder is not empty
         if subdir_list:
             # reset for each condition
-            exp_data_all = pd.DataFrame()
+            this_cond_data = pd.DataFrame()
             # loop through each sub-folder (experiment) under each condition
             for expNum, exp in enumerate(subdir_list):
                 rows = []
                 exp_path = os.path.join(subpath, exp)
                 # get pitch                
                 raw = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout_aligned')
+                abs_ang_accel_of_angvel = np.absolute(np.diff(savgol_filter(raw['propBoutAligned_angVel'].values, 11, 3),prepend=np.array([np.nan]))*FRAME_RATE)
                 # assign frame number, total_aligned frames per bout
                 raw = raw.assign(
                     idx = int(len(raw)/total_aligned)*list(range(0,total_aligned)),
+                    abs_ang_accel_of_angvel = abs_ang_accel_of_angvel,
                     )
                 # - get the index of the rows in exp_data to keep
                 bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,['aligned_time']]
@@ -139,8 +145,19 @@ for condition_idx, folder in enumerate(folder_paths):
                 exp_data = exp_data.assign(
                     time_ms = (exp_data['idx']-peak_idx)/FRAME_RATE*1000,
                     expNum = expNum)
-                exp_data_all = pd.concat([exp_data_all,exp_data.loc[rows,:]])
-            exp_data_all = exp_data_all.reset_index(drop=True)
+                this_cond_data = pd.concat([this_cond_data,exp_data.loc[rows,:]])
+            
+            cond1 = all_conditions[condition_idx].split("_")[0]
+            cond2 = all_conditions[condition_idx].split("_")[1]
+            all_cond1.append(cond1)
+            all_cond2.append(cond2)
+            
+            this_cond_data = this_cond_data.reset_index(drop=True)
+            this_cond_data = this_cond_data.assign(
+                cond1 = cond1,
+                cond2 = cond2,
+            )
+            exp_data_all = pd.concat([exp_data_all,this_cond_data], ignore_index=True)
 
 # %%
 # get bout features
@@ -160,115 +177,26 @@ exp_data_all = exp_data_all.assign(
 exp_data_all = exp_data_all.assign(
                                     direction = pd.cut(exp_data_all['pitch_pre_bout'],[-90,separation_posture,90],labels = ['Nose-down', 'Nose-up'])
                                 )
-# %%
-print("Figure 2: time series")
-set_font_type()
-for feature_toplt in tqdm(list(all_features.values())):
-    p = sns.relplot(
-            data = exp_data_all, x = 'time_ms', y = feature_toplt,
-            hue='direction',
-            kind = 'line',aspect=3, height=2, ci='sd',
-            )
-    p.map(
-        plt.axvline, x=0, linewidth=1, color=".3", zorder=0
-        )
-    plt.savefig(os.path.join(fig_dir2, f"{feature_toplt}_timeSeries_up_dn ± SD.pdf"),format='PDF')
-
-for feature_toplt in tqdm(list(all_features.values())):
-    p = sns.relplot(
-            data = exp_data_all, x = 'time_ms', y = feature_toplt,
-            kind = 'line',aspect=3, height=2, ci='sd'
-            )
-    p.map(
-        plt.axvline, x=0, linewidth=1, color=".3", zorder=0
-        )
-    plt.savefig(os.path.join(fig_dir2, f"{feature_toplt}_timeSeries ± SD.pdf"),format='PDF')
-
-# # %%
-# # calculate time of the max ang speed by dir
-# mean_angSpd = exp_data_all.groupby(['time_ms','direction','expNum'])['ang speed (deg*s-1)'].mean().reset_index()
-# idx_mean_maxAngSpd = mean_angSpd.groupby(['expNum','direction'])['ang speed (deg*s-1)'].apply(
-#     lambda y: np.argmax(y)
-# )
-# time_by_dir_maxAngSpd = ((idx_mean_maxAngSpd/166 - 0.3)*1000).reset_index()
-
-# time_by_dir_maxAngSpd.columns = ['expNum','direction','time_of_peak_angSpd (ms)']
-# time_of_peak_angSpd_byDir = time_by_dir_maxAngSpd.groupby('direction')['time_of_peak_angSpd (ms)'].mean()
-# time_of_peak_angSpd_byDirmean = time_by_dir_maxAngSpd['time_of_peak_angSpd (ms)'].values.mean()
-# plt.figure(figsize=(3,2))
-# g = sns.pointplot(
-#     data = time_by_dir_maxAngSpd,
-#     x = 'time_of_peak_angSpd (ms)',
-#     y = 'direction',
-#     hue='direction',
-# )
-# sns.despine()
-# plt.savefig(os.path.join(fig_dir4,f"time_of_peak_byExp_byDirection_angSpd.pdf"),format='PDF')
-
-# print(f"Time of the peak angular speed by dir = {time_of_peak_angSpd_byDir}")
-# print(f"Time of the peak angular speed by Dir mean = {time_of_peak_angSpd_byDirmean} ms")
-
-# # %%
-# # another way to calculate time of the max ang speed
-# mean_angSpd = exp_data_all.groupby(['time_ms','expNum'])['ang speed (deg*s-1)'].mean().reset_index()
-# idx_mean_maxAngSpd = mean_angSpd.groupby(['expNum'])['ang speed (deg*s-1)'].apply(
-#     lambda y: np.argmax(y)
-# )
-# time_by_exp_maxAngSpd = ((idx_mean_maxAngSpd/166 - 0.3)*1000).reset_index()
-
-# time_by_exp_maxAngSpd.columns = ['expNum','time_of_peak_angSpd (ms)']
-# time_of_peak_angSpd_byExp = time_by_exp_maxAngSpd.groupby('expNum')['time_of_peak_angSpd (ms)'].mean()
-# time_of_peak_angSpd_byExp_mean = time_by_exp_maxAngSpd['time_of_peak_angSpd (ms)'].values.mean()
-# plt.figure(figsize=(3,2))
-# g = sns.pointplot(
-#     data = time_by_exp_maxAngSpd,
-#     x = 'time_of_peak_angSpd (ms)',
-# )
-# sns.despine()
-# g.set_xlim(None,0)
-# plt.savefig(os.path.join(fig_dir4,f"time_of_peak_byExp_byExp_angSpd.pdf"),format='PDF')
-
-# print(f"Time of the peak angular speed by Exp mean = {time_of_peak_angSpd_byExp_mean} ms")
 
 # %%
-# # plot average angular speed
-# plt_features = {'propBoutAligned_angSpeed': 'ang speed (deg*s-1)'}
-
-# for feature_toplt in tqdm(list(plt_features.values())):
-#     p = sns.relplot(
-#             data = exp_data_all, x = 'time_ms', y = feature_toplt,
-#             kind = 'line',aspect=3, height=2, ci='sd'
-#             )
-#     p.map(
-#         plt.axvline, x=0, linewidth=1, color=".3", zorder=0
-#         )
-#     # p.map(
-#     #     plt.axvline, x=time_of_peak_angSpd_mean, linewidth=2, color="green", zorder=0
-#     #     )
-#     plt.savefig(os.path.join(fig_dir4, f"{feature_toplt}_timeSeries ± SD.pdf"),format='PDF')
-
-# %%
-# df = exp_data_all.loc[exp_data_all['bout_number']==2000]
-# sns.lineplot(data = df,
-#              x = 'time_ms',
-#              y = savgol_filter(df['ang vel (deg*s-1)'],15,3)
-# )
-# %%
-# plot average angular speed
-plt_features = {'absolute_pitch_change':'absolute pitch chg (deg)'}
+# plot absolute pitch change
+plt_features = {
+                'propBoutAligned_pitch':'pitch (deg)', 
+                }
 # sample bout groups
-sample_bouts = np.random.choice(exp_data_all["bout_number"].unique(), 500)
+sample_bouts = np.random.choice(exp_data_all["bout_number"].unique(), 2500)
 df_sampled = exp_data_all.query('bout_number in @sample_bouts')
 
 for feature_toplt in tqdm(list(plt_features.values())):
     p = sns.relplot(
             data = df_sampled, x = 'time_ms', y = feature_toplt,
-            kind = 'line',
+            kind = 'line', row='cond2',col='cond1',
             aspect=2, height=2, 
             # ci='sd',
             estimator=None,
             units = 'bout_number',
-            alpha = 0.05
+            color='black',
+            alpha = 0.01
             )
     p.map(
         plt.axvline, x=0, linewidth=1, color=".3", zorder=0
@@ -277,5 +205,7 @@ for feature_toplt in tqdm(list(plt_features.values())):
     # p.map(
     #     plt.axvline, x=time_of_peak_angSpd_mean, linewidth=2, color="green", zorder=0
     #     )
-    plt.savefig(os.path.join(fig_dir4, f"{feature_toplt}_timeSeries sample.pdf"),format='PDF')
+    plt.savefig(os.path.join(fig_dir6, f"{feature_toplt}_timeSeries sample.pdf"),format='PDF')
+
+
 # %%

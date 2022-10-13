@@ -5,7 +5,6 @@ import numpy as np
 from scipy.stats import linregress
 import matplotlib.pyplot as plt
 
-
 def set_font_type():
     mpl.rcParams['pdf.fonttype'] = 42
     

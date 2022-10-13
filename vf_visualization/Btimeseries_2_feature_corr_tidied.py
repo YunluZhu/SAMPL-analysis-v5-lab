@@ -21,6 +21,7 @@ from plot_functions.plt_tools import (set_font_type, defaultPlotting, distributi
 from plot_functions.get_bout_kinetics import get_set_point
 from tqdm import tqdm
 import matplotlib as mpl
+from scipy.signal import savgol_filter
 set_font_type()
 
 # %%
@@ -35,7 +36,7 @@ def corr_calc(df, grp_cols, col1, col2, name):
 # %%
 # Paste root directory here
 # if_plot_by_speed = True
-pick_data = 'wt_daylight'
+pick_data = '7dd_all'
 root, FRAME_RATE= get_data_dir(pick_data)
 
 folder_name = f'BT2_corr_features'
@@ -132,12 +133,12 @@ for condition_idx, folder in enumerate(folder_paths):
                 # for each sub-folder, get the path
                 exp_path = os.path.join(subpath, exp)
                 # get pitch                
-                exp_data = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout_aligned')#.loc[:,['propBoutAligned_angVel','propBoutAligned_speed','propBoutAligned_accel','propBoutAligned_heading','propBoutAligned_pitch']]
+                exp_data = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout_aligned')
                 exp_data = exp_data.assign(ang_speed=exp_data['propBoutAligned_angVel'].abs(),
                                             yvel = exp_data['propBoutAligned_y'].diff()*FRAME_RATE,
                                             xvel = exp_data['propBoutAligned_x'].diff()*FRAME_RATE,
                                             # linear_accel = exp_data['propBoutAligned_speed'].diff(),
-                                            ang_accel = exp_data['propBoutAligned_angVel'].diff(),
+                                            ang_accel = np.diff(savgol_filter(exp_data['propBoutAligned_angVel'],11,3),prepend=np.array([np.nan]))*FRAME_RATE,
                                             tsp = exp_data['propBoutAligned_instHeading'] - exp_data['propBoutAligned_pitch']
                                            )
                 # assign frame number, total_aligned frames per bout
@@ -202,12 +203,17 @@ for excluded_exp, idx_group in enumerate(idx_list):
     rot_l_decel = pitch_post_bout - pitch_peak
     rot_l_accel = pitch_peak - pitch_pre_bout
     rot_early_accel = pitch_mid_accel - pitch_pre_bout
+    
+    angvel_post_bout = group.loc[group.idx==int(idx_post_bout),'propBoutAligned_angVel'].values
+    angvel_pre_bout = group.loc[group.idx==int(idx_pre_bout),'propBoutAligned_angVel'].values
+    
     bout_features = pd.DataFrame(data={'pitch_pre_bout':pitch_pre_bout,
                                        'rot_l_accel':rot_l_accel,
                                        'rot_l_decel':rot_l_decel,
                                        'rot_pre_bout':pitch_pre_bout - pitch_initial,
                                        'rot_early_accel':rot_early_accel,
                                        'pitch_initial':pitch_initial,
+                                       
                                        'bout_traj':epochBouts_trajectory,
                                        'traj_peak':traj_peak, 
                                        'traj_deviation':epochBouts_trajectory-pitch_pre_bout,
@@ -222,6 +228,11 @@ for excluded_exp, idx_group in enumerate(idx_list):
                                 pitch_pre_bout = np.repeat(pitch_pre_bout,(idxRANGE[1]-idxRANGE[0])),
                                 pitch_initial = np.repeat(pitch_initial,(idxRANGE[1]-idxRANGE[0])),
                                 bout_traj = np.repeat(epochBouts_trajectory,(idxRANGE[1]-idxRANGE[0])),
+                                rot_l_decel = np.repeat(rot_l_decel,(idxRANGE[1]-idxRANGE[0])),
+                                angvel_post_bout = np.repeat(angvel_post_bout,(idxRANGE[1]-idxRANGE[0])),
+                                angvel_pre_bout = np.repeat(angvel_pre_bout,(idxRANGE[1]-idxRANGE[0])),
+                                angvel_chg = np.repeat(angvel_post_bout-angvel_pre_bout,(idxRANGE[1]-idxRANGE[0])),
+
                                 traj_peak = np.repeat(traj_peak,(idxRANGE[1]-idxRANGE[0])),
                                 pitch_peak = np.repeat(pitch_peak,(idxRANGE[1]-idxRANGE[0])),
                                 bout_number = grp.ngroup(),
@@ -255,7 +266,12 @@ for excluded_exp, idx_group in enumerate(idx_list):
         # 'pitch_corr_traj':['propBoutAligned_pitch','propBoutAligned_instHeading'],
         # 'rotFromInitial_corr_trajDeviation':['relative_pitch_change','traj_deviation'],
         # 'rotFromInitial_corr_atkAng':['relative_pitch_change','atk_ang'],
-        'angvelFromInitial_corr_atkAng':['relative_angvel_change','atk_ang'],
+        # 'angvelFromInitial_corr_atkAng':['relative_angvel_change','atk_ang'],
+        'angaccel_corr_pitchPeak':['pitch_peak','ang_accel'],
+        # 'angaccel_corr_angvelPostBout':['angvel_post_bout','ang_accel'],
+        # 'angaccel_corr_angvelPreBout':['angvel_pre_bout','ang_accel']
+        'angvel_corr_angvelChg':['angvel_chg','propBoutAligned_angVel'],
+
 
         # 'tsp_corr_atkAng':['tsp','atk_ang'],
     }

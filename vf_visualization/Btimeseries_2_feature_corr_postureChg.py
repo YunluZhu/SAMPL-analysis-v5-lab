@@ -39,7 +39,7 @@ def corr_calc(df, grp_cols, col1, col2, name):
 # %%
 # Paste root directory here
 # if_plot_by_speed = True
-pick_data = 'tau_long'
+pick_data = '7dd_all'
 if_jackknife = 0
 
 
@@ -251,6 +251,8 @@ for excluded_exp, idx_group in enumerate(idx_list):
     grp = group.groupby(np.arange(len(group))//(idxRANGE[1]-idxRANGE[0]))
     this_dpf_res = group.assign(
                                 pitch_pre_bout = np.repeat(pitch_pre_bout,(idxRANGE[1]-idxRANGE[0])),
+                                pitch_post_bout = np.repeat(pitch_post_bout,(idxRANGE[1]-idxRANGE[0])),
+
                                 pitch_initial = np.repeat(pitch_initial,(idxRANGE[1]-idxRANGE[0])),
                                 bout_traj = np.repeat(epochBouts_trajectory,(idxRANGE[1]-idxRANGE[0])),
                                 traj_peak = np.repeat(traj_peak,(idxRANGE[1]-idxRANGE[0])),
@@ -280,13 +282,15 @@ for excluded_exp, idx_group in enumerate(idx_list):
         pitch_chg_fromInitial = this_dpf_res['propBoutAligned_pitch'].values - np.repeat(null_initial_pitch,(idxRANGE[1]-idxRANGE[0])).values,
         pitch_chg_toPeak = this_dpf_res['pitch_peak'] - this_dpf_res['propBoutAligned_pitch'],
         pitch_chg_toPeak_abs = np.absolute(this_dpf_res['pitch_peak'] - this_dpf_res['propBoutAligned_pitch']),
+        pitch_chg_toPostBout = this_dpf_res['pitch_post_bout'] - this_dpf_res['propBoutAligned_pitch'],
 
         # relative_angvel_change = this_dpf_res['propBoutAligned_angVel'].values - np.repeat(null_initial_angvel,(idxRANGE[1]-idxRANGE[0])).values,
     )
     this_dpf_res = this_dpf_res.assign(
         pitch_chg_subtracted = this_dpf_res['pitch_chg_fromInitial'] - this_dpf_res['pitch_chg_toPeak']
     )
-    # correlation calculation
+    
+    # correlation calculation -----------------------
 
     # Make a dictionary for correlation to be calculated
     corr_dict = {
@@ -296,8 +300,10 @@ for excluded_exp, idx_group in enumerate(idx_list):
         # 'angVel_corr_trajDeviation':['traj_deviation','propBoutAligned_angVel'],
         # 'pitch_corr_traj':['propBoutAligned_pitch','propBoutAligned_instHeading'],
         # 'rotFromInitial_corr_trajDeviation':['pitch_chg_fromInitial','traj_deviation'],
-        'rotFromInitial_corr_atkAng':['pitch_chg_fromInitial','atk_ang'],
-        'rotToPeak_corr_atkAng':['pitch_chg_toPeak','atk_ang'],
+        # 'rotFromInitial_corr_atkAng':['pitch_chg_fromInitial','atk_ang'],
+        # 'rotToPeak_corr_atkAng':['pitch_chg_toPeak','atk_ang'],
+        'rotToPostBout_corr_pitchInitial':['pitch_chg_toPostBout','pitch_initial'],
+
         # 'rotToPeakABS_corr_atkAng':['pitch_chg_toPeak_abs','atk_ang'],
         # 'rotSubtracted_corr_atkAng':['pitch_chg_subtracted','atk_ang']
         # 'rotFromInitial_corr_atkAng_sm':['pitch_chg_fromInitial','atk_ang_smoothed'],
@@ -309,7 +315,7 @@ for excluded_exp, idx_group in enumerate(idx_list):
     cat_cols = ['condition','dpf']
     grp_cols = cat_cols + ['time_ms']
     
-    df_to_corr = this_dpf_res.loc[this_dpf_res['time_ms']<0]
+    df_to_corr = this_dpf_res#.loc[this_dpf_res['time_ms']<0]
     
     for i, name in enumerate(corr_dict):
         [col1, col2] = corr_dict[name]
@@ -345,7 +351,7 @@ for corr_which in corr_dict.keys():
         aspect=1.2,
         height=3
         )
-    g.set(xlim=(-250,0))
+    # g.set(xlim=(-250,0))
     # g.set(ylim=(-0.2,0.5))
     plt.savefig(fig_dir+f"/{corr_which}.pdf",format='PDF')
 
@@ -366,9 +372,9 @@ p = sns.relplot(
     height=3
     )
 p.set(xlim=(-250,0))
-# p.set(ylim=(-0,0.6))
+# p.set(ylim=(-0,0.5))
 
-plt.savefig(fig_dir+f"/{corr_which}.pdf",format='PDF')
+plt.savefig(fig_dir+f"/score.pdf",format='PDF')
 
 # # %%
 # corr_all.loc[corr_all['time_ms']>-100].groupby(['exp_num','condition','dpf']).apply(

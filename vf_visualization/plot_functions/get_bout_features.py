@@ -110,6 +110,8 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
                                                 # rot_pre_50 = this_exp_features['pitch_mid_accel']-this_exp_features['pitch_initial'],
                                                 rot_l_accel=this_exp_features['pitch_peak']-this_exp_features['pitch_pre_bout'],
                                                 rot_full_accel=this_exp_features['pitch_peak']-this_exp_features['pitch_initial'],
+                                                rot_full_decel=this_exp_features['pitch_end']-this_exp_features['pitch_peak'],
+
                                                 rot_l_decel=this_exp_features['pitch_post_bout']-this_exp_features['pitch_peak'],
                                                 rot_early_accel = this_exp_features['pitch_mid_accel']-this_exp_features['pitch_pre_bout'],
                                                 rot_late_accel = this_exp_features['pitch_peak'] - this_exp_features['pitch_mid_accel'],

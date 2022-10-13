@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from astropy.stats import jackknife_resampling
 from scipy.stats import ttest_rel
 from scipy.optimize import curve_fit
-from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
+# from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 from plot_functions.get_data_dir import (get_data_dir,get_figure_dir)
 from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_split)
 from plot_functions.get_IBIangles import get_IBIangles
