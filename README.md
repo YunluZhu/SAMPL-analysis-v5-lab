@@ -157,29 +157,29 @@ All the extracted swim bouts under `bout_data.h5` are aligned at the time of the
 
 ### Parameters
 
-| Parameters                | Unit | Definition                                                                                   |
-|---------------------------|------|----------------------------------------------------------------------------------------------|
-| Pitch angle               | deg  | Angle of the fish on the pitch axis relative to horizonal                                    |
-| Peak speed                | mm/s | Peak speed of swim bouts                                                                     |
-| Initial pitch             | deg  | Pitch angle at 250 ms before the peak speed                                                  |
-| Pre-bout pitch            | deg  | Pitch angle at 100 ms before the peak speed                                                  |
-| Post-bout pitch           | deg  | Pitch angle at 100 ms after the peak speed                                                   |
-| End pitch                 | deg  | Pitch angle at 200 ms after the peak speed                                                   |
-| Acceleration phase        |      | Duration of 100 ms before time of the peak speed                                             |
-| Deceleration phase        |      | Duration of 100 ms after time of the peak speed                                              |
-| Total rotation            | deg  | Difference between Initial pitch and End pitch                                               |
-| Pre-bout rotation         | deg  | Posture change from Initial pitch to pre-bout pitch                                          |
-| Acceleration rotation     | deg  | Posture change from pre-bout pitch to pitch angle at the peak speed                          |
-| Deceleration rotation     | deg  | Posture change from pitch angle at the peak speed to post-bout pitch                         |
-| Bout trajectory           | deg  | Direction of translocation relative to horizontal from pre-bout to post-bout location        |
-| Bout displacement         | mm   | Displacement of fish from pre-bout to post-bout                                              |
-| Inter-bout interval       | s    | Duration between two adjacent swim bouts                                                     |
-| Inter-bout-interval pitch | deg  | Mean pitch angle during inter-bout interval                                                  |
-| Attack angle              | deg  | Deviation of bout trajectory from pre-bout pitch                                             |
-| Fin-body ratio            |      | Ratio of attack angles to pre-bout rotation measured by the maximal slope of fitted sigmoid  |
-| Set point                 | deg  | Pre-bout posture at which causes zero deceleration rotation                                  |
-| Righting gain             |      | The additive inverse of the ratio of deceleration rotation to pre-bout posture               |
-| Steering gain             |      | Ratio of instantaneous trajectory to pitch angle at the peak speed                           |
+| Parameters                | Unit | Definition                                                                                |
+| ------------------------- | ---- | ----------------------------------------------------------------------------------------- |
+| Pitch angle               | deg  | Angle of the fish on the pitch axis relative to horizonal                                 |
+| Peak speed                | mm/s | Peak speed of swim bouts                                                                  |
+| Initial pitch             | deg  | Pitch angle at 250 ms before the peak speed                                               |
+| Post-bout pitch           | deg  | Pitch angle at 100 ms after the peak speed                                                |
+| End pitch                 | deg  | Pitch angle at 200 ms after the peak speed                                                |
+| Acceleration phase        |      | Before time of the peak speed                                                             |
+| Deceleration phase        |      | After time of the peak speed                                                              |
+| Total rotation            | deg  | Pitch change from initial (250 ms before) to end (200 ms after) time of the peak speed    |
+| Bout trajectory           | deg  | Tangential angle of the trajectory at the time of the peak speed                          |
+| Bout displacement         | mm   | Displacement of fish from pre-bout to post-bout                                           |
+| Inter-bout interval       | s    | Duration between two adjacent swim bouts                                                  |
+| Inter-bout-interval pitch | deg  | Mean pitch angle during inter-bout interval                                               |
+| Trajectory deviation      | deg  | Deviation of bout trajectory from initial pitch (250 ms before)                           |
+| Steering rotation         | deg  | Change of pitch angle from initial (250 ms before) to the time of the peak speed          |
+| Steering gain             |      | Slope of best fitted line of posture vs trajectory at the time of the peak speed          |
+| Early rotation            | deg  | Change of pitch angle from initial (250 ms before) to 50 ms before time of the peak speed |
+| Attack angle              | deg  | Deviation of bout trajectory from pitch at time of the peak speed                         |
+| Fin-body ratio            |      | Maximal slope of best fitted sigmoid of attack angle vs early rotation                    |
+| Righting rotation         | deg  | Change of pitch angle from time of the peak speed to post bout (100 ms after peak speed)  |
+| Righting gain             |      | Numeric inversion of the slope of best fitted line of righting rotation vs initial pitch  |
+| Set piont                 | deg  | x intersect of best fitted line of righting rotation vs initial pitch                     |
 
 ## Guides
 
