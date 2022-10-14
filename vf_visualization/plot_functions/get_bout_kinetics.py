@@ -45,9 +45,8 @@ def jackknife_kinetics(df,col):
         this_group_data = df.loc[df[col].isin(exp_group),:]
         if len(this_group_data)>10:
             this_group_kinetics = get_kinetics(this_group_data)
-            this_group_kinetics = this_group_kinetics.append(pd.Series(data={
-                'jackknife_group':j
-            }))
+            this_group_kinetics = pd.concat([this_group_kinetics,pd.Series(data={'jackknife_group':j})])
+            
             output = pd.concat([output,this_group_kinetics],axis=1)
     output = output.T.reset_index(drop=True)
     return output
@@ -82,14 +81,6 @@ def get_kinetics(df):
         # 'sig_righting_gain': sig_righting_gain,
         # 'sig_set_point': righting_x_intersect,
     })
-    if 'direction' in df.columns:
-        direction_kinetics = pd.Series(data={
-            # 'righting_gain_dn':  -1 * righting_fit_dn[0],
-            # 'righting_gain_up':  -1 * righting_fit_up[0],
-            # 'corr_rot_lateAccel_decel_up': corr_rot_lateAccel_decel_up[0],
-            
-        })
-        kinetics = pd.concat([kinetics, direction_kinetics])
     return kinetics
 
 def get_set_point(df):
@@ -228,19 +219,19 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
                     bout_features = pd.concat([bout_features,this_ztime_exp_features])
                     bout_kinetics = pd.concat([bout_kinetics,this_exp_kinetics], ignore_index=True)
                 
-            # combine data from different conditions
-            cond1 = all_conditions[condition_idx].split("_")[0]
-            cond2 = all_conditions[condition_idx].split("_")[1]
-            all_cond1.append(cond1)
-            all_cond2.append(cond2)
-            all_feature_cond = pd.concat([all_feature_cond, bout_features.assign(
-                dpf=cond1,
-                condition=cond2
-                )])
-            all_kinetic_cond = pd.concat([all_kinetic_cond, bout_kinetics.assign(
-                dpf=cond1,
-                condition=cond2
-                )])
+        # combine data from different conditions
+        cond1 = all_conditions[condition_idx].split("_")[0]
+        cond2 = all_conditions[condition_idx].split("_")[1]
+        all_cond1.append(cond1)
+        all_cond2.append(cond2)
+        all_feature_cond = pd.concat([all_feature_cond, bout_features.assign(
+            dpf=cond1,
+            condition=cond2
+            )])
+        all_kinetic_cond = pd.concat([all_kinetic_cond, bout_kinetics.assign(
+            dpf=cond1,
+            condition=cond2
+            )])
     all_cond1 = list(set(all_cond1))
     all_cond1.sort()
     all_cond2 = list(set(all_cond2))
