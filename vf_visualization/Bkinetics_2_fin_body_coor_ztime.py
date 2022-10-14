@@ -21,9 +21,10 @@ from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlott
 set_font_type()
 defaultPlotting(size=16)
 # %%
-pick_data = '7dd_all'
+pick_data = 'wt_fin'
 which_zeitgeber = 'day' # day / night / all
-DAY_RESAMPLE = 1000
+which_atk_ang = 'atk_ang_phased' # atk_ang or 'atk_ang_phased'
+DAY_RESAMPLE = 0
 NIGHT_RESAMPLE = 500
 # %%
 def sigmoid_fit(df, x_range_to_fit,func,**kwargs):
@@ -50,7 +51,7 @@ def sigmoid_fit(df, x_range_to_fit,func,**kwargs):
             upper_bounds[3] = value+0.01
             
     p0 = tuple(x0)
-    popt, pcov = curve_fit(func, df['rot_early_body_change'], df['atk_ang'], 
+    popt, pcov = curve_fit(func, df['rot_early_body_change'], df[which_atk_ang], 
                         #    maxfev=2000, 
                            p0 = p0,
                            bounds=(lower_bounds,upper_bounds))
@@ -69,7 +70,7 @@ def sigfunc_4free(x, a, b, c, d):
 root, FRAME_RATE = get_data_dir(pick_data)
 
 X_RANGE = np.arange(-5,10.01,0.01)
-BIN_WIDTH = 0.3
+BIN_WIDTH = 0.5
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
 folder_name = f'BK2_fin_body_z{which_zeitgeber}'
@@ -148,8 +149,8 @@ for (cond_abla,cond_dpf,cond_ztime), for_fit in df_toplt.groupby(['condition','d
             excluded_exp = excluded_exp,
             ztime=cond_ztime,
             )])
-    binned_df = distribution_binned_average(for_fit,by_col='rot_early_body_change',bin_col='atk_ang',bin=AVERAGE_BIN)
-    binned_df.columns=['Early body rotation','atk_ang']
+    binned_df = distribution_binned_average(for_fit,by_col='rot_early_body_change',bin_col=which_atk_ang,bin=AVERAGE_BIN)
+    binned_df.columns=['Early body rotation',which_atk_ang]
     all_binned_average = pd.concat([all_binned_average,binned_df.assign(
         dpf=cond_dpf,
         condition=cond_abla,
@@ -179,10 +180,13 @@ for i , g_row in enumerate(g.axes):
         sns.lineplot(data=all_binned_average.loc[
             (all_binned_average['dpf']==all_cond1[j]) & (all_binned_average['ztime']==all_ztime[i]),:
                 ], 
-                    x='Early body rotation', y='atk_ang', 
+                    x='Early body rotation', y=which_atk_ang, 
                     hue='condition',alpha=0.5,
                     ax=ax)
-    
+upper = np.percentile(df_toplt[which_atk_ang], 95)
+lower = np.percentile(df_toplt[which_atk_ang], 5)
+g.set(ylim=(lower, upper))
+
 filename = os.path.join(fig_dir,"attack angle vs Early body rotation.pdf")
 plt.savefig(filename,format='PDF')
 
