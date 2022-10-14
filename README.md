@@ -29,7 +29,7 @@ Run `vf_analysis/vf_analysis_....py` to analyze .dlm files. Then, run individual
 **v4.4 221013**
 
 1. Parameters redefined. See parameter table below for details
-2. Fixed a bug in `get_bout_features()` `get_bout_kinetics()` `get_IBIangles()` causing oversampling of bouts
+2. Fixed bug in `get_bout_features()` `get_bout_kinetics()` `get_IBIangles()` causing oversampling of bouts
 
 **To dos**
 
