@@ -151,12 +151,12 @@ for condition_idx, folder in enumerate(folder_paths):
                 exp_data = exp_data.assign(expNum = expNum,
                                            exp_id = condition_idx*100+expNum)
                 around_peak_data = pd.concat([around_peak_data,exp_data.loc[rows,:]])
-            # combine data from different conditions
-            cond1 = all_conditions[condition_idx].split("_")[0]
-            all_cond1.append(cond1)
-            cond2 = all_conditions[condition_idx].split("_")[1]
-            all_cond2.append(cond2)
-            all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=cond1,
+    # combine data from different conditions
+    cond1 = all_conditions[condition_idx].split("_")[0]
+    all_cond1.append(cond1)
+    cond2 = all_conditions[condition_idx].split("_")[1]
+    all_cond2.append(cond2)
+    all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=cond1,
                                                                                             condition=cond2)])
 all_around_peak_data = all_around_peak_data.assign(
     time_ms = (all_around_peak_data['idx']-peak_idx)/FRAME_RATE*1000,

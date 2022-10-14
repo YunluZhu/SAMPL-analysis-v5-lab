@@ -129,12 +129,12 @@ for condition_idx, folder in enumerate(folder_paths):
                     traj_cur = angvel_smoothed/exp_data['propBoutAligned_speed'] * math.pi / 180
                 )
                 around_peak_data = pd.concat([around_peak_data,exp_data])
-            # combine data from different conditions
-            cond1 = all_conditions[condition_idx].split("_")[0]
-            all_cond1.append(cond1)
-            cond2 = all_conditions[condition_idx].split("_")[1]
-            all_cond2.append(cond2)
-            all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=cond1,
+    # combine data from different conditions
+    cond1 = all_conditions[condition_idx].split("_")[0]
+    all_cond1.append(cond1)
+    cond2 = all_conditions[condition_idx].split("_")[1]
+    all_cond2.append(cond2)
+    all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=cond1,
                                                                                             condition=cond2)])
 all_around_peak_data = all_around_peak_data.assign(time_ms = (all_around_peak_data['idx']-peak_idx)/FRAME_RATE*1000)
 # %% tidy data
