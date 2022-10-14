@@ -52,15 +52,15 @@ def get_IBIangles(root, FRAME_RATE,**kwargs):
                         exp = exp,
                     )                 
                     ibi_features = pd.concat([ibi_features,exp_data_ztime])
-                # combine data from different conditions
-                cond1 = all_conditions[condition_idx].split("_")[0]
-                cond2 = all_conditions[condition_idx].split("_")[1]
-                all_cond1.append(cond1)
-                all_cond2.append(cond2)
-                all_feature_cond = pd.concat([all_feature_cond, ibi_features.assign(
-                    dpf=cond1,
-                    condition=cond2
-                    )],ignore_index=True)
+        # combine data from different conditions
+        cond1 = all_conditions[condition_idx].split("_")[0]
+        cond2 = all_conditions[condition_idx].split("_")[1]
+        all_cond1.append(cond1)
+        all_cond2.append(cond2)
+        all_feature_cond = pd.concat([all_feature_cond, ibi_features.assign(
+            dpf=cond1,
+            condition=cond2
+            )],ignore_index=True)
     all_cond1 = list(set(all_cond1))
     all_cond1.sort()
     all_cond2 = list(set(all_cond2))
