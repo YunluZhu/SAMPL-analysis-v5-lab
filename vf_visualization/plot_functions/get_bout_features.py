@@ -30,8 +30,8 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
 
     T_MID_DECEL = 0.05
 
-    T_PRE_25 = -0.025
-    T_POST_25 = 0.025
+    T_PRE_15 = -0.015
+    T_POST_15 = 0.015
     
     idx_initial = int(peak_idx + T_INITIAL * FRAME_RATE)
     idx_pre_bout = int(peak_idx + T_PRE_BOUT * FRAME_RATE)
@@ -46,15 +46,15 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
     idx_pre_275 = int(peak_idx + T_PREP_275 * FRAME_RATE)
     idx_prep_150 = int(peak_idx + T_PREP_150 * FRAME_RATE)
     idx_post_150 = int(peak_idx + T_post_150 * FRAME_RATE)
-    idx_pre_25 = int(peak_idx + T_PRE_25 * FRAME_RATE)
-    idx_post_25 = int(peak_idx + T_POST_25 * FRAME_RATE)
+    idx_pre_15 = int(peak_idx + T_PRE_15 * FRAME_RATE)
+    idx_post_15 = int(peak_idx + T_POST_15 * FRAME_RATE)
     
     idx_initial_phase = np.arange(idx_pre_275,idx_initial)
     idx_prep_phase = np.arange(idx_prep_200,idx_pre_bout)
     idx_accel_phase = np.arange(idx_pre_bout,peak_idx)
     idx_decel_phase = np.arange(peak_idx,idx_post_bout)
     idx_post_phase = np.arange(idx_post_150,idx_end)
-    idx_peak_phase = np.arange(idx_pre_25,idx_post_25)
+    idx_peak_phase = np.arange(idx_pre_15,idx_post_15)
     
     this_exp_features = pd.DataFrame(data={
         'pitch_initial':bout_data.loc[bout_data['idx']==idx_initial,'propBoutAligned_pitch'].values, 
@@ -68,7 +68,7 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
         'pitch_body_end_30': bout_data.loc[bout_data['idx']==idx_body_end_30,'propBoutAligned_pitch'].values,       
         
         
-        'pitch_25ms_accel':bout_data.loc[bout_data['idx']==idx_pre_25,'propBoutAligned_pitch'].values, 
+        # 'pitch_25ms_accel':bout_data.loc[bout_data['idx']==idx_pre_25,'propBoutAligned_pitch'].values, 
         
         'traj_initial':bout_data.loc[bout_data['idx']==idx_initial,'propBoutAligned_instHeading'].values, 
         'traj_pre_bout':bout_data.loc[bout_data['idx']==idx_pre_bout,'propBoutAligned_instHeading'].values, 
@@ -124,7 +124,7 @@ def extract_bout_features_v4(bout_data,peak_idx, FRAME_RATE):
 
                                                 rot_full_accel_phased=this_exp_features['pitch_peak_phase']-this_exp_features['pitch_initial_phase'],
                                                 rot_early_body_change=this_exp_features['pitch_mid_accel']-this_exp_features['pitch_initial'],
-                                                rot_25ms_accel_initial=this_exp_features['pitch_25ms_accel']-this_exp_features['pitch_initial'],
+                                                # rot_25ms_accel_initial=this_exp_features['pitch_25ms_accel']-this_exp_features['pitch_initial'],
 
 
                                                 bout_traj = epochBouts_trajectory,
