@@ -14,7 +14,8 @@ t-SNE with aligned raw bout data
 import sys
 import os,glob
 import time
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib
@@ -115,7 +116,7 @@ for condition_idx, folder in enumerate(folder_paths):
                     'propBoutAligned_pitch',
                     'propBoutAligned_speed',
                     'propBoutAligned_time']]
-                angles = angles.assign(idx=int(len(angles)/51)*list(range(0,51)))          
+                angles = angles.assign(idx=round_half_up(len(angles)/51)*list(range(0,51)))          
             # extract features
                 peak_angles = angles.loc[angles['idx']==30]
                 peak_angles = peak_angles.assign(

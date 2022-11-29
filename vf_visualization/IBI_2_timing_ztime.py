@@ -13,7 +13,8 @@ Sampled? Yes - ONE sample number for day and night
 
 #%%
 import os
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -28,7 +29,7 @@ from plot_functions.get_IBIangles import get_IBIangles
 set_font_type()
 defaultPlotting()
 # %%
-pick_data = 'tmp'
+pick_data = 'tau_bkg'
 which_ztime = 'day'
 
 RESAMPLE = 0  # how many bouts to take per  exp/ztime/condition
@@ -179,7 +180,7 @@ for i in np.arange(len(coef.columns)):
         hue='condition',
         alpha=0.2,
         data=jackknifed_coef)
-    filename = os.path.join(fig_dir,f"IBI coef{i} sample{RESAMPLE}.pdf")
+    filename = os.path.join(fig_dir,f"IBI {col_to_plt[i]} sample{RESAMPLE}.pdf")
     plt.savefig(filename,format='PDF')
 
 # %%
@@ -203,7 +204,7 @@ for i in np.arange(len(coef.columns)):
         hue='ztime',
         alpha=0.2,
         data=jackknifed_coef)
-    filename = os.path.join(fig_dir,f"IBI coef{i} day-night sample{RESAMPLE}.pdf")
+    filename = os.path.join(fig_dir,f"IBI {col_to_plt[i]} day-night sample{RESAMPLE}.pdf")
     plt.savefig(filename,format='PDF')
 
 # %%

@@ -14,7 +14,8 @@ Sampled? Yes - separated sample number for day and night
 import sys
 import os,glob
 from matplotlib import style
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -27,7 +28,7 @@ defaultPlotting()
 set_font_type()
 # %%
 # Paste root directory here
-pick_data = 'tmp'
+pick_data = 'KDmut'
 which_zeitgeber = 'day'
 DAY_RESAMPLE = 0
 NIGHT_RESAMPLE = 500

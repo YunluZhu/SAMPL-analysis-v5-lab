@@ -14,7 +14,8 @@ Sampled? Yes - ONE sample number for day and night
 #%%
 #%%
 import os
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -147,7 +148,7 @@ all_ztime.sort()
 
 # %%
 feature='height'
-TPR_list, FPR_list, auc = calc_ROC(all_coef,feature,all_cond2[0],'right')  # left = cond is expected to be smaller than ctrl
+FPR_list, TPR_list, auc = calc_ROC(all_coef,feature,all_cond2[0],'increase')  
 # TPR_list, FPR_list, auc = calc_ROC(jackknifed_coef,'x intersect',cond2_all[0],'right') 
 # %%
 fig, ax = plt.subplots(1,1, figsize=(3,3))

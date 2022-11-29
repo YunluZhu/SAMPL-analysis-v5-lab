@@ -5,7 +5,8 @@
 #%%
 # import sys
 import os,glob
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -34,7 +35,7 @@ except:
     print('Notes: re-writing old figures')
     
 peak_idx , total_aligned = get_index(FRAME_RATE)
-idxRANGE = [peak_idx-int(0.3*FRAME_RATE),peak_idx+int(0.2*FRAME_RATE)]
+idxRANGE = [peak_idx-round_half_up(0.3*FRAME_RATE),peak_idx+round_half_up(0.2*FRAME_RATE)]
 spd_bins = np.arange(5,25,4)
 
 # %% features for plotting
@@ -80,12 +81,12 @@ T_MID_ACCEL = -0.05
 T_MID_DECEL = 0.05
 
 
-idx_initial = int(peak_idx + T_INITIAL * FRAME_RATE)
-idx_pre_bout = int(peak_idx + T_PRE_BOUT * FRAME_RATE)
-idx_post_bout = int(peak_idx + T_POST_BOUT * FRAME_RATE)
-idx_mid_accel = int(peak_idx + T_MID_ACCEL * FRAME_RATE)
-idx_mid_decel = int(peak_idx + T_MID_DECEL * FRAME_RATE)
-idx_end = int(peak_idx + T_END * FRAME_RATE)
+idx_initial = round_half_up(peak_idx + T_INITIAL * FRAME_RATE)
+idx_pre_bout = round_half_up(peak_idx + T_PRE_BOUT * FRAME_RATE)
+idx_post_bout = round_half_up(peak_idx + T_POST_BOUT * FRAME_RATE)
+idx_mid_accel = round_half_up(peak_idx + T_MID_ACCEL * FRAME_RATE)
+idx_mid_decel = round_half_up(peak_idx + T_MID_DECEL * FRAME_RATE)
+idx_end = round_half_up(peak_idx + T_END * FRAME_RATE)
 
 
 HEADING_LIM = 90
@@ -127,7 +128,7 @@ for condition_idx, folder in enumerate(folder_paths):
                                             ang_accel_of_SMangVel = exp_data['propBoutAligned_angVel'].diff(),
                                            )
                 # assign frame number, total_aligned frames per bout
-                exp_data = exp_data.assign(idx=int(len(exp_data)/total_aligned)*list(range(0,total_aligned)))
+                exp_data = exp_data.assign(idx=round_half_up(len(exp_data)/total_aligned)*list(range(0,total_aligned)))
                 
                 # - get the index of the rows in exp_data to keep (for each bout, there are range(0:51) frames. keep range(20:41) frames)
                 bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,['aligned_time']]

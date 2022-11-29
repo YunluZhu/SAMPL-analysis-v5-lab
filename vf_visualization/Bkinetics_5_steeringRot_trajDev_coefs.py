@@ -19,9 +19,14 @@ set_font_type()
 # defaultPlotting()
 # %%
 pick_data = 'for_paper_tan'
-which_zeitgeber = 'all' # Day only!!!!!!!
+which_zeitgeber = 'all' 
 DAY_RESAMPLE = 1000
 NIGHT_RESAMPLE = 500
+
+xcol = 'traj_deviation'
+ycol = 'rot_full_accel'
+xmin = -10
+xmax = 20
 
 # %%
 # Select data and create figure folder
@@ -31,7 +36,7 @@ X_RANGE = np.arange(-30,40,0.1)
 BIN_WIDTH = 1
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
-folder_name = f'BK5_steering_z{which_zeitgeber}_sample{DAY_RESAMPLE}'
+folder_name = f'BK5_steeringRot_trajDev_z{which_zeitgeber}_sample{DAY_RESAMPLE}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -101,8 +106,8 @@ for (cond1,cond2,this_ztime), for_fit in df_tofit.groupby(['condition','dpf','zt
     jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
     for excluded_exp, idx_group in enumerate(jackknife_idx):
         this_for_fit = for_fit.loc[for_fit['expNum'].isin(idx_group)]
-        k, y_intersect = np.polyfit(x = this_for_fit['pitch_peak'], 
-                          y = this_for_fit['traj_peak'],
+        k, y_intersect = np.polyfit(x = this_for_fit[xcol], 
+                          y = this_for_fit[ycol],
                           deg = 1) 
         x_intersect = -1 * y_intersect / k
         all_coef = pd.concat([all_coef, pd.DataFrame(
@@ -138,10 +143,10 @@ g = sns.relplot(x='x',y='y', data=all_y,
                 col='dpf',
                 row = 'ztime', 
                 hue='condition',
-                errorbar='sd',
+                ci='sd',
                 )
-g.set(xlim=(-30, 40))
-g.set(ylim=(-30, 40))
+g.set(xlim=(xmin, xmax))
+g.set(ylim=(xmin, xmax))
 
 filename = os.path.join(fig_dir,"steering fit.pdf")
 plt.savefig(filename,format='PDF')

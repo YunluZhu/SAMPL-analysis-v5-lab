@@ -29,23 +29,23 @@ import os,glob
 import configparser
 import pandas as pd
 import shutil
-from tqdm import tqdm
+
 
 # %%
 def read_parameters(ini_file):
     config = configparser.ConfigParser()
     config.read(ini_file)
-    box_number = config.getint('User-defined parameters','Box number')
+    box_number = config.getround_half_up('User-defined parameters','Box number')
     genotype = config.get('User-defined parameters','Genotype').replace('"','')
-    age = config.getint('User-defined parameters','Age')
+    age = config.getround_half_up('User-defined parameters','Age')
     notes = config.get('User-defined parameters','Notes').replace('"','')
     initials = config.get('User-defined parameters','Inititals').replace('"','') # "Inititals" misspelled in .ini
-    light_cycle = config.getint('User-defined parameters','Light cycle')
+    light_cycle = config.getround_half_up('User-defined parameters','Light cycle')
     dir = config.get('User-defined parameters','Save data to?').replace('"','')
-    line_1 = config.getint('User-defined parameters','Mom line number')
-    line_2 = config.getint('User-defined parameters','Dad line number')
+    line_1 = config.getround_half_up('User-defined parameters','Mom line number')
+    line_2 = config.getround_half_up('User-defined parameters','Dad line number')
     cross_id = config.get('User-defined parameters','cross ID').replace('"','')
-    num_fish = config.getint('User-defined parameters','Num fish')
+    num_fish = config.getround_half_up('User-defined parameters','Num fish')
     filename = config.get('User-defined parameters','Filename').replace('"','')
     parameters = pd.DataFrame({
         'box_number':box_number,
@@ -97,11 +97,11 @@ def main(root):
                 for folder_name in dir_list:
                     old_folder = os.path.join(path, folder_name) 
                     if 'ctrl' in folder_name:
-                        fish_id = int(date)*100
+                        fish_id = round_half_up(date)*100
                     elif 'sib' in folder_name:
-                        fish_id = int(date)*100
+                        fish_id = round_half_up(date)*100
                     else:
-                        fish_id = int(date)*100+int(folder_name) # unless is sibs
+                        fish_id = round_half_up(date)*100+round_half_up(folder_name) # unless is sibs
                     size = 0
                     for ele in os.scandir(old_folder):
                         size += os.path.getsize(ele)
@@ -120,7 +120,7 @@ def main(root):
 
                         )
                         if this_par.loc[0,'genotype'] != 'tau':
-                            this_par['fish_id'] = int(date)*100  # sibs are numbered 00 
+                            this_par['fish_id'] = round_half_up(date)*100  # sibs are numbered 00 
                         exp_parameters = pd.concat([exp_parameters, this_par],ignore_index=True)
                         
                     all_exp_parameters = pd.concat([all_exp_parameters, exp_parameters],ignore_index=True)

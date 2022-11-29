@@ -6,7 +6,8 @@ using openTSNE
 import sys
 import os,glob
 import time
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib
@@ -123,7 +124,7 @@ for condition_idx, folder in enumerate(folder_paths):
                 # IEIdata.loc[for_index.if_align==True,:]
                 # boutNum = boutNum.loc[boutNum.if_align==True].reset_index()
 
-                angles = angles.assign(idx=int(len(angles)/51)*list(range(0,51)))          
+                angles = angles.assign(idx=round_half_up(len(angles)/51)*list(range(0,51)))          
                 angles_grp = angles.set_index('idx').groupby(np.arange(len(angles))//51)
                 
                 # pick the middle 0.5 sec, 21 frames

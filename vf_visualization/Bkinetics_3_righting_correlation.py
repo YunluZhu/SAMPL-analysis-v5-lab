@@ -9,7 +9,8 @@ trajectory deviation (trajecgtory residual) is defined as (bout_traj_peakecgtory
 #%%
 # import sys
 import os,glob
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -40,7 +41,7 @@ try:
 except:
     pass   
 peak_idx , total_aligned = get_index(FRAME_RATE)
-idxRANGE = [peak_idx-int(0.27*FRAME_RATE),peak_idx+int(0.22*FRAME_RATE)]
+idxRANGE = [peak_idx-round_half_up(0.27*FRAME_RATE),peak_idx+round_half_up(0.22*FRAME_RATE)]
 
 # %% get features
 all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime = 'day')
@@ -63,7 +64,7 @@ for feature in feature_to_plt:
     lower = np.percentile(toplt[feature], 1)
 
 BIN_WIDTH = 2
-AVERAGE_BIN = np.arange(int(lower),int(upper),BIN_WIDTH)
+AVERAGE_BIN = np.arange(round_half_up(lower),round_half_up(upper),BIN_WIDTH)
 binned_df_cond = toplt.groupby('condition').apply(
     lambda g: distribution_binned_average(g,by_col=by_which_col,bin_col=binned_rotation,bin=AVERAGE_BIN)
 )
@@ -79,7 +80,7 @@ g = sns.relplot(
     data = toplt.sample(frac=0.2),
     x = by_which_col,
     y = binned_rotation,
-    # x_bins=np.arange(int(lower),int(upper),3),
+    # x_bins=np.arange(round_half_up(lower),round_half_up(upper),3),
     # x_ci=95,
     alpha=0.1,
     # hue='direction',

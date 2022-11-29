@@ -2,7 +2,8 @@
 #%%
 import os
 from pathlib import Path
-import pandas as pd 
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -198,10 +199,10 @@ res = res.assign(
 )
 # video_file_name = input('video file name: ')
 video_file_name = '220620 14.12.36-163492'
-day_match = int(video_file_name[4:6])
-hour_match = int(video_file_name[7:9])
-min_match = int(video_file_name[10:12])
-sec_match = int(video_file_name[13:15])
+day_match = round_half_up(video_file_name[4:6])
+hour_match = round_half_up(video_file_name[7:9])
+min_match = round_half_up(video_file_name[10:12])
+sec_match = round_half_up(video_file_name[13:15])
 
 matched_epoch = res.loc[(res['hour']==hour_match) & 
                      (res['min']==min_match) & 

@@ -1,5 +1,6 @@
 import os,glob
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 from plot_functions.plt_tools import (day_night_split)
 from plot_functions.get_index import get_index
@@ -8,8 +9,8 @@ def get_IBIangles(root, FRAME_RATE,**kwargs):
     peak_idx , total_aligned = get_index(FRAME_RATE)
     T_start = -0.3
     T_end = 0.25
-    idx_start = int(peak_idx + T_start * FRAME_RATE)
-    idx_end = int(peak_idx + T_end * FRAME_RATE)
+    idx_start = round_half_up(peak_idx + T_start * FRAME_RATE)
+    idx_end = round_half_up(peak_idx + T_end * FRAME_RATE)
     idxRANGE = [idx_start,idx_end]
 
     # for day night split

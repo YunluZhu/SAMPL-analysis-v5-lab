@@ -59,7 +59,7 @@ if __name__ == "__main__":
     root_dir = input("- Where's the root folder? \n")
     frame_rate = input("- What's the frame rate in int.? \n")
     try:
-        frame_rate = int(frame_rate)
+        frame_rate = round_half_up(frame_rate)
     except ValueError:
         print("^ Not a valid number for frame rate!")
         sys.exit(1)

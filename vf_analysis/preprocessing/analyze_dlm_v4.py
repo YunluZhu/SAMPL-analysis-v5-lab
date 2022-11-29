@@ -1,14 +1,7 @@
-'''
-Analyze Free Vertical (YZ 2021.06.18)
-1. Takes one raw dataframe, reslice epochs based on epoch number and fish number (210618 UPDATE)
-2. Truncate
-3. Calculate and filter for epoch duration, displacement, headx-x moving direction, angular velocity, angular acceleration 
-4. Add a distance filter
-5. Return an analyzed dataframe and a fish length dataframe
-'''
 # %%
 # Import Modules and functions
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 from datetime import datetime
 from datetime import timedelta
@@ -124,6 +117,24 @@ def displ_dist_vel_filter(df,MAX_DIST_TRAVEL):
 # %%
 # Main function
 def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
+    """
+    Analyze Free Vertical (YZ 2021.06.18)
+    1. Truncate epochs
+    3. Calculate and filter for epoch duration, displacement, headx-x moving direction, angular velocity, angular acceleration 
+    4. Add a distance filter
+    5. Return an analyzed dataframe and a fish length dataframe
+
+    Args:
+        raw (DataFrame): .dlm in a dataframe
+        file_i (int): file index
+        file (string): .dlm directory
+        folder (string): directory of folder containing the current dlm
+        frame_rate (int): frame rate
+
+    Returns:
+        DataFrame: scaled epochs contain quality bouts
+        DataFrame: estimated fish length
+    """
     # Constants
     MAX_DELTA_T = 3/frame_rate   # in s, epochs with inexplicably large gaps between frame timestamps
     MIN_DUR = 2.5 * frame_rate  # 2.5s, minimun duration of epochs     

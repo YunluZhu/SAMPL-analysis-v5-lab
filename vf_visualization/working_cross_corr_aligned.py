@@ -5,7 +5,8 @@ working code. plot cross correlation of 2 feature time series
 #%%
 # import sys
 import os
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -47,8 +48,8 @@ all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, zti
 HEADING_LIM = 90
 BIN_NUM = 4
 peak_idx , total_aligned = get_index(FRAME_RATE)
-idxRANGE = [peak_idx-int(0.3*FRAME_RATE),peak_idx+int(0.2*FRAME_RATE)]
-initial_idx = peak_idx-int(0.25*FRAME_RATE)
+idxRANGE = [peak_idx-round_half_up(0.3*FRAME_RATE),peak_idx+round_half_up(0.2*FRAME_RATE)]
+initial_idx = peak_idx-round_half_up(0.25*FRAME_RATE)
 
 all_conditions = []
 folder_paths = []
@@ -86,7 +87,7 @@ for condition_idx, folder in enumerate(folder_paths):
                                             ang_accel_of_SMangVel = exp_data['propBoutAligned_angVel'].diff(),
                                            )
                 # assign frame number, total_aligned frames per bout
-                exp_data = exp_data.assign(idx=int(len(exp_data)/total_aligned)*list(range(0,total_aligned)),
+                exp_data = exp_data.assign(idx=round_half_up(len(exp_data)/total_aligned)*list(range(0,total_aligned)),
                                            expNum = expNum,
                                            exp_id = condition_idx*100+expNum)
                 

@@ -9,7 +9,8 @@ zeitgeber time? Yes
 #%%
 
 import os
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -142,7 +143,7 @@ toplt = all_feature_cond_resampled.query('spd_peak >= 7'
 plt_dict = {
     'early_rotation vs atk_ang':[which_rot,'atk_ang'],
     'late_rotation vs atk_ang':['rot_late_accel','atk_ang'],
-    'late_rotation vs early_rotation':['rot_late_accel',which_rot],
+    # 'late_rotation vs early_rotation':['rot_late_accel',which_rot],
     # 'early_rotation vs traj':['atk_ang','traj_peak'],
 
     # 'atk_ang vs early_rotation':['atk_ang',which_rot],
@@ -155,7 +156,7 @@ for which_to_plot in plt_dict:
     upper = np.percentile(toplt[x], 99)
     lower = np.percentile(toplt[x], 1)
     BIN_WIDTH = 1
-    AVERAGE_BIN = np.arange(int(lower),int(upper),BIN_WIDTH)
+    AVERAGE_BIN = np.arange(round_half_up(lower),round_half_up(upper),BIN_WIDTH)
     binned_df = toplt.groupby(['condition','dpf']).apply(
         lambda group: distribution_binned_average(group,by_col=x,bin_col=y,bin=AVERAGE_BIN)
     )
@@ -178,7 +179,7 @@ for which_to_plot in plt_dict:
         
         x = x,
         y = y,
-        # x_bins=np.arange(int(lower),int(upper),3),
+        # x_bins=np.arange(round_half_up(lower),round_half_up(upper),3),
         # x_ci=95,
         alpha=0.1,
         # hue='direction',
@@ -235,7 +236,7 @@ for which_to_plot in plt_dict:
     upper = np.percentile(toplt[x], 99)
     lower = np.percentile(toplt[x], 1)
     BIN_WIDTH = 0.5
-    AVERAGE_BIN = np.arange(int(lower),int(upper),BIN_WIDTH)
+    AVERAGE_BIN = np.arange(round_half_up(lower),round_half_up(upper),BIN_WIDTH)
     binned_df = toplt.groupby([which_dir,'condition','dpf']).apply(
         lambda group: distribution_binned_average(group,by_col=x,bin_col=y,bin=AVERAGE_BIN)
     )
@@ -255,7 +256,7 @@ for which_to_plot in plt_dict:
         row_order = all_cond2,
         col = 'dpf',
         col_order = all_cond1,
-        # x_bins=np.arange(int(lower),int(upper),3),
+        # x_bins=np.arange(round_half_up(lower),round_half_up(upper),3),
         # x_ci=95,
         alpha=0.1,
         # hue='direction',
@@ -305,7 +306,7 @@ for which_to_plot in plt_dict:
     upper = np.percentile(toplt[x], 99)
     lower = np.percentile(toplt[x], 1)
     BIN_WIDTH = 1
-    AVERAGE_BIN = np.arange(int(lower),int(upper),BIN_WIDTH)
+    AVERAGE_BIN = np.arange(round_half_up(lower),round_half_up(upper),BIN_WIDTH)
     binned_df = toplt.groupby(['condition','dpf']).apply(
         lambda group: distribution_binned_average(group,by_col=x,bin_col=y,bin=AVERAGE_BIN)
     )
@@ -326,7 +327,7 @@ for which_to_plot in plt_dict:
 
         x = x,
         y = y,
-        # x_bins=np.arange(int(lower),int(upper),3),
+        # x_bins=np.arange(round_half_up(lower),round_half_up(upper),3),
         # x_ci=95,
         alpha=0.1,
         # hue='direction',

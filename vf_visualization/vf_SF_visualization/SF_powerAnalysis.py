@@ -10,7 +10,8 @@ import sys
 import os,glob
 from tabnanny import check
 import time
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -58,8 +59,8 @@ POSTURE_SEP = 5 #deg
 MIN_DATA_SIZE = 0
 HIGH_DATA_SIZE = 100
 HIGH_IEI_SIZE = 100
-time50ms = int(0.05 * FRAME_RATE)
-time100ms = int(0.1 * FRAME_RATE)
+time50ms = round_half_up(0.05 * FRAME_RATE)
+time100ms = round_half_up(0.1 * FRAME_RATE)
 
 # %%
 def defaultPlotting(): 
@@ -107,7 +108,7 @@ folder_paths.sort()
 # go through each condition folders under the root
 for fish_idx, folder in enumerate(folder_paths):
     # get IEI pitch
-    this_fish_id = int(os.path.basename(folder))
+    this_fish_id = round_half_up(os.path.basename(folder))
     clutch_id = this_fish_id//100
     df = pd.read_hdf(f"{folder}/IEI_data.h5", key='prop_bout_IEI2')
     df = day_night_split(df,'propBoutIEItime',ztime=which_ztime)
@@ -124,7 +125,7 @@ for fish_idx, folder in enumerate(folder_paths):
         # get other bout features
         angles = pd.read_hdf(f"{folder}/bout_data.h5", key='prop_bout_aligned')
         angles = angles.assign(
-            idx=int(len(angles)/total_aligned)*list(range(0,total_aligned)),
+            idx=round_half_up(len(angles)/total_aligned)*list(range(0,total_aligned)),
             bout_num = list(np.arange(len(angles))//total_aligned),
             )
         this_exp_features = extract_bout_features_v4(angles, peak_idx,FRAME_RATE)

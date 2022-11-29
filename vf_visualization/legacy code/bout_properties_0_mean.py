@@ -10,7 +10,8 @@ import sys
 import os,glob
 import time
 import math
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -87,14 +88,14 @@ for condition_idx, folder in enumerate(folder_paths):
                 diff_res = np.diff(exp_data['oriIndex'].values - exp_data.index)
                 total_aligned = np.nonzero(diff_res)
                 total_aligned = total_aligned[0][0] + 1
-                exp_data = exp_data.assign(idx=int(len(exp_data)/total_aligned)*list(range(0,total_aligned)))
+                exp_data = exp_data.assign(idx=round_half_up(len(exp_data)/total_aligned)*list(range(0,total_aligned)))
                 
                 # - get the index of the rows in exp_data to keep (for each bout, there are range(0:51) frames. keep range(20:41) frames)
                 bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,['aligned_time']]
                 # for i in bout_time.index:
                 # # if only need day or night bouts:
                 for i in day_night_split(bout_time,'aligned_time').index:
-                    rows.extend(list(range(i*total_aligned+int(15*FRAME_RATE/40),i*total_aligned+int(46*FRAME_RATE/40))))
+                    rows.extend(list(range(i*total_aligned+round_half_up(15*FRAME_RATE/40),i*total_aligned+round_half_up(46*FRAME_RATE/40))))
                 exp_data = exp_data.assign(expNum = expNum)
                 around_peak_data = pd.concat([around_peak_data,exp_data.loc[rows,:]])
             # combine data from different conditions

@@ -20,7 +20,8 @@ righting rotation: 0-100ms!
 # import sys
 import os,glob
 # import time
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -69,12 +70,12 @@ T_end = 0.3
 T_INITIAL = -0.25 #s
 T_PRE_BOUT = -0.10 #s
 T_POST_BOUT = 0.15 #s
-idx_start = int(peak_idx + T_start * FRAME_RATE)
-idx_end = int(peak_idx + T_end * FRAME_RATE)
+idx_start = round_half_up(peak_idx + T_start * FRAME_RATE)
+idx_end = round_half_up(peak_idx + T_end * FRAME_RATE)
 
-idx_initial = int(peak_idx + T_INITIAL * FRAME_RATE)
-idx_pre_bout = int(peak_idx + T_PRE_BOUT * FRAME_RATE)
-idx_end_bout = int(peak_idx + T_POST_BOUT * FRAME_RATE)
+idx_initial = round_half_up(peak_idx + T_INITIAL * FRAME_RATE)
+idx_pre_bout = round_half_up(peak_idx + T_PRE_BOUT * FRAME_RATE)
+idx_end_bout = round_half_up(peak_idx + T_POST_BOUT * FRAME_RATE)
 idxRANGE = [idx_start,idx_end]
 # %%
 set_font_type()
@@ -111,14 +112,14 @@ for condition_idx, folder in enumerate(folder_paths):
                 exp_data = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout_aligned')#.loc[:,['propBoutAligned_angVel','propBoutAligned_speed','propBoutAligned_accel','propBoutAligned_heading','propBoutAligned_pitch']]
                 exp_data = exp_data.assign(ang_speed=exp_data['propBoutAligned_angVel'].abs())
                 # assign frame number, total_aligned frames per bout
-                exp_data = exp_data.assign(idx=int(len(exp_data)/total_aligned)*list(range(0,total_aligned)))
+                exp_data = exp_data.assign(idx=round_half_up(len(exp_data)/total_aligned)*list(range(0,total_aligned)))
                 
                 # - get the index of the rows in exp_data to keep (for each bout, there are range(0:51) frames. keep range(20:41) frames)
                 bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,['aligned_time']]
                 # for i in bout_time.index:
                 # # if only need day or night bouts:
                 for i in day_night_split(bout_time,'aligned_time').index:
-                    rows.extend(list(range(i*total_aligned+int(idxRANGE[0]),i*total_aligned+int(idxRANGE[1]))))
+                    rows.extend(list(range(i*total_aligned+round_half_up(idxRANGE[0]),i*total_aligned+round_half_up(idxRANGE[1]))))
                 exp_data = exp_data.assign(expNum = exp)
                 trunc_day_exp_data = exp_data.loc[rows,:]
                 trunc_day_exp_data = trunc_day_exp_data.assign(

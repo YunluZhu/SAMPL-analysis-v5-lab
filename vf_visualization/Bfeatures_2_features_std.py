@@ -3,15 +3,13 @@
 '''
 
 #%%
-import sys
-import os,glob
-from matplotlib import style
-import pandas as pd # pandas library
+import os
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
 from astropy.stats import jackknife_resampling
-
 from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
 from plot_functions.plt_tools import (day_night_split,defaultPlotting, set_font_type, jackknife_mean, distribution_binned_average)
 from plot_functions.get_IBIangles import get_IBIangles
@@ -37,7 +35,7 @@ def jackknife_std(df,all_features):
     return jackknife_df_std
 # %%
 # Paste root directory here
-pick_data = '7dd_bkg'
+pick_data = 'tau_bkg'
 which_zeitgeber = 'day'
 DAY_RESAMPLE = 1000
 NIGHT_RESAMPLE = 500
@@ -92,7 +90,7 @@ all_features = ['pitch_initial',
                 'spd_peak', 
                 'angvel_initial_phase',
                 'angvel_prep_phase', 
-                'pitch_prep_phase', 
+                # 'pitch_prep_phase', 
                 'angvel_post_phase',
                 'rot_total', 
                 'rot_bout', 
@@ -106,7 +104,7 @@ all_features = ['pitch_initial',
                 'bout_traj', 
                 'bout_displ', 
                 'atk_ang', 
-                'tsp_peak',
+                # 'tsp_peak',
                 'angvel_chg']
 
 if which_zeitgeber != 'night':
@@ -121,6 +119,8 @@ if which_zeitgeber != 'night':
                         replace=True
                         )
     jackknifed_day_std = jackknife_std(all_feature_day,all_features)
+
+jackknifed_night_std = pd.DataFrame()
 
 if which_zeitgeber != 'day':
     all_feature_night = all_feature_cond.loc[

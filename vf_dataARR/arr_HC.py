@@ -34,17 +34,17 @@ import re
 def read_parameters(ini_file):
     config = configparser.ConfigParser()
     config.read(ini_file)
-    box_number = config.getint('User-defined parameters','Box number')
+    box_number = config.getround_half_up('User-defined parameters','Box number')
     genotype = config.get('User-defined parameters','Genotype').replace('"','')
-    age = config.getint('User-defined parameters','Age')
+    age = config.getround_half_up('User-defined parameters','Age')
     notes = config.get('User-defined parameters','Notes').replace('"','')
     initials = config.get('User-defined parameters','Inititals').replace('"','')
-    light_cycle = config.getint('User-defined parameters','Light cycle')
+    light_cycle = config.getround_half_up('User-defined parameters','Light cycle')
     dir = config.get('User-defined parameters','Save data to?').replace('"','')
-    line_1 = config.getint('User-defined parameters','Mom line number')
-    line_2 = config.getint('User-defined parameters','Dad line number')
+    line_1 = config.getround_half_up('User-defined parameters','Mom line number')
+    line_2 = config.getround_half_up('User-defined parameters','Dad line number')
     cross_id = config.get('User-defined parameters','cross ID').replace('"','')
-    num_fish = config.getint('User-defined parameters','Num fish')
+    num_fish = config.getround_half_up('User-defined parameters','Num fish')
     filename = config.get('User-defined parameters','Filename').replace('"','')
     parameters = pd.DataFrame({
         'box_number':box_number,

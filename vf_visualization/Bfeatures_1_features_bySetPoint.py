@@ -13,8 +13,7 @@ sampled? Yes - one sample number for day and night
 #%%
 # import sys
 import os
-from matplotlib import markers
-import pandas as pd # pandas library
+import pandas as pd
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -23,7 +22,6 @@ from plot_functions.get_bout_features import get_bout_features
 from plot_functions.get_bout_kinetics import get_kinetics
 from plot_functions.get_IBIangles import get_IBIangles
 from plot_functions.plt_tools import (jackknife_mean_by_col,set_font_type, defaultPlotting)
-from tqdm import tqdm
 import matplotlib as mpl
 
 set_font_type()

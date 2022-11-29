@@ -18,7 +18,8 @@ NOTE 100ms pre and post is used for ALL calculation. Change if needed
 import sys
 import os,glob
 import time
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib
@@ -118,7 +119,7 @@ for condition_idx, folder in enumerate(folder_paths):
                 # - attack angle calculation
                 exp_path = os.path.join(subpath, exp)
                 angles = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout_aligned').loc[:,['propBoutAligned_heading','propBoutAligned_pitch','propBoutAligned_speed']]
-                angles = angles.assign(idx=int(len(angles)/51)*list(range(0,51)))
+                angles = angles.assign(idx=round_half_up(len(angles)/51)*list(range(0,51)))
                 peak_angles = angles.loc[angles['idx']==30]
                 peak_angles = peak_angles.assign(
                     time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2')['aligned_time'].values,

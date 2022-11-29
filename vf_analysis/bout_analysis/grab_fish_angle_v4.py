@@ -18,6 +18,8 @@ NOTE
 220826: max angular acceleration filter now applys to moving average (window 3) of angaccel. filtering out about 10% epochs per dlm.
 220826: added logging function
 220929: replace x and y by headx heady for displ, dist, velocity calculation. smooth angle by 3 in read_dlm.py
+221109: add absTime column into aligned IEI dataframe 
+221110: fish length included in aligned parameters
 '''
 # %%
 # Import Modules and functions
@@ -25,11 +27,8 @@ import sys
 import os
 import glob
 import configparser
-import pandas as pd # pandas library
+import pandas as pd
 import numpy as np # numpy
-from collections import defaultdict
-import time
-from datetime import datetime
 from datetime import timedelta
 import math
 from preprocessing.read_dlm import read_dlm
@@ -37,26 +36,34 @@ from preprocessing.analyze_dlm_v4 import analyze_dlm_resliced
 from bout_analysis.logger import log_vf_ana
 
 global program_version
-program_version = 'V4.4'
+program_version = 'V4.4.221110'
 
 
 # %%
 # Define functions
 
 def read_parameters(ini_file):
+    """read exp parameters from .ini
+
+    Args:
+        ini_file (string): ini file directory
+
+    Returns:
+        DataFrame: extracted parameters
+    """
     config = configparser.ConfigParser()
     config.read(ini_file)
-    box_number = config.getint('User-defined parameters','Box number')
+    box_number = config.getround_half_up('User-defined parameters','Box number')
     genotype = config.get('User-defined parameters','Genotype').replace('"','')
-    age = config.getint('User-defined parameters','Age')
+    age = config.getround_half_up('User-defined parameters','Age')
     notes = config.get('User-defined parameters','Notes').replace('"','')
     initials = config.get('User-defined parameters','Inititals').replace('"','')
-    light_cycle = config.getint('User-defined parameters','Light cycle')
+    light_cycle = config.getround_half_up('User-defined parameters','Light cycle')
     dir = config.get('User-defined parameters','Save data to?').replace('"','')
-    line_1 = config.getint('User-defined parameters','Mom line number')
-    line_2 = config.getint('User-defined parameters','Dad line number')
+    line_1 = config.getround_half_up('User-defined parameters','Mom line number')
+    line_2 = config.getround_half_up('User-defined parameters','Dad line number')
     cross_id = config.get('User-defined parameters','cross ID').replace('"','')
-    num_fish = config.getint('User-defined parameters','Num fish')
+    num_fish = config.getround_half_up('User-defined parameters','Num fish')
     filename = config.get('User-defined parameters','Filename').replace('"','')
     parameters = pd.DataFrame({
         'box_number':box_number,
@@ -80,7 +87,7 @@ def grp_by_epoch(df):
     return df.groupby('epochNum', sort=False)
 
 def grp_by_swim(df,loco_index):
-    '''Get bouts, then group by 'col'''
+    '''group by swim indicator'''
     return df.loc[df[loco_index] % 2 == 1].groupby(loco_index, as_index=False, sort=False)
 
 def smooth_series_ML(a,WSZ):
@@ -124,10 +131,16 @@ def smooth_ML(a,WSZ):
 # fish_length = pd.read_pickle(f"./data/{file_i+1}_fish_length.pkl")
 
 def grab_fish_angle(analyzed, fish_length,sample_rate):
-    '''
-    Function to analyze epochs, find bouts, and calculate things we care
-    Output: one dictionary with multiple dataframes, each column in each dataframe is equivalent to one output file in the original MATLAB code
-    '''
+    """    Function to analyze epochs, find bouts, and calculate things we care
+
+    Args:
+        analyzed (DataFrame): 
+        fish_length (int): 
+        sample_rate (int): 
+
+    Returns:
+        dict: one dictionary with multiple dataframes
+    """
     # %%
     # Constants
     PROPULSION_THRESHOLD = 4  # mm/s, speed threshold above which samples are considered propulsion
@@ -158,10 +171,10 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
 
     # bout index for aligned bouts
     bout_idx_peak = PRE_PEAK_FRAMES # idx of peak after alignment
-    frame_number25 = int(0.025*SAMPLE_RATE)
-    frame_number100 = int(0.1*SAMPLE_RATE) # 100ms, 4 at 40Hz
-    frame_number250 = int(0.25*SAMPLE_RATE) # 250ms, 10 at 40Hz
-    frame_number125 = int(0.125*SAMPLE_RATE) # 125ms, 5 at 40Hz
+    frame_number25 = round_half_up(0.025*SAMPLE_RATE)
+    frame_number100 = round_half_up(0.1*SAMPLE_RATE) # 100ms, 4 at 40Hz
+    frame_number250 = round_half_up(0.25*SAMPLE_RATE) # 250ms, 10 at 40Hz
+    frame_number125 = round_half_up(0.125*SAMPLE_RATE) # 125ms, 5 at 40Hz
 
     # find epochs with max speed above threshold
     df = grp_by_epoch(analyzed).filter(
@@ -170,7 +183,6 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     
     if len(df) < 3:    # if no epoch found
         return "> not enough epoches > dlm file skipped"
-    
     
     grouped_df = grp_by_epoch(df)
 
@@ -487,7 +499,8 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
             'ang',
             'absy',
             'x',
-            'y']
+            'y',
+            'fishLen']
         ].assign(bout_i=[i]*All_Aligned_FRAMES, frame_i=range(All_Aligned_FRAMES))  # assign bout_i for each bout, assign frame_i for each row
         for i, bout in bout_aligned.iterrows()  # loop through bouts
     ]).set_index(['bout_i','frame_i']).rename(columns={  # reset index
@@ -499,7 +512,8 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
             'ang':'propBoutAligned_pitch',
             'absy':'propBoutAligned_absy',
             'x':'propBoutAligned_x',
-            'y':'propBoutAligned_y'
+            'y':'propBoutAligned_y',
+            'fishLen':'fish_length'
     })
 
     # align to inflection point of speaed (peak of 2nd derivative)
@@ -577,24 +591,13 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     # for rest of the values, let's do it bout by bout!
     for i, bout in bout_aligned.iterrows():
         aligned_peak = bout['peak_idx']
-        aligned_start = bout['peak_idx'] - PRE_PEAK_FRAMES
-        aligned_end = bout['peak_idx'] + POST_PEAK_FRAMES
-        # # transfer values with multiple timepoints to bout_res
-        # # to do this more efficiently, all the bout_res values are acquired with a single pd.concat. See the cell above.
-        # bout_res.loc[idx[i,:], 'oriIndex'] = df.loc[aligned_start:aligned_end,'oriIndex'].values
-        # bout_res.loc[idx[i,:], 'propBoutAligned_angVel'] = df.loc[aligned_start:aligned_end,'angVelSmoothed'].values
-        # bout_res.loc[idx[i,:], 'propBoutAligned_speed'] = df.loc[aligned_start:aligned_end,'swimSpeed'].values
-        # bout_res.loc[idx[i,:], 'propBoutAligned_accel'] = df.loc[aligned_start:aligned_end,'angAccel'].values
-        # bout_res.loc[idx[i,:], 'propBoutAligned_pitch'] = df.loc[aligned_start:aligned_end,'ang'].values
-        # bout_res.loc[idx[i,:], 'propBoutAligned_absy'] = df.loc[aligned_start:aligned_end,'absy'].values
-        # bout_res.loc[idx[i,:], 'propBoutAligned_x'] = df.loc[aligned_start:aligned_end,'x'].values
-        # bout_res.loc[idx[i,:], 'propBoutAligned_y'] = df.loc[aligned_start:aligned_end,'y'].values
+        # aligned_start = bout['peak_idx'] - PRE_PEAK_FRAMES
+        # aligned_end = bout['peak_idx'] + POST_PEAK_FRAMES
         # put 1-per-bout values into res2
         bout_res2.loc[i, 'propBout_initPitch'] = df.loc[aligned_peak-frame_number250:aligned_peak-frame_number125, 'ang'].mean()
         bout_res2.loc[i, 'propBout_initYPos'] = df.loc[aligned_peak-frame_number250:aligned_peak-frame_number125, 'y'].mean()
         bout_res2.loc[i, 'propBout_deltaY'] = df.loc[aligned_peak+frame_number125:aligned_peak+frame_number250, 'y'].mean() - bout_res2.loc[i, 'propBout_initYPos']
         bout_res2.loc[i, 'propBout_netPitchChg'] = df.loc[aligned_peak+frame_number125:aligned_peak+frame_number250, 'ang'].mean() - bout_res2.loc[i, 'propBout_initPitch']
-
 
         # if the current (alignable) bout is not the last bout in the epoch
         if bout['boutNum'] < bout_attributes.loc[bout_attributes['epochNum']==bout['epochNum'],'boutNum'].max():
@@ -820,10 +823,10 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     # for aligned values (multiple values for each IEI), use pd.concat (which is more efficient)
     IEI_res = pd.concat([
         df.loc[(
-            IEI_attributes.loc[i,'swim_end_shift']+1+math.ceil(0.05*SAMPLE_RATE)  # bout_end_5frames
+            IEI_attributes.loc[i,'swim_end_shift']+POST_BOUT_BUF  # bout_end_5frames
         ):(
             IEI_attributes.loc[i,'swim_start_idx']-PRE_BOUT_BUF  # bout_start_4frames
-        ),['angVelSmoothed','ang','yvel']] for i in range(len(IEI_attributes)  # get these values for each IEI
+        ),['angVelSmoothed','ang','yvel','absTime']] for i in range(len(IEI_attributes)  # get these values for each IEI
     )], ignore_index=True)
 
     IEI_res = IEI_res.rename(columns = {'angVelSmoothed':'propBoutIEIAligned_angVel',
@@ -865,22 +868,9 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
 
     print(".", end='')
 
-    # %% [markdown]
-    # ## Grab all headings (movement angles)
-    # ```
-    # for: each epoch
-    #     if: x[-1] > x[1]  # >>
-    #         then: move_angle = np.arctan2(yvel,xvel)
-    #     if: x[-1] < x[1]  # <<
-    #         then: flip x axis
-    #               move_angle = np.arctan2(yvel,-xvel)
-    # ```
-
     # %%
     # below is for heading matched calculation
-
     # df_chopped dataframe has been created at the beginning of the function
-
     # chop top and bottom rows
     rows_to_drop = grouped_df.head(EDGE_CHOP).index.to_list() + grouped_df.tail(EDGE_CHOP).index.to_list()
     df_chopped.drop(axis=0, index=rows_to_drop, inplace=True)
@@ -937,10 +927,14 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     return output
 
 def run(filenames, folder, frame_rate):
-    '''
-    Loop through all .dlm, run analyze_dlm() and grab_fish_angle() functions
-    Concatinate results from different .dlm files
-    '''
+    """    Loop through all .dlm, run analyze_dlm() and grab_fish_angle() functions. Concatinate results from different .dlm files
+
+    Args:
+        filenames (string): a .dlm file directory
+        folder (string): root directory
+        frame_rate (int): frame rate
+    """
+    
     logger = log_vf_ana('vf_ana_log')
     logger.info(f'Folder analyzed: {folder}')
     logger.info(f"Program ver: {program_version}")

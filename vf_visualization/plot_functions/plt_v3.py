@@ -1,5 +1,6 @@
 from lib2to3.pgen2.pgen import DFAState
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 from plot_functions.plt_tools import jackknife_list
 from scipy.stats import pearsonr 
@@ -23,12 +24,12 @@ def extract_bout_features_v3(bout_data,peak_idx, FRAME_RATE):
     T_MID_ACCEL = -0.05
     T_MID_DECEL = 0.05
     
-    idx_initial = int(peak_idx + T_INITIAL * FRAME_RATE)
-    idx_pre_bout = int(peak_idx + T_PRE_BOUT * FRAME_RATE)
-    idx_post_bout = int(peak_idx + T_POST_BOUT * FRAME_RATE)
-    idx_mid_accel = int(peak_idx + T_MID_ACCEL * FRAME_RATE)
-    idx_mid_decel = int(peak_idx + T_MID_DECEL * FRAME_RATE)
-    idx_end = int(peak_idx + T_END * FRAME_RATE)
+    idx_initial = round_half_up(peak_idx + T_INITIAL * FRAME_RATE)
+    idx_pre_bout = round_half_up(peak_idx + T_PRE_BOUT * FRAME_RATE)
+    idx_post_bout = round_half_up(peak_idx + T_POST_BOUT * FRAME_RATE)
+    idx_mid_accel = round_half_up(peak_idx + T_MID_ACCEL * FRAME_RATE)
+    idx_mid_decel = round_half_up(peak_idx + T_MID_DECEL * FRAME_RATE)
+    idx_end = round_half_up(peak_idx + T_END * FRAME_RATE)
     
     this_exp_features = pd.DataFrame(data={
         'pitch_initial':bout_data.loc[bout_data['idx']==idx_initial,'propBoutAligned_pitch'].values, 

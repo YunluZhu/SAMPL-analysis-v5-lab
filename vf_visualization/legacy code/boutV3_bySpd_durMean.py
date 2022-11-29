@@ -16,7 +16,8 @@ see idx_bins
 # import sys
 import os,glob
 # import time
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -107,14 +108,14 @@ for condition_idx, folder in enumerate(folder_paths):
                 exp_data = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout_aligned')#.loc[:,['propBoutAligned_angVel','propBoutAligned_speed','propBoutAligned_accel','propBoutAligned_heading','propBoutAligned_pitch']]
                 exp_data = exp_data.assign(ang_speed=exp_data['propBoutAligned_angVel'].abs())
                 # assign frame number, total_aligned frames per bout
-                exp_data = exp_data.assign(idx=int(len(exp_data)/total_aligned)*list(range(0,total_aligned)))
+                exp_data = exp_data.assign(idx=round_half_up(len(exp_data)/total_aligned)*list(range(0,total_aligned)))
                 
                 # - get the index of the rows in exp_data to keep (for each bout, there are range(0:51) frames. keep range(20:41) frames)
                 bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,['aligned_time']]
                 # for i in bout_time.index:
                 # # if only need day or night bouts:
                 for i in day_night_split(bout_time,'aligned_time').index:
-                    rows.extend(list(range(i*total_aligned+int(idxRANGE[0]*FRAME_RATE/40),i*total_aligned+int(idxRANGE[1]*FRAME_RATE/40))))
+                    rows.extend(list(range(i*total_aligned+round_half_up(idxRANGE[0]*FRAME_RATE/40),i*total_aligned+round_half_up(idxRANGE[1]*FRAME_RATE/40))))
                 exp_data = exp_data.assign(expNum = expNum)
                 trunc_day_exp_data = exp_data.loc[rows,:]
                 time_labels = ['1start',

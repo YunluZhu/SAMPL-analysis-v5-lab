@@ -5,7 +5,8 @@ finer pitch interval
 #%%
 # import sys
 import os
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -68,7 +69,7 @@ all_feature_UD = all_feature_cond.assign(
     speed_bins = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1)),
 )
 if all_feature_UD.groupby(['speed_bins','condition']).size().min() < 20:
-    spd_bins = np.arange(spd_bins.min(),spd_bins.max(),int(np.mean(np.diff(spd_bins))))
+    spd_bins = np.arange(spd_bins.min(),spd_bins.max(),round_half_up(np.mean(np.diff(spd_bins))))
     all_feature_UD['speed_bins'] = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1))
 
 all_feature_UD = all_feature_UD.dropna().reset_index(drop=True)
@@ -145,7 +146,7 @@ for i in ['try1','try2','try3']:
         cond = row['condition']
         sel_bouts = all_feature_UD.loc[
             (all_feature_UD['initial_bins']==which_bin) & (all_feature_UD['condition']==cond)
-            ].sample(n=int(count))
+            ].sample(n=round_half_up(count))
         artificial_df = pd.concat(
             [artificial_df,sel_bouts]
         )

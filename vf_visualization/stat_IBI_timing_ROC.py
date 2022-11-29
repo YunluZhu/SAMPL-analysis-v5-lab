@@ -13,14 +13,15 @@ Sampled? Yes - ONE sample number for day and night
 
 #%%
 import os
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
 from astropy.stats import jackknife_resampling
 from scipy.stats import ttest_rel
 from scipy.optimize import curve_fit
-from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
+# from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 from plot_functions.get_data_dir import (get_data_dir,get_figure_dir)
 from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_split)
 from plot_functions.plt_stats import calc_ROC
@@ -145,7 +146,7 @@ jackknifed_coef['sensitivity'] = jackknifed_coef['sensitivity']*1000
 
         
 # %%
-TPR_list, FPR_list, auc = calc_ROC(jackknifed_coef,'sensitivity',cond2_all[0],'left')  # left = cond is expected to be smaller than ctrl
+FPR_list, TPR_list, auc = calc_ROC(jackknifed_coef,'sensitivity',cond2_all[0], 'decrease')  # left = cond is expected to be smaller than ctrl
 # TPR_list, FPR_list, auc = calc_ROC(jackknifed_coef,'x intersect',cond2_all[0],'right') 
 # %%
 fig, ax = plt.subplots(1,1, figsize=(3,3))

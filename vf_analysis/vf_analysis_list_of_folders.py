@@ -19,16 +19,20 @@ list_of_root_folders = [
     # ("/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF_LD_combined_7-9only_100mb-plus-singlefish", 166), # Tau SF combined
         # ("/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF_LD_combined_7-9only_100mb-plus-singlefish/ld_tau", 166)
     # ("/Volumes/LabData/VF_data_in_use/NefmaV4/Tau background/_analyzed", 166),              # Tau bkg
-    ('/Volumes/LabData/VF_data_in_use/40hz_data/LesionV4',40),                              # VS lesion
+    # ('/Volumes/LabData/VF_data_in_use/40hz_data/LesionV4',40),                              # VS lesion
     
     # ("/Volumes/LabData/VF_KRH_blind/reorganized", 40),               # blind - KRH
     
     # ("/Volumes/LabData/VF_data_in_use/LateralLineHairCell/HC_highFR/HC_organized 220429", 166),   # Hair cell
     
     # dataset used in method paper
-    # ("/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/WT_DD_7dpf", 166),  # wt
+    ("/Volumes/LabData/manuscript data/2022-09 VF method v2/behavior data/DD_7dpf_combined/7dd_bkgcombined", 166),  # 7dd combined
+    ("/Volumes/LabData/manuscript data/2022-09 VF method v2/behavior data/DD_7dpf_bkg", 166), # 7dd bkg
+    ("/Volumes/LabData/manuscript data/2022-09 VF method v2/behavior data/DD_4_7_14_dpf", 166), # 4-7-14 dpf
     # ("/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/TAN_lesion", 40),   # tan
     # ("/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/otog", 166),        # otog
+    ("/Volumes/LabData/manuscript data/2022-09 VF method v2/behavior data/DD_finless", 166), # 7dd finless
+    
 ]
 
 for (root, fr) in list_of_root_folders:

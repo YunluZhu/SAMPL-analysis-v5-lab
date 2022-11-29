@@ -1,7 +1,8 @@
 #%%
 # import sys
 import os
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -20,8 +21,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-# Select data and create figure folder
-pick_data = 'tau_long'
+pick_data = '7dd_all'
 which_ztime = 'day'
 root, FRAME_RATE = get_data_dir(pick_data)
 

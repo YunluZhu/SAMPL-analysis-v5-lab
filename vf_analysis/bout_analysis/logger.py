@@ -1,6 +1,8 @@
 import logging
 
 def log_vf_ana(log_name):
+    """log analysis results
+    """
     logger = logging.getLogger(f'{log_name}')
     logger.setLevel(logging.INFO)
     if not len(logger.handlers):

@@ -7,11 +7,21 @@ analyzeFreeVerticalGrouped2.m by DEE 1.30.2015
 '''
 
 import pandas as pd
+from plot_functions.plt_tools import round_half_up
 import numpy as np
 from scipy.signal import savgol_filter
 
 
 def read_dlm(i, filename):
+    """Read .dlm files into a DataFrame
+
+    Args:
+        i (int): index of the file in the folder
+        filename (string): directory of the .dlm file
+
+    Returns:
+        DataFrame: 
+    """
     # read_dlm takes file index: i, and the file name end with .dlm
     col_names = ['time','fishNum','ang','absx','absy','absHeadx','absHeady','col7','epochNum','fishLen']
     try:

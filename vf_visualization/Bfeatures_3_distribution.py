@@ -9,7 +9,8 @@ If there are specific features you're interested in, just change the x and y in 
 #%%
 # import sys
 import os
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -26,7 +27,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'wt_fin'
+pick_data = 'SD_LL'
 which_ztime = 'day'
 root, FRAME_RATE = get_data_dir(pick_data)
 
@@ -102,7 +103,7 @@ plt.savefig(fig_dir+f"/{feature_to_plt} distribution.pdf",format='PDF')
 
 # %% kde, separate up dn
 toplt = all_feature_UD
-feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','bout_traj']
+feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','traj_peak']
 
 for feature in feature_to_plt:
     g = sns.FacetGrid(data=toplt,
@@ -114,7 +115,7 @@ for feature in feature_to_plt:
     plt.savefig(fig_dir+f"/{feature} distribution.pdf",format='PDF')
 
 toplt = all_feature_UD
-feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','bout_traj']
+feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','traj_peak']
 # %%
 # IBI duration
 toplt = all_feature_UD
@@ -147,7 +148,7 @@ plt.savefig(fig_dir+f"/propBoutIEI_pitch distribution.pdf",format='PDF')
 # %%
 #mean
 toplt = all_feature_UD
-feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','bout_traj']
+feature_to_plt = ['rot_late_accel','pitch_peak','pitch_initial','rot_l_decel','atk_ang','traj_peak']
 
 for feature in feature_to_plt:
     g = sns.catplot(data=toplt,
@@ -174,12 +175,12 @@ for feature in feature_to_plt:
 #        'angvel_prep_phase', 'pitch_prep_phase', 'angvel_post_phase',
 #        'rot_total', 'rot_pre_bout', 'rot_l_accel', 'rot_l_decel',
 #        'rot_early_accel', 'rot_late_accel', 'rot_early_decel',
-#        'rot_late_decel', 'bout_traj', 'atk_ang', 'tsp_pre', 'tsp_peak',
+#        'rot_late_decel', 'traj_peak', 'atk_ang', 'tsp_pre', 'tsp_peak',
 #        'angvel_chg',
 toplt = all_feature_UD
 
 # toplt = toplt.loc[(toplt['rot_pre_bout']>-2) & (toplt['rot_pre_bout']<1),:]
-xname = 'bout_traj'
+xname = 'traj_peak'
 yname = 'atk_ang'
 if len(toplt) > 10000:
     toplt = toplt.sample(n=10000)
@@ -349,6 +350,25 @@ g.add_legend()
 
 plt.savefig(fig_dir+"/angvel_post_phase v pitch_end fit.pdf",format='PDF')
 
+# %% try fit
+toplt = all_feature_UD
+
+p = sns.FacetGrid(
+    data = toplt,
+    col='dpf',col_order=all_cond1,
+    hue='condition',
+)
+p.map(sns.regplot,"angvel_initial_phase", "angvel_chg",
+      x_bins=8,
+      ci=95,
+
+      scatter_kws={"s": 10,},
+      )
+p.set(ylim=(0,10),
+      xlim=(-10,0))
+g.add_legend()
+
+plt.savefig(fig_dir+"/angvel_chg v angvel_initial_phase fit.pdf",format='PDF')
 
 
 
@@ -370,10 +390,10 @@ plt.savefig(fig_dir+"/atk_ang v rot_pre_bout _speed filtered.pdf",format='PDF')
 # %%
 toplt = all_feature_cond
 g = sns.displot(data=toplt,
-                x='pitch_prep_phase',y='angvel_prep_phase',
+                x='pitch_end',y='angvel_post_phase',
                 col="dpf", row="condition",col_order=all_cond1,hue='condition')
-g.set(xlim=(-15, 30),ylim=(-10,10))
-plt.savefig(fig_dir+"/angvel_prep_phase v pitch_prep_phase.pdf",format='PDF')
+# g.set(xlim=(-15, 30),ylim=(-10,10))
+plt.savefig(fig_dir+"/pitch_end v angvel_post_phase.pdf",format='PDF')
 
 # %%
 toplt = all_feature_cond
@@ -392,18 +412,50 @@ toplt = all_ibi_cond
 g = sns.displot(data=toplt,
                 x='propBoutIEI_pitch',y='propBoutIEI_angVel',
                 col="dpf", row="condition",col_order=all_cond1,hue='condition')
-g.set(xlim=(-15, 30),ylim=(-10,10))
+# g.set(xlim=(-15, 30),ylim=(-10,10))
 # %%
 # IBI frequency
 toplt = all_ibi_cond
 g = sns.displot(data=toplt,
                 x='propBoutIEI_pitch',y='y_boutFreq',
                 col="dpf", row="condition",col_order=all_cond1,hue='condition')
-g.set(xlim=(-20, 40),ylim=(0,4))
+# g.set(xlim=(-20, 40),ylim=(0,4))
 plt.savefig(fig_dir+"/IEI freq pitch.pdf",format='PDF')
 
 # %%
+# 3D navigation
+spd_bins = np.arange(5,25,4)
 
+toplt = all_feature_cond.assign(
+    speed_bins = pd.cut(all_feature_cond['spd_peak'],bins=spd_bins,labels=np.arange(len(spd_bins)-1))
+)
+# %%
+g = sns.lmplot(
+    data = toplt,
+    col = 'condition',
+    hue = 'speed_bins',
+    x = 'depth_chg',
+    y = 'pitch_peak',
+    height=3,
+    x_bins=8,
+)
+g.set(xlim=(-1,2),
+      ylim=(-20,40))
+plt.savefig(fig_dir+"/pitch_peak vs depth_chg.pdf",format='PDF')
+
+p = sns.lmplot(
+    data = toplt,
+    col = 'condition',
+    hue = 'speed_bins',
+    x = 'depth_chg',
+    y = 'atk_ang',
+    height=3,
+    x_bins=8,
+)
+p.set(xlim=(-1,2),
+      ylim=(-20,30))
+plt.savefig(fig_dir+"/atk_ang vs depth_chg.pdf",format='PDF')
+# %%
 #---
 #   # %%
 # # angvel percent recover
@@ -476,3 +528,5 @@ plt.savefig(fig_dir+"/IEI freq pitch.pdf",format='PDF')
 # g.set(ylim=(-75,75),xlim=(-5,10))
 
 # plt.savefig(fig_dir+"/atk_ang v rot_pre_bout _speed filtered.pdf",format='PDF')
+
+# %%

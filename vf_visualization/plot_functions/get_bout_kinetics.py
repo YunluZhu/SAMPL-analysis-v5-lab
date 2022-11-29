@@ -1,5 +1,6 @@
 import os,glob
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 from plot_functions.plt_tools import day_night_split
 from plot_functions.get_index import get_index
@@ -62,6 +63,16 @@ def get_kinetics(df):
     corr_rot_preBout_decel = pearsonr(x=df['rot_pre_bout'],
                             y=df['rot_l_decel'])
     
+    y_posture_corr = pearsonr(x=df['pitch_peak'],
+                                y=df['depth_chg'])
+    x_posture_corr = pearsonr(x=df['pitch_peak'],
+                            y=df['x_chg'])
+
+    y_posture_fit = np.polyfit(x=df['pitch_peak'], y=df['depth_chg'], deg=1)
+    x_posture_fit = np.polyfit(x=df['pitch_peak'], y=df['x_chg'], deg=1)
+
+    angvel_fit = np.polyfit(x=df['angvel_initial_phase'], y=df['angvel_chg'], deg=1)
+
     # sigmoid fit
     # righting_coef, righting_x_intersect, sigma = sigmoid_fit2(
     #         df['pitch_pre_bout'],
@@ -80,10 +91,16 @@ def get_kinetics(df):
         'set_point':-set_point_ori[1]/set_point_ori[0],
         # 'sig_righting_gain': sig_righting_gain,
         # 'sig_set_point': righting_x_intersect,
+        'y_posture_corr': y_posture_corr[0],
+        'x_posture_corr': x_posture_corr[0],
+        'y_efficacy': y_posture_fit[0],
+        'x_efficacy': x_posture_fit[0],
+        
+        'angvel_gain': angvel_fit[1],
     })
     return kinetics
 
-def get_set_point(df):
+def get_set_poround_half_up(df):
     righting_fit = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_l_decel'], deg=1)
     # steering_fit = np.polyfit(x=df['pitch_peak'], y=df['traj_peak'], deg=1)
     kinetics = pd.Series(data={
@@ -132,10 +149,10 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
     peak_idx , total_aligned = get_index(FRAME_RATE)
     T_start = -0.3
     T_end = 0.25
-    idx_start = int(peak_idx + T_start * FRAME_RATE)
-    idx_end = int(peak_idx + T_end * FRAME_RATE)
+    idx_start = round_half_up(peak_idx + T_start * FRAME_RATE)
+    idx_end = round_half_up(peak_idx + T_end * FRAME_RATE)
     idxRANGE = [idx_start,idx_end]
-    spd_bins = np.arange(5,25,4)  
+ 
     # spd_bins = np.arange(3,18,3)  # warning, temp change
     # spd_bins = [3.5,5.5,7,10,100]
     TSP_THRESHOLD = [-np.Inf,-50,50,np.Inf]
@@ -181,14 +198,14 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
                     exp_data = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout_aligned')#.loc[:,['propBoutAligned_angVel','propBoutAligned_speed','propBoutAligned_accel','propBoutAligned_heading','propBoutAligned_pitch']]
                     exp_data = exp_data.assign(ang_speed=exp_data['propBoutAligned_angVel'].abs())
                     # assign frame number, total_aligned frames per bout
-                    exp_data = exp_data.assign(idx=int(len(exp_data)/total_aligned)*list(range(0,total_aligned)))
+                    exp_data = exp_data.assign(idx=round_half_up(len(exp_data)/total_aligned)*list(range(0,total_aligned)))
 
                     # - get the index of the rows in exp_data to keep (for each bout, there are range(0:51) frames. keep range(20:41) frames)
                     bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,'aligned_time']
                     
                     # truncate first, just incase some aligned bouts aren't complete
                     for i in bout_time.index:
-                        rows.extend(list(range(i*total_aligned+int(idxRANGE[0]),i*total_aligned+int(idxRANGE[1]))))
+                        rows.extend(list(range(i*total_aligned+round_half_up(idxRANGE[0]),i*total_aligned+round_half_up(idxRANGE[1]))))
                     
                     # assign bout numbers
                     trunc_exp_data = exp_data.loc[rows,:]
@@ -236,7 +253,9 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
     all_cond1.sort()
     all_cond2 = list(set(all_cond2))
     all_cond2.sort()
-    
+    spd_upper = np.percentile(all_feature_cond['spd_peak'],98)
+    spd_lower = np.percentile(all_feature_cond['spd_peak'],2)
+    spd_bins = np.arange(spd_lower,spd_upper,(spd_upper-spd_lower)/5) 
     all_feature_cond = all_feature_cond.assign(
         # direction = pd.cut(all_feature_cond['pitch_initial'],[-90,10,90],labels=['DN','UP']),
         speed_bins = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1)),

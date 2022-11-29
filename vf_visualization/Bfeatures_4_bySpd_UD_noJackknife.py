@@ -11,7 +11,8 @@ jackknifed? Yes, but not calculated properly
 # import sys
 import os,glob
 # import time
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -34,7 +35,7 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'for_paper'
+pick_data = 'wt_daylight'
 root, FRAME_RATE = get_data_dir(pick_data)
 spd_bins = np.arange(5,25,4)
 

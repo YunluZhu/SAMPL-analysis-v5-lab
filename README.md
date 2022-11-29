@@ -145,8 +145,8 @@ All the extracted swim bouts under `bout_data.h5` are aligned at the time of the
     - `Bfeatures_4_byPitch_UD_noJackknife.py` calculates binned average features by pitch and plot the mean as a function of pitch.
     - `Bfeatures_4_by....py`. Similarly, all other plot-by-feature scripts plot binned average of one feature against another.
 3. Plot bout kinetics
-    - `Bkinetics_fin_body_coor_ztime.py` plot fin-body coordination.
-    - `Bkinetics_ztime.py` plot bout kinetics.
+    - `Bkinetics_2_fin_body_coor_ztime.py` plot fin-body coordination.
+    - `Bkinetics_1_ztime.py` plot bout kinetics.
     - `Bkinetics_sigmoidRightingFit.py` plot righting fit in an x/y axis swapped manner and fit with a sigmoid. Compared to the original righting fit, this fit is more robust and displays the raw data
     - `IBI_pitch_mean_ztime.py` plot pitch distribution and its std() during inter bout interval (IBI).
     - `IBI_timing_ztime.py` plot bout frequency (reverse of IBI duration) as a function of pitch and fits it with a parabola.

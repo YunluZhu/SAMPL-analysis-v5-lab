@@ -11,7 +11,8 @@ jackknifed? No
 #%%
 # import sys
 import os
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -174,8 +175,8 @@ for i in ['try1','try2','try3']:
     artificial_df = pd.DataFrame()
     for idx, row in up_percent.iterrows():
         this_df = pd.concat([
-            up_bouts.sample(n=int(artificial_bout_per_spd * row['percent'])),
-            down_bouts.sample(n=int(artificial_bout_per_spd * (1-row['percent']))),
+            up_bouts.sample(n=round_half_up(artificial_bout_per_spd * row['percent'])),
+            down_bouts.sample(n=round_half_up(artificial_bout_per_spd * (1-row['percent']))),
             ])
         this_df = this_df.assign(speed_bins = row['speed_bins'])
         artificial_df = pd.concat(
@@ -268,7 +269,7 @@ for i in ['try1','try2','try3']:
         this_df = row['count']
         sel_bouts = toplt_07dpf.loc[
             (toplt_07dpf['pre_bout_bins']==which_bin)
-            ].sample(n=int(count))
+            ].sample(n=round_half_up(count))
         artificial_df = pd.concat(
             [artificial_df,sel_bouts]
         )

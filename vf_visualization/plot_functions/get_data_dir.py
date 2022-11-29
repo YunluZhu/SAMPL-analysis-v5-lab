@@ -3,119 +3,31 @@ def get_figure_dir(pick_data):
     return save_figures_to
 
 def get_data_dir(pick_data):
-
-    if pick_data == '7dd_40':
-        root = "/Volumes/LabData/VF_data_in_use/40hz_data/7dd"
-        fr = 40
-    # elif pick_data == 'hets':
-    #     root = "/Volumes/LabData/VF_data_in_use/NefmaV3/7DD_hets_v3"
-    #     fr = 40
-    elif pick_data == '7ld_40':
-        root = "/Volumes/LabData/VF_data_in_use/40hz_data/7LD"
-        fr = 40
-    elif pick_data =='4dd_40':
-        root = "/Volumes/LabData/VF_data_in_use/40hz_data/4DD"
-        fr = 40
-    # elif pick_data == 'master':
-    #     root = "/Volumes/LabData/VF_data_in_use/NefmaV3/7dd_master_v3"
-    #     fr = 40
-    elif pick_data == 's':
-        root = "/Volumes/LabData/VF_data_in_use/40hz_data/STauV3"
-        fr = 40
-    elif pick_data =='hc':
-        root = '/Volumes/LabData/VF_data_in_use/VF_HairCell_V3'
-        fr = 40
-    elif pick_data == 'lesion':
-        root = "/Volumes/LabData/VF_data_in_use/40hz_data/LesionV4"
-        fr = 40
-    elif pick_data =='hc4':
-        root = '/Volumes/LabData/VF_data_in_use/LateralLineHairCell/HC_highFR/HC_organized 220429'
-        fr = 166
+    data_dic = {
+        "7d":       ["/Volumes/LabData/manuscript data/2022-11 depths exploration/behavior data/DD_07dpf",166],
+        "7dall":    ["/Volumes/LabData/manuscript data/2022-11 depths exploration/behavior data/DD_7dall",166],
+        "otog":     ["/Volumes/LabData/manuscript data/2022-11 depths exploration/behavior data/otog",166],
+        "tan":      ["/Volumes/LabData/manuscript data/2022-11 depths exploration/behavior data/TAN_lesion",40],
         
-    # tau data
-    elif pick_data =='tau_long':
-        root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Longitudinal/long_organized'
-        fr = 166
-    elif pick_data == 'tau_bkg':
-        root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Tau background/_analyzed'
-        fr = 166
-    elif pick_data == 'tau_selected':
-        root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Tau selected'
-        fr = 166
+        "lesion":   ["/Volumes/LabData/VF_data_in_use/40hz_data/LesionV4",40],
+        "hc4":      ['/Volumes/LabData/VF_data_in_use/LateralLineHairCell/HC_highFR/HC_organized 220429',166],
+        "tau_long": ['/Volumes/LabData/VF_data_in_use/NefmaV4/Longitudinal/long_organized',166],
+        "tau_bkg":  ['/Volumes/LabData/VF_data_in_use/NefmaV4/Tau background/_analyzed',166],
+        "sfld":     ['/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF quantified',166],
+        "sfld_combined":    ["/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF_LD_combined_7-9only_100mb-plus-singlefish",166],
+        "sfdd":     ["/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF DD/SF quantified",166],
         
+        "wt_daylight": ["/Volumes/LabData/VF_data_in_use/wt_daylight/organized",166],
+        "wt_fin":   ["/Volumes/LabData/VF_data_in_use/wt_daylight_finless",166],
         
-          
-    # single fish data
-    elif pick_data =='sf':
-        root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF quantified'
-        fr = 166
-    elif pick_data =='sf ana':
-        root = '/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF quantified ana'
-        fr = 166
-    elif pick_data == 'sfld_combined':
-        root = "/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF LD/SF_LD_combined_7-9only_100mb-plus-singlefish"
-        fr = 166
-    elif pick_data == 'sf DD':
-        root = "/Volumes/LabData/VF_data_in_use/NefmaV4/Single Fish/SF DD/SF quantified"
-        fr = 166
-        
-        
-    elif pick_data == 'lddd':
-        root = '/Volumes/LabData/VF_data_in_use/40hz_data/LD DD'
-        fr = 40
-        
-        
-    elif pick_data == 'wt_daylight':
-        root = '/Volumes/LabData/VF_data_in_use/wt_daylight/organized'
-        fr = 166
-    elif pick_data == 'wt_fin':
-        root = "/Volumes/LabData/VF_data_in_use/wt_daylight_finless"
-        fr = 166
-
-        
-
-    # dataset for method paper
-    # elif pick_data == 'for_paper_wt':
-    #     root = "/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/WT_DD_7dpf"
-    #     fr = 166
-    elif pick_data == 'for_paper_tan':
-        root = "/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/TAN_lesion"
-        fr = 40    
-    elif pick_data == 'for_paper_otog':
-        root = "/Volumes/LabData/manuscript data/2022-07 VF method/behavior data/partial_data_for_ana/otog"
-        fr = 166
-    elif pick_data == '7dd_bkg':
-        root = "/Volumes/LabData/manuscript data/2022-09 VF method v2/behavior data/DD_7dpf_bkg"
-        fr = 166        
-    elif pick_data == '7dd_all':
-        root = "/Volumes/LabData/manuscript data/2022-09 VF method v2/behavior data/DD_7dpf_combined"
-        fr = 166       
-    elif pick_data == 'for_paper_7ld':
-        root = '/Volumes/LabData/manuscript data/2022-09 VF method v2/behavior data/LD_7dpf_only'
-        fr = 166
-        
-        
-    elif pick_data == 'pc_lesion':
-        root = "/Volumes/LabData/VF_FA_PCLesion/YZ_code"
-        fr = 40    
-    # elif pick_data == 'tan_lesion':
-    #     root = "/Volumes/LabData/VF_FA KRH_Tan_lesion/FA"
-    #     fr = 40        
-    elif pick_data == 'tan_lesion':
-        root = "/Volumes/LabData/VF_FA KRH_Tan_lesion/reorganized"
-        fr = 40    
-    elif pick_data == 'otog':
-        root = "/Volumes/LabData/manuscript data/2022-07 VF method archived for depth paper/behavior data/partial_data_for_ana/otog"
-        fr = 166
-    elif pick_data == 'blind':
-        root = "/Volumes/LabData/VF_KRH_blind/reorganized"
-        fr = 40    
-    elif pick_data == '14LD_fin':
-        root = '/Volumes/LabData/VF_FA_finAmp_14'
-        fr = 166
-        
-    elif pick_data == 'tmp':
-        root = input("Dir? ")
-        fr = int(input("Frame rate? "))
-        
+        "KDmut":    ["/Volumes/LabData/VF_KD/raw data/YZ_reorg",40],
+        "SD_LL":    ['/Volumes/T7_SD/LateralLine_project/Data/vf_data/LL_organized_byGroup',166],
+ 
+    }
+    if pick_data == 'tmp':
+        root = input("directory: ")
+        fr = int(input("frame rate: "))
+    else: 
+        root = data_dic[pick_data][0]
+        fr = data_dic[pick_data][1]
     return root, fr

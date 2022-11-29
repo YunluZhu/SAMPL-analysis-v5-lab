@@ -4,15 +4,30 @@ import pandas as pd
 import numpy as np
 from scipy.stats import linregress
 import matplotlib.pyplot as plt
+from decimal import Decimal
+import decimal
+
+def round_half_up(var):
+    """round half up
+
+    Args:
+        var (string or float): value to round to int
+
+    Returns:
+        int: rounded int
+    """
+    res = int(Decimal(var).quantize(Decimal('0'), rounding=decimal.ROUND_HALF_UP))
+    return res
 
 def set_font_type():
     mpl.rcParams['pdf.fonttype'] = 42
-    
+    mpl.rcParams['savefig.bbox'] = 'tight' 
+
 def defaultPlotting(**kwargs):
     font_size = 12
     for key, value in kwargs.items():
         if key == 'size':
-            font_size = int(value)
+            font_size = round_half_up(value)
     sns.set(rc={"xtick.labelsize":font_size,"ytick.labelsize":font_size, "axes.labelsize":font_size},style="ticks")
 
 def jackknife_list(ori_list):

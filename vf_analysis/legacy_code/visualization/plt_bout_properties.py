@@ -9,7 +9,8 @@ Conditions are soft-coded.
 import sys
 import os,glob
 import time
-import pandas as pd # pandas library
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -66,7 +67,7 @@ def bout_properties(root):
                     exp_data = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout_aligned')#.loc[:,['propBoutAligned_angVel','propBoutAligned_speed','propBoutAligned_accel','propBoutAligned_heading','propBoutAligned_pitch']]
                     exp_data = exp_data.assign(ang_speed=exp_data['propBoutAligned_angVel'].abs())
                     # assign frame number, 51 frames per bout
-                    exp_data = exp_data.assign(idx=int(len(exp_data)/51)*list(range(0,51)))
+                    exp_data = exp_data.assign(idx=round_half_up(len(exp_data)/51)*list(range(0,51)))
                     
                     # - get the index of the rows in exp_data to keep (for each bout, there are range(0:51) frames. keep range(20:41) frames)
                     bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,['aligned_time']]

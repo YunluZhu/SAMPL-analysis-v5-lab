@@ -7,20 +7,13 @@ Plot IEIpitch as a function of number of IEI acquired
 
 #%%
 import sys
-import os,glob
-import time
-import pandas as pd # pandas library
+import os
+
+import pandas as pd
+from plot_functions.plt_tools import round_half_up 
 import numpy as np # numpy
 import seaborn as sns
 import matplotlib.pyplot as plt
-# from astropy.stats import jackknife_resampling
-# from astropy.stats import jackknife_stats
-# from collections import defaultdict
-# from datetime import datetime
-# from datetime import timedelta
-# import math
-# from scipy.stats import ttest_rel
-# from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 current = os.path.dirname(os.path.realpath(__file__))
 parent = os.path.dirname(current)
 sys.path.append(parent)
@@ -53,8 +46,8 @@ POSTURE_SEP = 10 #deg
 MIN_DATA_SIZE = 60
 HIGH_DATA_SIZE = 200
 HIGH_IEI_SIZE = 100
-time50ms = int(0.05 * FRAME_RATE)
-time100ms = int(0.1 * FRAME_RATE)
+time50ms = round_half_up(0.05 * FRAME_RATE)
+time100ms = round_half_up(0.1 * FRAME_RATE)
 
 # %%
 def defaultPlotting(): 
@@ -104,7 +97,7 @@ assert len(folder_paths) == len(metadata_files)
 # go through each condition folders under the root
 for fish_idx, folder in enumerate(folder_paths):
     # get IEI pitch
-    this_fish_id = int(os.path.basename(folder))
+    this_fish_id = round_half_up(os.path.basename(folder))
     clutch_id = this_fish_id//100
     df = pd.read_hdf(f"{folder}/IEI_data.h5", key='prop_bout_IEI2')
     df = day_night_split(df,'propBoutIEItime',)
@@ -121,7 +114,7 @@ for fish_idx, folder in enumerate(folder_paths):
         # get other bout features
         angles = pd.read_hdf(f"{folder}/bout_data.h5", key='prop_bout_aligned')
         angles = angles.assign(
-            idx=int(len(angles)/total_aligned)*list(range(0,total_aligned)),
+            idx=round_half_up(len(angles)/total_aligned)*list(range(0,total_aligned)),
             bout_num = list(np.arange(len(angles))//total_aligned),
             )
         this_exp_features = extract_bout_features_v4(angles, peak_idx,FRAME_RATE)
