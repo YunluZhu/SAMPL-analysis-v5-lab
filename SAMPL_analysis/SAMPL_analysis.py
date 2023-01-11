@@ -44,7 +44,7 @@ def SAMPL_analysis(root,frame_rate, if_epoch_data=False):
         filenames = glob.glob(os.path.join(root,"*.dlm"))
         if filenames:  # if dlm under root, process them
             print(f"\n\n- In {root}")
-            grab_fish_angle_v5.run(filenames, root, frame_rate)
+            grab_fish_angle_v5.run(filenames, root, frame_rate, if_epoch_data)
             pbar.update(len(filenames)) # update progress bar after processing dlm in the current folder
 
         for path, dir_list, file_list in all_folders: # look for dlm in all subfolders
@@ -73,7 +73,6 @@ if __name__ == "__main__":
     if confirm == 'y':
         SAMPL_analysis(root_dir, frame_rate, if_epoch_data=True)
     elif confirm == 'n':
-        if_epoch_data = 0
         SAMPL_analysis(root_dir, frame_rate, if_epoch_data=False)
     else:
         pass

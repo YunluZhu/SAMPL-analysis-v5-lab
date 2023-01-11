@@ -1056,7 +1056,9 @@ def run(filenames, folder, frame_rate:int, if_epoch_data:bool):
         epoch_attributes.to_hdf(f'{output_dir}/all_data.h5', key='epoch_attributes', format='table')
         heading_matched.to_hdf(f'{output_dir}/all_data.h5', key='heading_matched', format='table')
         epoch_pitch_heading_RMS.to_hdf(f'{output_dir}/all_data.h5', key='epoch_pitch_heading_RMS', format='table')
-    
+    else:
+        pd.DataFrame().to_hdf(f'{output_dir}/all_data.h5', key='grabbed_all', mode='w', format='table')
+        
     bout_attributes.to_hdf(f'{output_dir}/bout_data.h5', key='bout_attributes', mode='w', format='table')
     prop_bout_aligned.to_hdf(f'{output_dir}/bout_data.h5', key='prop_bout_aligned', format='table')
     prop_bout2.to_hdf(f'{output_dir}/bout_data.h5', key='prop_bout2', format='table')
