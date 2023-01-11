@@ -123,10 +123,11 @@ To analyze data generated using the free-swimming apparatus:
 
 1. Run `SAMPL_analysis/SAMPL_analysis....py`.
 2. Follow the instruction and input the root path that contains data files (.dlm) and corresponding metadata files (.ini). Data can be directly under the root directory or under subfolders within the root directory. See notes for details.
-3. Follow the instruction and input the frame rate (in integer). See notes for details.
+3. Follow the instruction and input the frame rate (in integer), and decide whether to save all epoch data that passes quality control (y/n). See notes for details.
 4. The program will go through every data file in each subfolder (if there is any) and extract swim attributes.
 
-When finished, there will be three hdf5 files (.h5) under each directory that contains data file(s) together with catalog files that explains the parameters extracted. A copy of catalog files can be found under `docs`.
+When finished, there will be two (or three, if you save all epoch data) hdf5 files (.h5) under each directory that contains data file(s) together with catalog files that explains the parameters extracted. A copy of catalog files can be found under `docs`.
+Saving epoch data significantly increases file size. It is recommended not to do so for most of the datasets and only re-analyze those that you need epoch data.
 
 All the extracted swim bouts under `bout_data.h5` are aligned at the time of the peak speed. Each aligned bout contains swim parameters from 500 ms before to 300 ms after the time of the peak speed.
 
