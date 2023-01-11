@@ -21,7 +21,7 @@ from bout_analysis.logger import log_SAMPL_ana
 
 from tqdm import tqdm
 
-def SAMPL_analysis(root,frame_rate):
+def SAMPL_analysis(root,frame_rate, if_epoch_data=False):
     """Analyze behavior data. Extract bouts. Align bouts.
 
     Args:
@@ -56,7 +56,7 @@ def SAMPL_analysis(root,frame_rate):
                 filenames = glob.glob(os.path.join(folder,"*.dlm"))
                 if filenames:
                     print(f"\n\n- In {folder}")
-                    grab_fish_angle_v5.run(filenames, folder,frame_rate)
+                    grab_fish_angle_v5.run(filenames, folder, frame_rate, if_epoch_data)
                     pbar.update(len(filenames)) # update progress bar after processing dlm in the current folder
 
 
@@ -69,12 +69,12 @@ if __name__ == "__main__":
     except ValueError:
         print("^ Not a valid number for frame rate!")
         sys.exit(1)
-    print ("- Start to extract bouts from:", root_dir)
-    confirm = input("- Proceed? (y/n): ")
-    while confirm != 'n':
-        if confirm == 'y':
-            SAMPL_analysis(root_dir, frame_rate)
-            break
-        else:
-            confirm = input("- Proceed? (y/n): ")
+    confirm = input("- Do you want to save epoch data? (y/n): ")
+    if confirm == 'y':
+        SAMPL_analysis(root_dir, frame_rate, if_epoch_data=True)
+    elif confirm == 'n':
+        if_epoch_data = 0
+        SAMPL_analysis(root_dir, frame_rate, if_epoch_data=False)
+    else:
+        pass
     print("--- Analysis ended ---")

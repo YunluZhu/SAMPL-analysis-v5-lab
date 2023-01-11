@@ -931,13 +931,14 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
 
     return output
 
-def run(filenames, folder, frame_rate):
+def run(filenames, folder, frame_rate:int, if_epoch_data:bool):
     """    Loop through all .dlm, run analyze_dlm() and grab_fish_angle() functions. Concatinate results from different .dlm files
 
     Args:
         filenames (string): a .dlm file directory
         folder (string): root directory
         frame_rate (int): frame rate
+        if_epoch_data (bool): whether to save epoch data
     """
     
     logger = log_SAMPL_ana('SAMPL_ana_log')
@@ -1049,8 +1050,13 @@ def run(filenames, folder, frame_rate):
     total_bouts_aligned = metadata_from_bouts['aligned_bout'].sum()
     # %%
     output_dir = folder
-    grabbed_all.to_hdf(f'{output_dir}/all_data.h5', key='grabbed_all', mode='w', format='table')
-    baseline_angVel.to_hdf(f'{output_dir}/all_data.h5', key='baseline_angVel', format='table')
+    if if_epoch_data:
+        grabbed_all.to_hdf(f'{output_dir}/all_data.h5', key='grabbed_all', mode='w', format='table')
+        baseline_angVel.to_hdf(f'{output_dir}/all_data.h5', key='baseline_angVel', format='table')
+        epoch_attributes.to_hdf(f'{output_dir}/all_data.h5', key='epoch_attributes', format='table')
+        heading_matched.to_hdf(f'{output_dir}/all_data.h5', key='heading_matched', format='table')
+        epoch_pitch_heading_RMS.to_hdf(f'{output_dir}/all_data.h5', key='epoch_pitch_heading_RMS', format='table')
+    
     bout_attributes.to_hdf(f'{output_dir}/bout_data.h5', key='bout_attributes', mode='w', format='table')
     prop_bout_aligned.to_hdf(f'{output_dir}/bout_data.h5', key='prop_bout_aligned', format='table')
     prop_bout2.to_hdf(f'{output_dir}/bout_data.h5', key='prop_bout2', format='table')
@@ -1061,9 +1067,6 @@ def run(filenames, folder, frame_rate):
     prop_bout_IEI2.to_hdf(f'{output_dir}/IEI_data.h5', key='prop_bout_IEI2', format='table')
     prop_bout_IEI_timed.to_hdf(f'{output_dir}/IEI_data.h5', key='prop_bout_IEI_timed', format='table')
     wolpert_IEI.to_hdf(f'{output_dir}/IEI_data.h5', key='wolpert_IEI', format='table')
-    epoch_attributes.to_hdf(f'{output_dir}/all_data.h5', key='epoch_attributes', format='table')
-    heading_matched.to_hdf(f'{output_dir}/all_data.h5', key='heading_matched', format='table')
-    epoch_pitch_heading_RMS.to_hdf(f'{output_dir}/all_data.h5', key='epoch_pitch_heading_RMS', format='table')
 
     # %%
     data_file_explained = pd.DataFrame.from_dict(

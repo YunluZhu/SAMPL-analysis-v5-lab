@@ -6,7 +6,7 @@
 '''
 
 # %%
-from SAMPL_analysis import SAMPL_analysis
+from SAMPL_analysis import SAMPL_analysis_with_epochs
 from bout_analysis.logger import log_SAMPL_ana
 
 # %%
@@ -29,4 +29,4 @@ list_of_root_folders = [
 
 for (root, fr) in list_of_root_folders:
     LoF_logger.info(f"Analyzed dataset: {root}")
-    SAMPL_analysis(root, fr)
+    SAMPL_analysis_with_epochs(root, fr)
