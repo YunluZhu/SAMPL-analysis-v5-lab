@@ -10,10 +10,11 @@ Run `SAMPL_analysis/SAMPL_analysis_....py` to analyze .dlm files. Then, run indi
 
 **v5.0.230111**
 
-1. Speed threshold changed to 5mm/s
+1. Speed threshold changed to 5 mm/s
 2. Fixed a bug in analysis that randomly excluds ~half of the data
 3. Increased max angular velocity threshold from 100 to 250
-*Re-analyze is highly recommended*
+
+*Re-analyze your data is highly recommended*
 
 **v4.1.220610**
 
@@ -41,6 +42,11 @@ Run `SAMPL_analysis/SAMPL_analysis_....py` to analyze .dlm files. Then, run indi
 - change condition names to cond1 and cond1 from dpf/condition
 - clean up visualization scripts
 - include option to turn off Jackknife sampling for visualization scripts
+- include new visualization for lift gain
+
+**Known issues**
+
+- analysis code can deal with .dlm with no bouts mostly. However, bout check has not been implemented to every single quality control filters, which means, though very unlikely, you may still get an error if there's no alignable bout. In another senario, if you have data that ends up giving 1 aligned bouts, analysis code will throw an error when it's trying to calculate the mean values.
 
 ## Prerequisites and tips
 
@@ -185,13 +191,12 @@ All the extracted swim bouts under `bout_data.h5` are aligned at the time of the
 | Righting rotation         | deg  | Change of pitch angle from time of the peak speed to post bout (100 ms after peak speed)  |
 | Righting gain             |      | Numeric inversion of the slope of best fitted line of righting rotation vs initial pitch  |
 | Set piont                 | deg  | x intersect of best fitted line of righting rotation vs initial pitch                     |
-|
 
 ## Guides
 
 ### On analysis
 
-1. Data analysis (running `SAMPL_analysis_by_folder_v4.py`) takes time. Since the script goes through all the subfolders under root directory, be smart with the root input. There's no need to re-analyze the dataset if the .dlm files haven't been changed. In another word, if you've added new .dlm files into an analyzed folder containing old .dlm files, make sure to re-analyze this folder.
+1. Data analysis takes time. Since the script goes through all the subfolders under root directory, be smart with the root input. There's no need to re-analyze the dataset if the .dlm files haven't been changed. In another word, if you've added new .dlm files into an analyzed folder containing old .dlm files, make sure to re-analyze this folder.
 2. Always take the .ini metadata file when moving .dlm around or generate a metadata table containing experiment info for all the .dlm files.
 
 ### On plotting
