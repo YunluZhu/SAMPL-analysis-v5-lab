@@ -11,9 +11,9 @@ Run `SAMPL_analysis/SAMPL_analysis_....py` to analyze .dlm files. Then, run indi
 **v5.0.230111**
 
 1. Speed threshold changed to 5 mm/s
-2. Fixed a bug in analysis that randomly excluds ~half of the data
+2. Fixed a bug in analysis that randomly excludes ~half of the data
 3. Increased max angular velocity threshold from 100 to 250
-4. Saving all_data.h5 is now optional
+4. Saving all_data.h5 is now optional, see section "Analyze raw data files" for details
 
 *Re-analyze your data is highly recommended*
 
@@ -77,7 +77,7 @@ Below is a list of required packages:
 
 `docs` contains a copy of catalog files generated after running `.../SAMPL_analysis/SAMPL_analysis.py`
 
-`docs/SAMPL_analysis_visualization_paper` contains complete code for the SAMPL mechod manuscript that should work out of the box.
+`docs/SAMPL_analysis_visualization_paper` contains complete code for the SAMPL method manuscript that should work out of the box.
 
 `SAMPL_analysis` folder contains all the scripts for data analysis.
 
@@ -89,7 +89,7 @@ Below is a list of required packages:
 
 1. Organize .dlm files. Each folder with .dlm files will be recognized as one "experiment (exp)" during jackknife analysis. Therefore, if you want to combine all data from a certain clutch, put them into the same folder. See below for a sample structure. For the folders representing experimental conditions, 2 conditions separated by "_" are taken as inputs. e.g. `cond1_cond1`. For consistency, it is recommended to use `cond1` for the age of the fish and/or light-dark condition and mark the experimental condition using `cond1`.
 2. However, for the analysis code to work, your data doesn't have to be in this structure. `SAMPL_analysis/SAMPL_analysis....py` looks for all .dlm under the directory and subfolders in the directory the user specifies. Therefore, it can be used to analyze data generated from a single experiment by giving it (in the example below) `root/7dd_ctrl/200607 ***` as the root directory. Again, all .dlm files under the same folder will be combined for analysis, if you want to treat them as different "conditions", move them into different parent folders and name the parent folders as described above.
-3. It is recommended to wirte an arrangement code that reads metadata files (.ini) and organizes your .dlm data instead of moving files manually. See `SAMPL_dataARR` for some sample scripts.
+3. It is recommended to write an arrangement code that reads metadata files (.ini) and organizes your .dlm data instead of moving files manually. See `SAMPL_dataARR` for some sample scripts.
 4. For Jackknife resampling to work properly, make sure the exp folders under each conditions can be sorted in the same alphabetical order. In the example below, (if intended to compare against each other,) experiment folders in `7dd_ctrl` correspond with those under `7dd_condition`. Folder names for experiment folders under each conditions don't need to be the same but should be in the same alphabetical order. If multiple repeats (experiment folders) are generated in a single day, one may name the experiment folders as `exp1`, `exp2` etc.
 
 ```bash
@@ -123,12 +123,10 @@ To analyze data generated using the free-swimming apparatus:
 
 1. Run `SAMPL_analysis/SAMPL_analysis....py`.
 2. Follow the instruction and input the root path that contains data files (.dlm) and corresponding metadata files (.ini). Data can be directly under the root directory or under subfolders within the root directory. See notes for details.
-3. Follow the instruction and input the frame rate (in integer), and decide whether to save all epoch data that passes quality control (y/n). See notes for details.
+3. Follow the instruction and input the frame rate (in integer), and decide whether to save "epoch data that passes quality control" (y/n). If yes, epoch data will be saved to `all_data.h5`; if no, an empty `all_data.h5` will be generated. See notes for details.
 4. The program will go through every data file in each subfolder (if there is any) and extract swim attributes.
 
 When finished, there will be three hdf5 files (.h5) under each directory that contains data file(s) together with catalog files that explains the parameters extracted. A copy of catalog files can be found under `docs`.
-If saving epoch data is disabled, an EMPTY all_data.h5 will be saved (or overwrite previously generated all_data.h5). Saving epoch data significantly increases file size. It is recommended not to do so for most of the datasets and only re-analyze those that you need epoch data.
-
 All the extracted swim bouts under `bout_data.h5` are aligned at the time of the peak speed. Each aligned bout contains swim parameters from 500 ms before to 300 ms after the time of the peak speed.
 
 **Notes** on data analysis
@@ -136,10 +134,11 @@ All the extracted swim bouts under `bout_data.h5` are aligned at the time of the
 - All the .dlm data files under the same directory will be combined for bout extraction. To analyze data separately, please move data files (.dlm) and corresponding metadata files (.ini) into subfolders under the root path.
 - Analysis program will stop if it fails to detect any swim bout in a data file (.dlm). To avoid this, please make sure all data files to be analyzed are reasonably large so that it contains at least one swim bout. Generally, we found > 10 MB being a good criteria.
 - Please input the correct frame rate as this affects calculation of parameters. This program only accepts one frame rate number for each run. Therefore, all data files under the root path need to be acquired under the same frame rate.
+- If saving epoch data is disabled, an EMPTY all_data.h5 will be saved (or will overwrite previously generated all_data.h5). This is designed to ensure all analyzed files are generated from the same ver. of the script. Saving epoch data significantly increases file size. It is recommended not to do so for most of the datasets and only re-analyze those that you need epoch data.
 
 ### Make figures
 
-1. **IMPORTANT** update `SAMPL_visualization/plot_functions/get_data_dir.py` to specify the names of your datasets and the directory of it. `get_data_dir(pick_data)` is called by every *visualization script*. Therefore, instead of typing directories for different datasets to plot everytime, specifying the name of your dataset in *visualization scripts* `pick_data = '<NAME OF YOUR DATASET>'` tells the script which data to plot. Also update the `get_figure_dir()` function in `get_data_dir.py`. This should be the root folder to save all plotted figures. Subfolders named by the name of your datadsets (input to `pick_data`) will be created under your `get_figure_dir(pick_data)` directory.
+1. **IMPORTANT** update `SAMPL_visualization/plot_functions/get_data_dir.py` to specify the names of your datasets and the directory of it. `get_data_dir(pick_data)` is called by every *visualization script*. Therefore, instead of typing directories for different datasets to plot every time, specifying the name of your dataset in *visualization scripts* `pick_data = '<NAME OF YOUR DATASET>'` tells the script which data to plot. Also update the `get_figure_dir()` function in `get_data_dir.py`. This should be the root folder to save all plotted figures. Subfolders named by the name of your datadsets (input to `pick_data`) will be created under your `get_figure_dir(pick_data)` directory.
 2. Run individual scripts under `SAMPL_visualization/`.
     - each visualization script takes a root directory including all analyzed data, which should be same as the one fed to the analysis code. Visualization scripts calls `get_data_dir.py` to look for data directories.
     - all visualization scripts get experimental conditions and age info from folder names
@@ -149,7 +148,7 @@ All the extracted swim bouts under `bout_data.h5` are aligned at the time of the
 
 1. Plot bout time series data
     - `Btimeseries_1_bySpdUD.py` plot bout features as a function of time (time series). Bouts are segmented by peak swim speed & separated by pitch up vs down.
-    - `Btimeseries_2_pearsonr_angvel.py` plot Pearson correlation coefficient of angular velocity at each time point agains pre_bout pitch or initial pitch.
+    - `Btimeseries_2_pearsonr_angvel.py` plot Pearson correlation coefficient of angular velocity at each time point against pre_bout pitch or initial pitch.
     - `Etimeseries_single_epoch.py` plot features vs time of a single epoch containing one or multiple bouts
 2. Plot bout features
     - `Bfeatures_1_features.py` plot individual bout features.
@@ -172,7 +171,7 @@ All the extracted swim bouts under `bout_data.h5` are aligned at the time of the
 
 | Parameters                | Unit | Definition                                                                                |
 | ------------------------- | ---- | ----------------------------------------------------------------------------------------- |
-| Pitch angle               | deg  | Angle of the fish on the pitch axis relative to horizonal                                 |
+| Pitch angle               | deg  | Angle of the fish on the pitch axis relative to horizontal                                 |
 | Peak speed                | mm/s | Peak speed of swim bouts                                                                  |
 | Initial pitch             | deg  | Pitch angle at 250 ms before the peak speed (-250 ms)                                     |
 | Post-bout pitch           | deg  | Pitch angle at 100 ms after the peak speed (-100 ms)                                      |
@@ -192,7 +191,7 @@ All the extracted swim bouts under `bout_data.h5` are aligned at the time of the
 | Fin-body ratio            |      | Maximal slope of best fitted sigmoid of attack angle vs early rotation                    |
 | Righting rotation         | deg  | Change of pitch angle from time of the peak speed to post bout (100 ms after peak speed)  |
 | Righting gain             |      | Numeric inversion of the slope of best fitted line of righting rotation vs initial pitch  |
-| Set piont                 | deg  | x intersect of best fitted line of righting rotation vs initial pitch                     |
+| Set point                 | deg  | x intersect of best fitted line of righting rotation vs initial pitch                     |
 
 ## Guides
 
