@@ -126,8 +126,8 @@ To analyze data generated using the free-swimming apparatus:
 3. Follow the instruction and input the frame rate (in integer), and decide whether to save all epoch data that passes quality control (y/n). See notes for details.
 4. The program will go through every data file in each subfolder (if there is any) and extract swim attributes.
 
-When finished, there will be two (or three, if you save all epoch data) hdf5 files (.h5) under each directory that contains data file(s) together with catalog files that explains the parameters extracted. A copy of catalog files can be found under `docs`.
-Saving epoch data significantly increases file size. It is recommended not to do so for most of the datasets and only re-analyze those that you need epoch data.
+When finished, there will be three hdf5 files (.h5) under each directory that contains data file(s) together with catalog files that explains the parameters extracted. A copy of catalog files can be found under `docs`.
+If saving epoch data is disabled, an EMPTY all_data.h5 will be saved (or overwrite previously generated all_data.h5). Saving epoch data significantly increases file size. It is recommended not to do so for most of the datasets and only re-analyze those that you need epoch data.
 
 All the extracted swim bouts under `bout_data.h5` are aligned at the time of the peak speed. Each aligned bout contains swim parameters from 500 ms before to 300 ms after the time of the peak speed.
 
