@@ -39,20 +39,20 @@ except:
     print('Notes: re-writing old figures')
 
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
 # all_ibi_cond, _, _  = get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
 # %% tidy data
-if len(all_cond1) > 1:
-    print(all_cond1)
+if len(all_cond0) > 1:
+    print(all_cond0)
     j = input("pick a condition: ")
-    all_feature_cond = all_feature_cond.loc[all_feature_cond['dpf']==j]
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-# all_ibi_cond = all_ibi_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+    all_feature_cond = all_feature_cond.loc[all_feature_cond['cond0']==j]
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
+# all_ibi_cond = all_ibi_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 # all_ibi_cond = all_ibi_cond.assign(y_boutFreq=1/all_ibi_cond['propBoutIEI'],
 #                                     direction = pd.cut(all_ibi_cond['propBoutIEI_pitch'],[-90,7.5,90],labels=['dive','climb']))
 
 # get kinetics 
-all_kinetics = all_feature_cond.groupby(['condition']).apply(
+all_kinetics = all_feature_cond.groupby(['cond1']).apply(
                         lambda x: get_kinetics(x)
                         ).reset_index()
 # %%
@@ -68,32 +68,32 @@ all_feature_UD = all_feature_cond.assign(
     initial_bins = pd.cut(all_feature_cond['pitch_initial'],pitch_bins,labels=np.arange(len(pitch_bins)-1)),
     speed_bins = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1)),
 )
-if all_feature_UD.groupby(['speed_bins','condition']).size().min() < 20:
+if all_feature_UD.groupby(['speed_bins','cond1']).size().min() < 20:
     spd_bins = np.arange(spd_bins.min(),spd_bins.max(),round_half_up(np.mean(np.diff(spd_bins))))
     all_feature_UD['speed_bins'] = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1))
 
 all_feature_UD = all_feature_UD.dropna().reset_index(drop=True)
 
-df_kinetics = all_feature_UD.groupby(['speed_bins','condition']).apply(
+df_kinetics = all_feature_UD.groupby(['speed_bins','cond1']).apply(
                         lambda x: get_kinetics(x)
                         ).reset_index()
 df_kinetics = df_kinetics.assign(type='original')
 
 # %%
 # what are the ratio of pre-pitch bins  in different speed bins?
-pitchbin_count = all_feature_UD.groupby(['speed_bins','initial_bins','condition']).size()
+pitchbin_count = all_feature_UD.groupby(['speed_bins','initial_bins','cond1']).size()
 pitchbin_count = pitchbin_count.reset_index()
-pitchbin_count.columns = ['speed_bins','initial_bins','condition','count']
+pitchbin_count.columns = ['speed_bins','initial_bins','cond1','count']
 total_bins = list(set(pitchbin_count['initial_bins'].values))
-pitchbin_count = pitchbin_count.sort_values(by=['condition','speed_bins','initial_bins']).reset_index(drop=True)
+pitchbin_count = pitchbin_count.sort_values(by=['cond1','speed_bins','initial_bins']).reset_index(drop=True)
 
 pitchbin_count = pitchbin_count.assign(
-    total = pitchbin_count.groupby(['speed_bins','condition'])['count'].cumsum()
+    total = pitchbin_count.groupby(['speed_bins','cond1'])['count'].cumsum()
 )
-total = pitchbin_count.groupby(['speed_bins','condition'])['total'].max()
-total = total.reset_index().sort_values(by=['condition','speed_bins'])
+total = pitchbin_count.groupby(['speed_bins','cond1'])['total'].max()
+total = total.reset_index().sort_values(by=['cond1','speed_bins'])
 pitchbin_count['total'] = np.repeat(total['total'],len(total_bins)).values
-pitchbin_count['Initial angle'] = all_mid_angles[0:len(spd_bins)+2].tolist() * len(pitchbin_count.groupby(['speed_bins','condition']).size())
+pitchbin_count['Initial angle'] = all_mid_angles[0:len(spd_bins)+2].tolist() * len(pitchbin_count.groupby(['speed_bins','cond1']).size())
 pitchbin_count = pitchbin_count.assign(
     percent = pitchbin_count['count'] / pitchbin_count['total']
 )
@@ -101,7 +101,7 @@ pitchbin_count = pitchbin_count.assign(
 # %%
 plt.figure()
 sns.relplot(data=pitchbin_count,
-            col='condition',
+            col='cond1',
             kind='line',
              x='Initial angle',
              y='percent',
@@ -112,7 +112,7 @@ plt.savefig(filename,format='PDF')
 
 plt.figure()
 sns.relplot(data=all_feature_UD,
-            col='condition',
+            col='cond1',
             kind='line',
              x='initial_bins',
              y='spd_peak',
@@ -132,15 +132,15 @@ for i in ['try1','try2','try3']:
         total = row['total']
         count = row['count']
         this_df = row['count']
-        cond = row['condition']
+        cond = row['cond1']
         sel_bouts = all_feature_UD.loc[
-            (all_feature_UD['initial_bins']==which_bin) & (all_feature_UD['condition']==cond)
+            (all_feature_UD['initial_bins']==which_bin) & (all_feature_UD['cond1']==cond)
             ].sample(n=round_half_up(count))
         artificial_df = pd.concat(
             [artificial_df,sel_bouts]
         )
     # get kinetics
-    this_kinetics = artificial_df.groupby(['speed_bins','condition']).apply(
+    this_kinetics = artificial_df.groupby(['speed_bins','cond1']).apply(
                             lambda x: get_kinetics(x)
                             ).reset_index()
     this_kinetics = this_kinetics.assign(
@@ -159,12 +159,12 @@ kinetics_toplt = pd.concat([artificial_kinetics_byPreBout,df_kinetics]).reset_in
 
 # %%
 toplt = kinetics_toplt
-cat_cols = ['type','condition','speed_bins']
+cat_cols = ['type','cond1','speed_bins']
 all_features = [c for c in toplt.columns if c not in cat_cols]
 
 for feature_toplt in (all_features):
     g = sns.relplot(
-        col='condition',
+        col='cond1',
         data = toplt,
         hue = 'type',
         x = 'speed_bins',
@@ -179,7 +179,7 @@ for feature_toplt in (all_features):
 # does speed distribution remain the same?
 plt.figure()
 sns.relplot(data=bouts_combined,
-            col='condition',
+            col='cond1',
             hue='type',
             kind='line',
              x='initial_bins',
@@ -194,7 +194,7 @@ plt.savefig(filename,format='PDF')
 # check decel rotation next
 # maybe 2D distribution plt first?
 
-toplt = bouts_combined.loc[bouts_combined['condition']=='07dpf']
+toplt = bouts_combined.loc[bouts_combined['cond1']=='07dpf']
 g = sns.displot(
     data = toplt,
     col='speed_bins',

@@ -76,7 +76,7 @@ def parabola_fit1(df, X_RANGE_to_fit = X_RANGE_FULL):
                            p0=(0.005,3,0.5) , 
                            bounds=((0, -10, 0),(10, 15, 10)))
     # output = pd.DataFrame(data=popt,columns=['sensitivity','x_inter','y_inter'])
-    # output = output.assign(condition=condition)
+    # output = output.assign(cond1=condition)
     y = []
     for x in X_RANGE_to_fit:
         y.append(ffunc1(x,*popt))
@@ -85,14 +85,14 @@ def parabola_fit1(df, X_RANGE_to_fit = X_RANGE_FULL):
     return output_coef, output_fitted
 
 # %%
-IBI_angles, cond1_all, cond2_all= get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
+IBI_angles, cond1_all, cond1_all= get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
 IBI_angles = IBI_angles.assign(y_boutFreq=1/IBI_angles['propBoutIEI'],
                                direction = pd.cut(IBI_angles['propBoutIEI_pitch'],[-90,7.5,90],labels=['dive','climb']))
 # %%
 jackknifed_coef = pd.DataFrame()
 jackknifed_y = pd.DataFrame()
 binned_angles = pd.DataFrame()
-cat_cols = ['condition','dpf','ztime']
+cat_cols = ['cond1','cond0','ztime']
 
 IBI_sampled = IBI_angles
 if RESAMPLE != 0:
@@ -110,26 +110,26 @@ for (this_cond, this_dpf, this_ztime), group in IBI_sampled.groupby(cat_cols):
             this_df_direction = this_df_toFit.loc[this_df_toFit['direction']==this_direction,:]
             coef, fitted_y = parabola_fit1(this_df_direction, X_RANGE_FULL)
             jackknifed_coef = pd.concat([jackknifed_coef, coef.assign(dpf=this_dpf,
-                                                                    condition=this_cond,
+                                                                    cond1=this_cond,
                                                                     excluded_exp=excluded_exp,
                                                                     ztime=this_ztime,
                                                                     direction=this_direction)])
             jackknifed_y = pd.concat([jackknifed_y, fitted_y.assign(dpf=this_dpf,
-                                                                    condition=this_cond,
+                                                                    cond1=this_cond,
                                                                     excluded_exp=excluded_exp,
                                                                     ztime=this_ztime,
                                                                     direction=this_direction)])
         
     this_binned_angles = distribution_binned_average(this_df_toFit, BIN_WIDTH)
     this_binned_angles = this_binned_angles.assign(dpf=this_dpf,
-                                                    condition=this_cond,
+                                                    cond1=this_cond,
                                                     ztime=this_ztime)
     binned_angles = pd.concat([binned_angles, this_binned_angles],ignore_index=True)
 
-jackknifed_y.columns = ['bout frequency','IBI pitch','dpf','condition','jackknife num','ztime','direction']
+jackknifed_y.columns = ['bout frequency','IBI pitch','cond0','cond1','jackknife num','ztime','direction']
 jackknifed_y = jackknifed_y.reset_index(drop=True)
 
-jackknifed_coef.columns = ['sensitivity','x intersect','y intersect','dpf','condition','jackknife num','ztime','direction']
+jackknifed_coef.columns = ['sensitivity','x intersect','y intersect','cond0','cond1','jackknife num','ztime','direction']
 jackknifed_coef = jackknifed_coef.reset_index(drop=True)
 
 binned_angles = binned_angles.reset_index(drop=True)
@@ -142,18 +142,18 @@ all_direction = list(set(jackknifed_coef['direction']))
 # %% plot
 g = sns.relplot(x='IBI pitch',y='bout frequency', data=jackknifed_y, 
                 kind='line',
-                col='dpf', col_order=cond1_all,
+                col='cond0', col_order=cond1_all,
                 row = 'direction', 
                 # row_order=all_ztime,
-                hue='condition', hue_order = cond2_all,ci='sd',
+                hue='cond1', hue_order = cond1_all,ci='sd',
                 )
 for i , g_row in enumerate(g.axes):
     for j, ax in enumerate(g_row):
         sns.scatterplot(data=binned_angles.loc[
-            (binned_angles['dpf']==cond1_all[j]) & (binned_angles['direction']==all_direction[i]),:
+            (binned_angles['cond0']==cond1_all[j]) & (binned_angles['direction']==all_direction[i]),:
                 ], 
                     x='propBoutIEI_pitch', y='y_boutFreq', 
-                    hue='condition',alpha=0.2,
+                    hue='cond1',alpha=0.2,
                     ax=ax)
 g.set(
     # xlim=(-40, 40),
@@ -171,17 +171,17 @@ plt.show()
 # col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
 # for i in np.arange(len(coef.columns)):
 #     p = sns.catplot(
-#         data = jackknifed_coef, y=col_to_plt[i],x='dpf',kind='point',join=False,
+#         data = jackknifed_coef, y=col_to_plt[i],x='cond0',kind='point',join=False,
 #         col_order=cond1_all,ci='sd',
 #         row = 'ztime', row_order=all_ztime,
 #         # units=excluded_exp,
-#         hue='condition', dodge=True,
-#         hue_order = cond2_all,sharey=False
+#         hue='cond1', dodge=True,
+#         hue_order = cond1_all,sharey=False
     
 #     )
-#     p.map(sns.lineplot,'dpf',col_to_plt[i],estimator=None,
+#     p.map(sns.lineplot,'cond0',col_to_plt[i],estimator=None,
 #         units='jackknife num',
-#         hue='condition',
+#         hue='cond1',
 #         alpha=0.2,
 #         data=jackknifed_coef)
 #     filename = os.path.join(fig_dir,f"IBI coef{i} sample{RESAMPLE}.pdf")
@@ -194,16 +194,16 @@ plt.show()
 # plt.close()
 # col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
 # p = sns.catplot(
-#     data = jackknifed_coef, y='sensitivity',x='condition',
+#     data = jackknifed_coef, y='sensitivity',x='cond1',
 #     kind='point',join=False,
-#     col='dpf', col_order=cond1_all,
+#     col='cond0', col_order=cond1_all,
 #     ci='sd',
 #     row = 'ztime', row_order=all_ztime,
-#     hue='condition', dodge=True,
-#     hue_order = cond2_all,sharey=False
+#     hue='cond1', dodge=True,
+#     hue_order = cond1_all,sharey=False
 
 # )
-# p.map(sns.lineplot,'condition','sensitivity',estimator=None,
+# p.map(sns.lineplot,'cond1','sensitivity',estimator=None,
 #     units='jackknife num',
 #     color='grey',
 #     alpha=0.2,

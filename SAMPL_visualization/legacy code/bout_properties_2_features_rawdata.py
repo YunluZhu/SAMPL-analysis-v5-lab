@@ -86,7 +86,7 @@ def distribution_binned_average(df, bin_width, condition):
     df = df.assign(y_boutFreq = 1/df['propBoutIEI'])
     bins = pd.cut(df['propBoutIEI_pitch'], list(np.arange(-90,90,bin_width)))
     grp = df.groupby(bins)
-    df_out = grp[['propBoutIEI_pitch','y_boutFreq']].mean().assign(dpf=condition[0:2],condition=condition[4:])
+    df_out = grp[['propBoutIEI_pitch','y_boutFreq']].mean().assign(dpf=condition[0:2],cond1=condition[4:])
     return df_out
 
 # %%
@@ -165,16 +165,16 @@ for condition_idx, folder in enumerate(folder_paths):
                 # end of exp loop
             
             mean_data_cond = pd.concat([mean_data_cond, mean_data.assign(dpf=all_conditions[condition_idx][0],
-                                                                         condition=all_conditions[condition_idx][4:])])
+                                                                         cond1=all_conditions[condition_idx][4:])])
             all_data_cond = pd.concat([all_data_cond, all_bouts_data.assign(dpf=all_conditions[condition_idx][0],
-                                                                         condition=all_conditions[condition_idx][4:])])
+                                                                         cond1=all_conditions[condition_idx][4:])])
             hue_order.append(all_conditions[condition_idx][4:])
 # %%
 
 steep_data = all_data_cond.loc[all_data_cond['heading']>20,:]
 hue_order.sort()
-all_data_cond.sort_values(by=['condition','dpf'],inplace=True, ignore_index=True)            
-mean_data_cond.sort_values(by=['condition','dpf'],inplace=True, ignore_index=True)   
+all_data_cond.sort_values(by=['cond1','cond0'],inplace=True, ignore_index=True)            
+mean_data_cond.sort_values(by=['cond1','cond0'],inplace=True, ignore_index=True)   
 
 # %% mean data
 if plotMeanData == 1:
@@ -189,9 +189,9 @@ if plotKDE == 1:
 current_palette = sns.color_palette()
 
 # pre_pitch - decel rot 
-flatui = ["#D0D0D0"] * (all_data_cond.groupby('condition').size().max())
+flatui = ["#D0D0D0"] * (all_data_cond.groupby('cond1').size().max())
 df = all_data_cond
-plt_condition = hue_order
+plt_cond1 = hue_order
 fig_num = len(plt_condition)
 
 fig, axes = plt.subplots(fig_num,sharey=True,sharex=True)
@@ -201,7 +201,7 @@ fig2, axes2 = plt.subplots(2)
 fig2.set_figheight(8)
 
 for i, cur_cond in enumerate(plt_condition):
-    df_to_plot = df.loc[df['condition']==cur_cond,:]
+    df_to_plot = df.loc[df['cond1']==cur_cond,:]
     print(f'{plt_condition[i]}')
     sns.kdeplot(df_to_plot['pre_pitch'], df_to_plot['decel_rot'], ax=axes[i], shade=True)
     
@@ -213,16 +213,16 @@ for i, cur_cond in enumerate(plt_condition):
                  palette=current_palette[i])
 
 # accel - righting rot
-flatui = ["#D0D0D0"] * (all_data_cond.groupby('condition').size().max())
+flatui = ["#D0D0D0"] * (all_data_cond.groupby('cond1').size().max())
 df = all_data_cond
-plt_condition = hue_order
+plt_cond1 = hue_order
 fig_num = len(plt_condition)
 
 fig3, axes3 = plt.subplots(fig_num,sharey=True,sharex=True)
 fig3.set_figheight(4*fig_num)
 
 for i, cur_cond in enumerate(plt_condition):
-    df_to_plot = df.loc[df['condition']==cur_cond,:]
+    df_to_plot = df.loc[df['cond1']==cur_cond,:]
     print(f'{plt_condition[i]}')
     sns.kdeplot(df_to_plot['accel_rot'], df_to_plot['decel_rot'], ax=axes3[i], shade=True)
     
@@ -251,14 +251,14 @@ df = steep_data
 defaultPlotting()
 current_palette = sns.color_palette()
 
-data_7S = df.loc[(df['dpf']=='7') & (df['condition']=='1Sibs'),:]
-data_7T = df.loc[(df['dpf']=='7') & (df['condition']=='2Tau'),:]
+data_7S = df.loc[(df['cond0']=='7') & (df['cond1']=='1Sibs'),:]
+data_7T = df.loc[(df['cond0']=='7') & (df['cond1']=='2Tau'),:]
 
 p = sns.kdeplot(data=data_7S['pitch'],cumulative=True,color=current_palette[0],linewidth=2,label="day7_Sibs")
 p = sns.kdeplot(data=data_7T['pitch'],cumulative=True,color=current_palette[1],linewidth=2,label="day7_Tau")
 
-data_4S = df.loc[(df['dpf']=='4') & (df['condition']=='1Sibs'),:]
-data_4T = df.loc[(df['dpf']=='4') & (df['condition']=='2Tau'),:]
+data_4S = df.loc[(df['cond0']=='4') & (df['cond1']=='1Sibs'),:]
+data_4T = df.loc[(df['cond0']=='4') & (df['cond1']=='2Tau'),:]
 
 p = sns.kdeplot(data=data_4S['pitch'],cumulative=True,color=sns.color_palette("pastel", 8)[0],label="day4_Sibs")
 p = sns.kdeplot(data=data_4T['pitch'],cumulative=True,color=sns.color_palette("pastel", 8)[1],label="day4_Sibs")
@@ -294,10 +294,10 @@ df2 = negPitch_data
 
 # mean data ---------------------------------
 
-plt_condition = hue_order
+plt_cond1 = hue_order
 df_mean = pd.DataFrame()
 for condition in plt_condition:
-    tmp = df2.loc[df2['condition']==condition ,:]
+    tmp = df2.loc[df2['cond1']==condition ,:]
     mean_data = tmp.groupby('expNum')[['atk_ang',
                                        'pre_posture_chg',
                                        'heading',
@@ -315,21 +315,21 @@ for condition in plt_condition:
     lambda x: x.abs().mean()
     )
     mean_data = mean_data.assign(deviation_of_posture_from_hori = abs_mean_data.values)
-    mean_data = mean_data.assign(condition=condition,
-                                 dpf=tmp.groupby('expNum')['dpf'].head(1).values,
+    mean_data = mean_data.assign(cond1=condition,
+                                 dpf=tmp.groupby('expNum')['cond0'].head(1).values,
                                          date=tmp.groupby('expNum')['date'].head(1).values)
     df_mean = pd.concat([df_mean,mean_data],ignore_index=True)
 
-# multi_comp = MultiComparison(df_mean['atk_ang'], df_mean['dpf']+df_mean['condition'])
+# multi_comp = MultiComparison(df_mean['atk_ang'], df_mean['cond0']+df_mean['cond1'])
 # print('* attack angles')
 # print(multi_comp.tukeyhsd().summary())
-# multi_comp = MultiComparison(df_mean['pre_posture_chg'], df_mean['dpf']+df_mean['condition'])
+# multi_comp = MultiComparison(df_mean['pre_posture_chg'], df_mean['cond0']+df_mean['cond1'])
 # print('* max Speed')
 # print(multi_comp.tukeyhsd().summary())
-# multi_comp = MultiComparison(df_mean['heading'], df_mean['dpf']+df_mean['condition'])
+# multi_comp = MultiComparison(df_mean['heading'], df_mean['cond0']+df_mean['cond1'])
 # print('* mean rotation')
 # print(multi_comp.tukeyhsd().summary())
-# multi_comp = MultiComparison(df_mean['pitch'], df_mean['dpf']+df_mean['condition'])
+# multi_comp = MultiComparison(df_mean['pitch'], df_mean['cond0']+df_mean['cond1'])
 # print('* mean rotation')
 # print(multi_comp.tukeyhsd().summary())
 
@@ -344,11 +344,11 @@ ttest_p = list()
 
 for i, ax in enumerate(axes.flatten()):
     if i+1<=fig_num:
-        g = sns.pointplot(x='condition',y=df_mean.iloc[:,i], hue='date',data=df_mean,
+        g = sns.pointplot(x='cond1',y=df_mean.iloc[:,i], hue='date',data=df_mean,
                     palette=sns.color_palette(flatui), scale=0.5,
                     #   order=['Sibs','Tau','Lesion'],
                     ax=ax)
-        g = sns.pointplot(x='condition', y=df_mean.iloc[:,i],hue='condition',data=df_mean, 
+        g = sns.pointplot(x='cond1', y=df_mean.iloc[:,i],hue='cond1',data=df_mean, 
                     linewidth=0,
                     alpha=0.9,
                     #   order=['Sibs','Tau','Lesion'],
@@ -356,8 +356,8 @@ for i, ax in enumerate(axes.flatten()):
                     markers='d',
                     ax=ax)
         # p-value calculation
-        ttest_res, pval = ttest_rel(df_mean.loc[df_mean['condition']=='1Sibs',df_mean.columns[i]],
-                                    df_mean.loc[df_mean['condition']=='2Tau',df_mean.columns[i]])
+        ttest_res, pval = ttest_rel(df_mean.loc[df_mean['cond1']=='1Sibs',df_mean.columns[i]],
+                                    df_mean.loc[df_mean['cond1']=='2Tau',df_mean.columns[i]])
         ttest_p.append(pval)
         g.legend_.remove()
 
@@ -387,9 +387,9 @@ x_feature = 'heading'
 current_palette = sns.color_palette()
 
 # pre_pitch - decel rot 
-flatui = ["#D0D0D0"] * (df2.groupby('condition').size().max())
+flatui = ["#D0D0D0"] * (df2.groupby('cond1').size().max())
 df = df2
-plt_condition = hue_order
+plt_cond1 = hue_order
 fig_num = len(plt_condition)
 
 fig, axes = plt.subplots(fig_num,sharey=True,sharex=True)
@@ -399,7 +399,7 @@ fig2, axes2 = plt.subplots(1)
 fig2.set_figheight(4)
 
 for i, cur_cond in enumerate(plt_condition):
-    df_to_plot = df.loc[df['condition']==cur_cond,:]
+    df_to_plot = df.loc[df['cond1']==cur_cond,:]
     print(f'{plt_condition[i]}')
     sns.kdeplot(x = x_feature, y = y_feature,data=df_to_plot, ax=axes[i], shade=True)
     
@@ -424,14 +424,14 @@ plt.savefig(fig_dir+f"{[y_feature,x_feature]}_conditioned bouts properties.pdf",
 # defaultPlotting()
 # current_palette = sns.color_palette()
 
-# data_7S = df.loc[(df['dpf']=='7') & (df['condition']=='1Sibs'),:]
-# data_7T = df.loc[(df['dpf']=='7') & (df['condition']=='2Tau'),:]
+# data_7S = df.loc[(df['cond0']=='7') & (df['cond1']=='1Sibs'),:]
+# data_7T = df.loc[(df['cond0']=='7') & (df['cond1']=='2Tau'),:]
 
 # p = sns.kdeplot(data=data_7S['pitch'],cumulative=True,color=current_palette[0],linewidth=2,label="day7_Sibs")
 # p = sns.kdeplot(data=data_7T['pitch'],cumulative=True,color=current_palette[1],linewidth=2,label="day7_Tau")
 
-# data_4S = df.loc[(df['dpf']=='4') & (df['condition']=='1Sibs'),:]
-# data_4T = df.loc[(df['dpf']=='4') & (df['condition']=='2Tau'),:]
+# data_4S = df.loc[(df['cond0']=='4') & (df['cond1']=='1Sibs'),:]
+# data_4T = df.loc[(df['cond0']=='4') & (df['cond1']=='2Tau'),:]
 
 # p = sns.kdeplot(data=data_4S['pitch'],cumulative=True,color=sns.color_palette("pastel", 8)[0],label="day4_Sibs")
 # p = sns.kdeplot(data=data_4T['pitch'],cumulative=True,color=sns.color_palette("pastel", 8)[1],label="day4_Sibs")
@@ -445,28 +445,28 @@ plt.savefig(fig_dir+f"{[y_feature,x_feature]}_conditioned bouts properties.pdf",
 # # for 4 conditions X dpf:
 # df = steep_data
 
-# plt_condition = ['Sibs','Tau','Sibs','Tau']
-# plt_dpf = ['4','4','7','7']
+# plt_cond1 = ['Sibs','Tau','Sibs','Tau']
+# plt_cond0 = ['4','4','7','7']
 # df_absmean = pd.DataFrame()
 
 # for i in range(4):
-#     tmp = df.loc[(df['dpf']==plt_dpf[i]) & (df['condition']==plt_condition[i]),:]
+#     tmp = df.loc[(df['cond0']==plt_dpf[i]) & (df['cond1']==plt_condition[i]),:]
 #     abs_mean_data = tmp.groupby('expNum')[['atk_ang','pre_posture_chg','heading','pitch']].apply(
 #         lambda x: x.abs().mean()
 #     )
-#     abs_mean_data = abs_mean_data.assign(dpf=plt_dpf[i], condition=plt_condition[i])
+#     abs_mean_data = abs_mean_data.assign(dpf=plt_dpf[i], cond1=plt_condition[i])
 #     df_absmean = pd.concat([df_absmean,abs_mean_data],ignore_index=True)
 
-# sns.violinplot(data=df_absmean, x='dpf',y='pitch', hue='condition',dodge=True, ci='sd')
+# sns.violinplot(data=df_absmean, x='cond0',y='pitch', hue='cond1',dodge=True, ci='sd')
 # plt.ylabel("Deviation of posture from horizontal")
 
-# multi_comp = MultiComparison(df_absmean['pitch'], df_absmean['dpf']+df_absmean['condition'])
+# multi_comp = MultiComparison(df_absmean['pitch'], df_absmean['cond0']+df_absmean['cond1'])
 # print(multi_comp.tukeyhsd().summary())
 # plt.show()
 
 # %%
 # # pitch - heading. eLife 2019 Figure 1B
-# g = sns.relplot(data=all_data_cond, x='pitch',y='heading',hue='condition',col='condition',row='dpf',alpha=0.1,kind='scatter')
+# g = sns.relplot(data=all_data_cond, x='pitch',y='heading',hue='cond1',col='cond1',row='cond0',alpha=0.1,kind='scatter')
 # g.set(xlim=(-30, 30), ylim=(-90, 90))
 # ax1, ax2 = g.axes[0]
 # lims = [-90,90]

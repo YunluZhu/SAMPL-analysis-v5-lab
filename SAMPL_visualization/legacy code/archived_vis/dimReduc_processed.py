@@ -75,7 +75,7 @@ def day_night_split(df,time_col_name):
 #     df = df.sort_values(by='pre_posture_chg')
 #     bins = pd.cut(df['pre_posture_chg'], list(AVERAGE_BIN))
 #     grp = df.groupby(bins)
-#     df_out = grp[['pre_posture_chg','atk_ang']].mean().assign(dpf=condition[0],condition=condition[4:])
+#     df_out = grp[['pre_posture_chg','atk_ang']].mean().assign(dpf=condition[0],cond1=condition[4:])
 #     return df_out
 # %%
 # get data 
@@ -153,10 +153,10 @@ for condition_idx, folder in enumerate(folder_paths):
                 all_bouts_data = pd.concat([all_bouts_data, output_forBout])
                 # all_bouts_IEI_data = pd.concat([all_bouts_data, re_format_IEI_day])
                 
-            all_cond_bouts = pd.concat([all_cond_bouts,all_bouts_data.assign(condition=all_conditions[condition_idx])])
+            all_cond_bouts = pd.concat([all_cond_bouts,all_bouts_data.assign(cond1=all_conditions[condition_idx])])
 all_cond_bouts = all_cond_bouts.dropna().reset_index()
 
-data_to_ana = all_cond_bouts.drop(['index','expNum','date','condition','time'],axis=1)
+data_to_ana = all_cond_bouts.drop(['index','expNum','date','cond1','time'],axis=1)
 df_std = StandardScaler().fit_transform(data_to_ana.iloc[:,0:-3])
 
 all_conditions.sort()
@@ -205,8 +205,8 @@ res_toplt = pd.DataFrame(data = tsne_results,
                          columns=['TSNE1', 'TSNE2'])
 res_toplt = res_toplt.assign(clusters = get_clusters)
 
-res_ctrl = res_toplt.loc[all_cond_bouts.loc[all_cond_bouts.condition==all_conditions[is_ctrl]].index,:]
-res_cond = res_toplt.loc[all_cond_bouts.loc[all_cond_bouts.condition==all_conditions[is_cond]].index,:]
+res_ctrl = res_toplt.loc[all_cond_bouts.loc[all_cond_bouts.cond1==all_conditions[is_ctrl]].index,:]
+res_cond = res_toplt.loc[all_cond_bouts.loc[all_cond_bouts.cond1==all_conditions[is_cond]].index,:]
 
 cluster_color = sns.color_palette("hls", len(set(get_clusters)))
 total_clusters = list(set(res_toplt.clusters))
@@ -257,7 +257,7 @@ figure.savefig(fig_dir+"/_newfig.pdf",format='PDF')
 # # %% plot on condition
 
 # res_toplt_cond = res_toplt.assign(
-#     condition = data_to_ana.condition.values
+#     cond1 = data_to_ana.condition.values
 # )
 
 # figure2 = plt.figure(figsize=(8,7))
@@ -266,7 +266,7 @@ figure.savefig(fig_dir+"/_newfig.pdf",format='PDF')
 #     y='TSNE2', 
 #     # palette = sns.color_palette("hls", len(all_conditions)),
 #     data=res_toplt_cond,
-#     hue = 'condition',
+#     hue = 'cond1',
 #     legend='full',
 #     alpha=0.05,
 # )
@@ -275,11 +275,11 @@ figure.savefig(fig_dir+"/_newfig.pdf",format='PDF')
 all_size = pd.DataFrame()
 for cluster_num in set(get_clusters):
     current_cluster = all_cond_bouts.loc[res_toplt.clusters==cluster_num]
-    cluster_size = current_cluster.groupby('condition').size()
+    cluster_size = current_cluster.groupby('cond1').size()
     all_size = pd.concat([all_size, cluster_size],axis=1)
     all_size.columns.values[-1:]=[cluster_num]
     
-total = all_cond_bouts.groupby('condition').size()
+total = all_cond_bouts.groupby('cond1').size()
 all_size.iloc[0,:] = all_size.iloc[0,:] /total.values[0]
 all_size.iloc[1,:] = all_size.iloc[1,:] /total.values[1]
 

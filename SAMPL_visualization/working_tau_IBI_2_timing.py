@@ -75,7 +75,7 @@ def parabola_fit1(df, X_RANGE_to_fit = X_RANGE_FULL):
                         #    bounds=((0, -5, 0),(10, 15, 10))
                            )
     # output = pd.DataFrame(data=popt,columns=['sensitivity','x_inter','y_inter'])
-    # output = output.assign(condition=condition)
+    # output = output.assign(cond1=condition)
     y = []
     for x in X_RANGE_to_fit:
         y.append(ffunc1(x,*popt))
@@ -88,7 +88,7 @@ coef_combined = pd.DataFrame()
 for pick_data in data_list:
     root, FRAME_RATE = get_data_dir(pick_data)
     frequency_th = 3 / 40 * FRAME_RATE
-    IBI_angles, cond1_all, cond2_all= get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
+    IBI_angles, cond1_all, cond1_all= get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
     IBI_angles = IBI_angles.assign(y_boutFreq=1/IBI_angles['propBoutIEI'])
     IBI_angles = IBI_angles.loc[IBI_angles['y_boutFreq']<frequency_th]
     # IBI_angles = IBI_angles.loc[IBI_angles['propBoutIEI_angVel'].abs()<30]
@@ -97,11 +97,11 @@ for pick_data in data_list:
     jackknifed_coef = pd.DataFrame()
     jackknifed_y = pd.DataFrame()
     binned_angles = pd.DataFrame()
-    cat_cols = ['condition','dpf','ztime']
+    cat_cols = ['cond1','cond0','ztime']
 
     IBI_sampled = IBI_angles
     if RESAMPLE !=0:
-        IBI_sampled = IBI_sampled.groupby(['condition','dpf','ztime','exp']).sample(
+        IBI_sampled = IBI_sampled.groupby(['cond1','cond0','ztime','exp']).sample(
             n=RESAMPLE,
             replace=True,
             )
@@ -112,24 +112,24 @@ for pick_data in data_list:
             this_df_toFit.dropna(inplace=True)
             coef, fitted_y = parabola_fit1(this_df_toFit, X_RANGE_FULL)
             jackknifed_coef = pd.concat([jackknifed_coef, coef.assign(dpf=this_dpf,
-                                                                    condition=this_cond,
+                                                                    cond1=this_cond,
                                                                     excluded_exp=excluded_exp,
                                                                     ztime=this_ztime)])
             jackknifed_y = pd.concat([jackknifed_y, fitted_y.assign(dpf=this_dpf,
-                                                                    condition=this_cond,
+                                                                    cond1=this_cond,
                                                                     excluded_exp=excluded_exp,
                                                                     ztime=this_ztime)])
             
         this_binned_angles = distribution_binned_average(this_df_toFit, BIN_WIDTH)
         this_binned_angles = this_binned_angles.assign(dpf=this_dpf,
-                                                        condition=this_cond,
+                                                        cond1=this_cond,
                                                         ztime=this_ztime)
         binned_angles = pd.concat([binned_angles, this_binned_angles],ignore_index=True)
 
-    jackknifed_y.columns = ['bout frequency','IBI pitch','dpf','condition','jackknife num','ztime']
+    jackknifed_y.columns = ['bout frequency','IBI pitch','cond0','cond1','jackknife num','ztime']
     jackknifed_y = jackknifed_y.reset_index(drop=True)
 
-    jackknifed_coef.columns = ['sensitivity','x intersect','y intersect','dpf','condition','jackknife num','ztime']
+    jackknifed_coef.columns = ['sensitivity','x intersect','y intersect','cond0','cond1','jackknife num','ztime']
     jackknifed_coef = jackknifed_coef.reset_index(drop=True)
 
     binned_angles = binned_angles.reset_index(drop=True)
@@ -151,22 +151,22 @@ coef_list = ['sensitivity', 'x intersect', 'y intersect']
 
 zScoreRes = pd.DataFrame()
 
-for (dataset, cond1), group in coef_combined.groupby(['dataset','dpf']):
-    all_cond2 = list(set(group['condition']))
-    all_cond2.sort()
-    control_data = group.loc[group.condition == all_cond2[0]]
+for (dataset, cond1), group in coef_combined.groupby(['dataset','cond0']):
+    all_cond0 = list(set(group['cond1']))
+    all_cond0.sort()
+    control_data = group.loc[group.cond1 == all_cond0[0]]
     mu = control_data[coef_list].mean()
     sigma = control_data[coef_list].std()
-    # cond_data = group.loc[group.condition == all_cond2[1]]
+    # cond_data = group.loc[group.cond1 == all_cond0[1]]
     output = pd.concat([(group[item]-mu[item])/sigma[item] for item in  coef_list], axis=1)
     output = output.assign(
         cond1 = cond1,
         jackknife_num = group['jackknife num'],
         dataset = dataset,
-        condition = group['condition']
+        cond1 = group['cond1']
     )
     zScoreRes = pd.concat([zScoreRes, output],ignore_index=True)          
-zScoreRes['condition'] = zScoreRes['condition'].map({
+zScoreRes['cond1'] = zScoreRes['cond1'].map({
     '1sibs':'ctrl',
     '2tau':'cond', 
     'ctrl':'ctrl',
@@ -175,20 +175,20 @@ zScoreRes['condition'] = zScoreRes['condition'].map({
 #  percentage change vs individual control
 percent_chg = pd.DataFrame()
 
-for (dataset, cond1), group in coef_combined.groupby(['dataset','dpf']):
-    all_cond2 = list(set(group['condition']))
-    all_cond2.sort()
-    control_data = group.loc[group.condition == all_cond2[0]].reset_index(drop=True)
-    cond_data = group.loc[group.condition == all_cond2[1]].reset_index(drop=True)
+for (dataset, cond1), group in coef_combined.groupby(['dataset','cond0']):
+    all_cond0 = list(set(group['cond1']))
+    all_cond0.sort()
+    control_data = group.loc[group.cond1 == all_cond0[0]].reset_index(drop=True)
+    cond_data = group.loc[group.cond1 == all_cond0[1]].reset_index(drop=True)
     output = pd.concat([(cond_data[item]-control_data[item])/control_data[item] * 100 for item in  coef_list], axis=1)
     output = output.assign(
         cond1 = cond1,
         jackknife_num = group['jackknife num'],
         dataset = dataset,
-        condition = cond_data['condition']
+        cond1 = cond_data['cond1']
     )
     percent_chg = pd.concat([percent_chg, output],ignore_index=True)          
-percent_chg['condition'] = percent_chg['condition'].map({
+percent_chg['cond1'] = percent_chg['cond1'].map({
     '1sibs':'ctrl',
     '2tau':'cond', 
     'ctrl':'ctrl',
@@ -197,23 +197,23 @@ percent_chg['condition'] = percent_chg['condition'].map({
 #  change vs individual control
 chg = pd.DataFrame()
 
-for (dataset, cond1), group in coef_combined.groupby(['dataset','dpf']):
-    all_cond2 = list(set(group['condition']))
-    all_cond2.sort()
-    control_data = group.loc[group.condition == all_cond2[0]].reset_index(drop=True)
-    cond_data = group.loc[group.condition == all_cond2[1]].reset_index(drop=True)
+for (dataset, cond1), group in coef_combined.groupby(['dataset','cond0']):
+    all_cond0 = list(set(group['cond1']))
+    all_cond0.sort()
+    control_data = group.loc[group.cond1 == all_cond0[0]].reset_index(drop=True)
+    cond_data = group.loc[group.cond1 == all_cond0[1]].reset_index(drop=True)
     # mu = control_data[coef_list].mean()
     # sigma = control_data[coef_list].std()
-    # cond_data = group.loc[group.condition == all_cond2[1]]
+    # cond_data = group.loc[group.cond1 == all_cond0[1]]
     output = pd.concat([(cond_data[item]-control_data[item]) for item in  coef_list], axis=1)
     output = output.assign(
         cond1 = cond1,
         jackknife_num = group['jackknife num'],
         dataset = dataset,
-        condition = cond_data['condition']
+        cond1 = cond_data['cond1']
     )
     chg = pd.concat([chg, output],ignore_index=True)          
-chg['condition'] = chg['condition'].map({
+chg['cond1'] = chg['cond1'].map({
     '1sibs':'ctrl',
     '2tau':'cond', 
     'ctrl':'ctrl',
@@ -226,7 +226,7 @@ col_to_plt = {0:'sensitivity',1:'x intersect',2:'y intersect'}
 for i in np.arange(len(coef_list)):
     p = sns.catplot(
         data = zScoreRes, y=col_to_plt[i],
-        x='condition',
+        x='cond1',
         # row='dataset',
         col='cond1',
         kind='point',join=False,
@@ -234,13 +234,13 @@ for i in np.arange(len(coef_list)):
         # col='dataset',
         # ci='sd',
         # row = 'ztime', row_order=all_ztime,
-        hue='condition', 
+        hue='cond1', 
         # dodge=True,
-        # hue_order = cond2_all,
+        # hue_order = cond1_all,
         sharey=True,
         aspect=0.6,
     )
-    p.map(sns.lineplot,'condition',col_to_plt[i],
+    p.map(sns.lineplot,'cond1',col_to_plt[i],
         estimator=None,
         units='jackknife_num',
         color='grey',
@@ -265,9 +265,9 @@ for i in np.arange(len(coef_list)):
         # col='dataset',
         # ci='sd',
         # row = 'ztime', row_order=all_ztime,
-        hue='condition', 
+        hue='cond1', 
         # dodge=True,
-        # hue_order = cond2_all,
+        # hue_order = cond1_all,
         sharey=True,
         aspect=1,
     )
@@ -294,9 +294,9 @@ for i in np.arange(len(coef_list)):
         # col='dataset',
         # ci='sd',
         # row = 'ztime', row_order=all_ztime,
-        hue='condition', 
+        hue='cond1', 
         # dodge=True,
-        # hue_order = cond2_all,
+        # hue_order = cond1_all,
         sharey=True,
         aspect=1,
     )

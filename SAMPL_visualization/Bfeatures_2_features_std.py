@@ -21,14 +21,14 @@ set_font_type()
 # %%
 def jackknife_std(df,all_features):
     jackknife_df_std = pd.DataFrame()
-    cat_cols = ['condition','dpf','ztime']
+    cat_cols = ['cond1','cond0','ztime']
     for (this_cond, this_dpf, this_ztime), group in df.groupby(cat_cols):
         jackknife_idx = jackknife_resampling(np.array(list(range(group['expNum'].max()+1))))
         for excluded_exp, idx_group in enumerate(jackknife_idx):
             this_std = group.loc[group['expNum'].isin(idx_group),all_features].std().to_frame().T
             # this_mean = group.loc[group['expNum'].isin(idx_group),all_features].mean().to_frame().T
             jackknife_df_std = pd.concat([jackknife_df_std, this_std.assign(dpf=this_dpf,
-                                                                    condition=this_cond,
+                                                                    cond1=this_cond,
                                                                     excluded_exp=excluded_exp,
                                                                     ztime=this_ztime)])
     jackknife_df_std = jackknife_df_std.reset_index(drop=True)
@@ -69,9 +69,9 @@ for folder in os.listdir(root):
 
 bins = list(range(-90,95,5))
 
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime=which_zeitgeber)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime=which_zeitgeber)
 all_feature_cond.reset_index(drop=True,inplace=True)
-cond_cols = ['ztime','dpf','condition']
+cond_cols = ['ztime','cond0','cond1']
 all_ztime = list(set(all_feature_cond.ztime))
 all_ztime.sort()
 
@@ -113,7 +113,7 @@ if which_zeitgeber != 'night':
             ]
     if DAY_RESAMPLE != 0:  # if resampled
         all_feature_day = all_feature_day.groupby(
-                ['dpf','condition','expNum']
+                ['cond0','cond1','expNum']
                 ).sample(
                         n=DAY_RESAMPLE,
                         replace=True
@@ -128,7 +128,7 @@ if which_zeitgeber != 'day':
             ]
     if NIGHT_RESAMPLE != 0:  # if resampled
         all_feature_night = all_feature_night.groupby(
-                ['dpf','condition','expNum']
+                ['cond0','cond1','expNum']
                 ).sample(
                         n=NIGHT_RESAMPLE,
                         replace=True
@@ -143,8 +143,8 @@ std_by_exp = all_feature_cond.groupby(cond_cols+['expNum'])[all_features].std().
 # # plot kde of all
 # g = sns.FacetGrid(IBI_angles_cond, 
 #                   row="ztime", row_order=all_ztime,
-#                   col='dpf', col_order=cond1,
-#                   hue='condition', hue_order=cond2,
+#                   col='cond0', col_order=cond1,
+#                   hue='cond1', hue_order=cond1,
 #                   )
 # g.map(sns.kdeplot, "IBI_pitch",alpha=0.5,)
 # g.add_legend()
@@ -157,9 +157,9 @@ std_by_exp = all_feature_cond.groupby(cond_cols+['expNum'])[all_features].std().
 if which_zeitgeber == 'all':
     for feature in all_features:
         g = sns.catplot(data=std_by_exp,
-                        col='dpf',row='condition',
+                        col='cond0',row='cond1',
                         x='ztime', y=feature,
-                        hue='dpf',
+                        hue='cond0',
                         ci='sd',
                         kind='point',
                         aspect=0.6)
@@ -174,9 +174,9 @@ if which_zeitgeber == 'all':
 # pitch cond vs ctrl
 for feature in all_features:
     g = sns.catplot(data=std_by_exp,
-                    col='dpf',
+                    col='cond0',
                     row='ztime',
-                    x='condition', y=feature,
+                    x='cond1', y=feature,
                     hue='expNum',
                     ci=None,
                     # markers=['d','d'],
@@ -184,7 +184,7 @@ for feature in all_features:
                     kind='point',
                     aspect=.6
                     )
-    g.map(sns.lineplot,'condition',feature,estimator=None,
+    g.map(sns.lineplot,'cond1',feature,estimator=None,
         units='expNum',
         data = std_by_exp,
         alpha=0.2,)
@@ -193,13 +193,13 @@ for feature in all_features:
     plt.close()
 
     g = sns.catplot(data=std_by_exp,
-                    col='dpf',row='ztime',
-                    x='condition', y=feature,
-                    hue='dpf',
+                    col='cond0',row='ztime',
+                    x='cond1', y=feature,
+                    hue='cond0',
                     ci='sd',
                     kind='point',
                     aspect=.6)
-    g.map(sns.lineplot,'condition',feature,estimator=None,
+    g.map(sns.lineplot,'cond1',feature,estimator=None,
         units='expNum',
         data = std_by_exp,
         alpha=0.2,)
@@ -211,17 +211,17 @@ for feature in all_features:
 # jackknifed resampled  std
 for feature in all_features:
     g = sns.catplot(data=jackknifed_std,
-                    col='dpf',
+                    col='cond0',
                     row='ztime',
-                    x='condition', y=feature,
-                    hue='condition',
+                    x='cond1', y=feature,
+                    hue='cond1',
                     ci='sd', 
                     # markers=['d','d'],
                     sharey=False,
                     kind='point',
                     aspect=.8
                     )
-    g.map(sns.lineplot,'condition',feature,estimator=None,
+    g.map(sns.lineplot,'cond1',feature,estimator=None,
         units='excluded_exp',
         data = jackknifed_std,
         color='grey',
@@ -236,17 +236,17 @@ for feature in all_features:
 # mean cond vs ctrl
 # plot on same scale
     g = sns.catplot(data=jackknifed_std,
-                    col='dpf',
+                    col='cond0',
                     row='ztime',
-                    x='condition', y=feature,
-                    hue='condition',
+                    x='cond1', y=feature,
+                    hue='cond1',
                     ci='sd', 
                     # markers=['d','d'],
                     sharey='row',
                     kind='point',
                     aspect=.8
                     )
-    g.map(sns.lineplot,'condition',feature,estimator=None,
+    g.map(sns.lineplot,'cond1',feature,estimator=None,
         units='excluded_exp',
         data = jackknifed_std,
         color='grey',

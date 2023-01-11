@@ -47,24 +47,24 @@ except:
     print('Notes: re-writing old figures')
 
 # %% get bout features and IBI data
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
 all_ibi_cond, _, _  = get_IBIangles(root, FRAME_RATE, ztim=which_ztime)
 
 # %% tidy feature data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-all_ibi_cond = all_ibi_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
+all_ibi_cond = all_ibi_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 
 # get kinetics separated by dpf
-all_kinetics = all_feature_cond.groupby(['dpf','condition']).apply(
+all_kinetics = all_feature_cond.groupby(['cond0','cond1']).apply(
                         lambda x: get_kinetics(x)
                         ).reset_index()
-ctrl_kinetics = all_kinetics.loc[all_kinetics['condition']==all_cond2[0],:]
+ctrl_kinetics = all_kinetics.loc[all_kinetics['cond1']==all_cond0[0],:]
 
 # assign up and down
 all_feature_UD = pd.DataFrame()
 all_feature_cond = all_feature_cond.assign(direction=np.nan)
-for key, group in all_feature_cond.groupby(['dpf']):
-    this_setvalue = ctrl_kinetics.loc[ctrl_kinetics['dpf']==key,'set_point'].to_list()[0]
+for key, group in all_feature_cond.groupby(['cond0']):
+    this_setvalue = ctrl_kinetics.loc[ctrl_kinetics['cond0']==key,'set_point'].to_list()[0]
     group['direction'] = pd.cut(group['pitch_initial'],
                                 bins=[-91,this_setvalue,91],
                                 labels=['dn','up'])
@@ -72,13 +72,13 @@ for key, group in all_feature_cond.groupby(['dpf']):
 
 # %%
 # calculate percentage of change, separated by age, repeats, direction and of course, conditions
-cat_cols = ['bout_time', 'expNum', 'ztime', 'dpf', 'condition', 'direction']
+cat_cols = ['bout_time', 'expNum', 'ztime', 'cond0', 'cond1', 'direction']
 features = list(set(all_feature_UD.columns).difference(set(cat_cols)))
 
 feature_chg_idx = pd.DataFrame()
-for (this_direction, this_dpf, this_ztime), group in all_feature_UD.groupby(['direction','dpf','ztime']):
-    this_ctrl = group.loc[group['condition']==all_cond2[0],features]
-    this_cond = group.loc[group['condition']==all_cond2[1],features] # assuming 2 conditions
+for (this_direction, this_dpf, this_ztime), group in all_feature_UD.groupby(['direction','cond0','ztime']):
+    this_ctrl = group.loc[group['cond1']==all_cond0[0],features]
+    this_cond = group.loc[group['cond1']==all_cond0[1],features] # assuming 2 conditions
     this_ctrl_mean = this_ctrl.mean()
     this_ctrl_std = this_ctrl.std()
     this_cond_mean = this_cond.mean()
@@ -86,9 +86,9 @@ for (this_direction, this_dpf, this_ztime), group in all_feature_UD.groupby(['di
     this_cond_chg = ((this_cond_mean-this_ctrl_mean)/(this_ctrl_mean)).to_frame().T
     this_cond_chg = this_cond_chg.assign(
         direction = this_direction,
-        dpf = this_dpf,
+        cond0 = this_dpf,
         ztime = this_ztime,
-        condition = all_cond2[1]
+        cond1 = all_cond0[1]
     )
     feature_chg_idx = pd.concat([feature_chg_idx, this_cond_chg],ignore_index=True)
 
@@ -98,9 +98,9 @@ for (this_direction, this_dpf, this_ztime), group in all_feature_UD.groupby(['di
 
 # %% Correlation plot and feature clustering of control data
 
-for key, group in all_feature_UD.groupby(['dpf']):
-    print(f"condition = {key}")
-    df_to_corr = group.loc[group['condition']==all_cond2[0],features].sort_index(axis = 1)
+for key, group in all_feature_UD.groupby(['cond0']):
+    print(f"cond1 = {key}")
+    df_to_corr = group.loc[group['cond1']==all_cond0[0],features].sort_index(axis = 1)
     corr = df_to_corr.corr()
 
     # Generate a mask for the upper triangle
@@ -117,10 +117,10 @@ for key, group in all_feature_UD.groupby(['dpf']):
 # %%
 # compare that to cond data?????????
 
-# for key, group in all_feature_UD.groupby(['dpf']):
-#     print(f"condition = {key}")
-#     ctrl_df = group.loc[group['condition']==all_cond2[0],features].sort_index(axis = 1)
-#     cond_df = group.loc[group['condition']==all_cond2[1],features].sort_index(axis = 1)
+# for key, group in all_feature_UD.groupby(['cond0']):
+#     print(f"cond1 = {key}")
+#     ctrl_df = group.loc[group['cond1']==all_cond0[0],features].sort_index(axis = 1)
+#     cond_df = group.loc[group['cond1']==all_cond0[1],features].sort_index(axis = 1)
 #     corr_ctrl = ctrl_df.corr()
 #     corr_cond = cond_df.corr()
 
@@ -138,18 +138,18 @@ for key, group in all_feature_UD.groupby(['dpf']):
 
 # # %%
 # # percent change cluster map
-# cat_cols =  ['ztime', 'dpf', 'condition', 'direction']
+# cat_cols =  ['ztime', 'cond0', 'cond1', 'direction']
 # d = preprocessing.normalize(feature_chg_idx[features])
 # scaled_df = pd.DataFrame(d, columns=feature_chg_idx[features].columns)
 
 # scaled_df = pd.concat([scaled_df,feature_chg_idx[cat_cols]],axis=1)
 
 # # %%
-# feature_chg_idx_mean = feature_chg_idx.groupby(['ztime', 'dpf', 'direction']).mean().reset_index(drop=False)
+# feature_chg_idx_mean = feature_chg_idx.groupby(['ztime', 'cond0', 'direction']).mean().reset_index(drop=False)
 # d = preprocessing.normalize(feature_chg_idx_mean[features])
 # scaled_df = pd.DataFrame(d, columns=feature_chg_idx_mean[features].columns)
 
-# scaled_df = pd.concat([scaled_df,feature_chg_idx_mean[['ztime', 'dpf', 'direction']]],axis=1)
+# scaled_df = pd.concat([scaled_df,feature_chg_idx_mean[['ztime', 'cond0', 'direction']]],axis=1)
 # df_to_plt = scaled_df.loc[:,features].sort_index(axis = 1)
 # f, ax = plt.subplots(figsize=(11, 9))
 

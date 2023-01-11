@@ -38,18 +38,18 @@ except:
     print('Notes: re-writing old figures')
 
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
 # all_ibi_cond, _, _  = get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
-all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond1, all_cond2 = get_bout_kinetics(root, FRAME_RATE, ztime=which_ztime)
+all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond0, all_cond0 = get_bout_kinetics(root, FRAME_RATE, ztime=which_ztime)
 
 # %% tidy data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-# all_ibi_cond = all_ibi_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
+# all_ibi_cond = all_ibi_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 
 # all_ibi_cond = all_ibi_cond.assign(y_boutFreq=1/all_ibi_cond['propBoutIEI'],
 #                                     direction = pd.cut(all_ibi_cond['propBoutIEI_pitch'],[-90,7.5,90],labels=['dive','climb']))
 
-one_kinetics_bydpf = all_feature_cond.groupby(['dpf']).apply(
+one_kinetics_bycond0 = all_feature_cond.groupby(['cond0']).apply(
                         lambda x: get_kinetics(x)
                         ).reset_index()
 # %%
@@ -58,17 +58,17 @@ pitch_bins = np.arange(-20,42,12)
 spd_bins = np.arange(5,25,4)
 # set_point = one_kinetics.loc[0,'set_point']
 all_feature_UD = pd.DataFrame()
-set_point = all_kinetic_cond.groupby(['condition','ztime','dpf'])['set_point'].mean().reset_index()
-for (cond,ztime,dpf),group in all_feature_cond.groupby(['condition','ztime','dpf']):
-    this_set_point = set_point.loc[(set_point['condition']==cond) &
+set_point = all_kinetic_cond.groupby(['cond1','ztime','cond0'])['set_point'].mean().reset_index()
+for (cond,ztime,dpf),group in all_feature_cond.groupby(['cond1','ztime','cond0']):
+    this_set_point = set_point.loc[(set_point['cond1']==cond) &
                                   (set_point['ztime']==ztime) &
-                                  (set_point['dpf']==dpf),'set_point'].values[0]
+                                  (set_point['cond0']==dpf),'set_point'].values[0]
     group = group.assign(
         direction = pd.cut(group['pitch_pre_bout'],bins=[-90,this_set_point,90],labels=['down','up']),
         set_point = this_set_point,
     )
     all_feature_UD = pd.concat([all_feature_UD,group.assign(
-        condition=cond,
+        cond1=cond,
         ztime=ztime,
         dpf=dpf
     )
@@ -84,15 +84,15 @@ all_feature_UD = all_feature_UD.dropna().reset_index(drop=True)
 # # get kinetics by spd, same as bkinetics_ztime
 # by speed bins
 toplt = kinetics_bySpd_jackknife
-cat_cols = ['jackknife_group','condition','expNum','dpf','ztime']
+cat_cols = ['jackknife_group','cond1','expNum','cond0','ztime']
 all_features = [c for c in toplt.columns if c not in cat_cols]
 
 for feature_toplt in (all_features):
     g = sns.relplot(
         data = toplt,
         row = 'ztime',
-        col = 'dpf',
-        hue = 'condition',
+        col = 'cond0',
+        hue = 'cond1',
         x = 'average_speed',
         y = feature_toplt,
         kind = 'line',
@@ -109,8 +109,8 @@ for feature_toplt in (all_features):
 toplt = all_feature_UD
 feature_to_plt = 'pitch_pre_bout'
 g = sns.FacetGrid(data=toplt,
-            col="condition", row="ztime",
-            # col_order=all_cond1,
+            col='cond1', row="ztime",
+            # col_order=all_cond0,
             hue='speed_bins',
             sharey =False,
             )
@@ -122,8 +122,8 @@ plt.savefig(fig_dir+f"/{feature_to_plt} distribution.pdf",format='PDF')
 toplt = all_feature_UD
 feature_to_plt = 'tsp_peak'
 g = sns.FacetGrid(data=toplt,
-            col="condition", row="ztime",
-            # col_order=all_cond1,
+            col='cond1', row="ztime",
+            # col_order=all_cond0,
             hue='speed_bins',
             sharey =False,
             )
@@ -156,8 +156,8 @@ mean_spd_per_dir = all_feature_UD.groupby('direction')['spd_peak'].mean()
 toplt = all_feature_UD
 feature_to_plt = 'spd_peak'
 g = sns.FacetGrid(data=toplt,
-            col="dpf", row="condition",
-            col_order=all_cond1,
+            col='cond0', row='cond1',
+            col_order=all_cond0,
             hue='direction',
             sharey =False,
             )
@@ -178,9 +178,9 @@ toplt = all_feature_UD.loc[all_feature_UD['deviationFromSet']>5]
 
 g = sns.FacetGrid(data=toplt,
             col="direction", 
-            row='condition',
+            row='cond1',
             # col="speed_bins",
-            # col_order=all_cond1,
+            # col_order=all_cond0,
             hue='speed_2bin',
             # hue='direction',
             sharey=False,
@@ -201,8 +201,8 @@ g = sns.FacetGrid(data=toplt,
             col="direction", 
             row='speed_2bin',
             # col="speed_bins",
-            # col_order=all_cond1,
-            hue='condition',
+            # col_order=all_cond0,
+            hue='cond1',
             # hue='direction',
             sharey=True,
             aspect=0.8

@@ -86,10 +86,10 @@ except:
     print('Notes: re-writing old figures')
 
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime = which_zeitgeber)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime = which_zeitgeber)
 
 # %% tidy data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 if FRAME_RATE > 100:
     all_feature_cond.drop(all_feature_cond[all_feature_cond['spd_peak']<7].index, inplace=True)
 elif FRAME_RATE == 40:
@@ -106,7 +106,7 @@ if which_zeitgeber != 'night':
             ]
     if DAY_RESAMPLE != 0:  # if resampled
         IBI_angles_day_resampled = IBI_angles_day_resampled.groupby(
-                ['dpf','condition','expNum']
+                ['cond0','cond1','expNum']
                 ).sample(
                         n=DAY_RESAMPLE,
                         replace=True
@@ -117,7 +117,7 @@ if which_zeitgeber != 'day':
             ]
     if NIGHT_RESAMPLE != 0:  # if resampled
         IBI_angles_night_resampled = IBI_angles_night_resampled.groupby(
-                ['dpf','condition','expNum']
+                ['cond0','cond1','expNum']
                 ).sample(
                         n=NIGHT_RESAMPLE,
                         replace=True
@@ -129,7 +129,7 @@ all_y = pd.DataFrame()
 all_binned_average = pd.DataFrame()
 
 
-for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['condition','dpf','ztime']):
+for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['cond1','cond0','ztime']):
     expNum = for_fit['expNum'].max()
     jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
     for excluded_exp, idx_group in enumerate(jackknife_idx):
@@ -140,14 +140,14 @@ for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['condi
         fitted_y.columns = ['atk_ang',bin_by_what]
         all_y = pd.concat([all_y, fitted_y.assign(
             dpf=cond_dpf,
-            condition=cond_abla,
+            cond1=cond_abla,
             excluded_exp = excluded_exp,
             ztime=cond_ztime,
             )])
         all_coef = pd.concat([all_coef, coef.assign(
             slope=slope,
             dpf=cond_dpf,
-            condition=cond_abla,
+            cond1=cond_abla,
             excluded_exp = excluded_exp,
             ztime=cond_ztime,
             )])
@@ -155,14 +155,14 @@ for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['condi
     feature_names = binned_df.columns
     all_binned_average = pd.concat([all_binned_average,binned_df.assign(
         dpf=cond_dpf,
-        condition=cond_abla,
+        cond1=cond_abla,
         ztime=cond_ztime,
         )],ignore_index=True)
     
 all_y = all_y.reset_index(drop=True)
 all_coef = all_coef.reset_index(drop=True)
 all_coef.columns=['k','xval','min','height',
-                  'slope','dpf','condition','excluded_exp','ztime']
+                  'slope','cond0','cond1','excluded_exp','ztime']
 all_ztime = list(set(all_coef['ztime']))
 all_ztime.sort()
 # %%
@@ -173,17 +173,17 @@ plt.figure()
 
 g = sns.relplot(x=feature_names[0],y=feature_names[1], data=all_y, 
                 kind='line',
-                col='dpf', col_order=all_cond1,
+                col='cond0', col_order=all_cond0,
                 row = 'ztime', row_order=all_ztime,
-                hue='condition', hue_order = all_cond2,ci='sd',
+                hue='cond1', hue_order = all_cond0,ci='sd',
                 )
 for i , g_row in enumerate(g.axes):
     for j, ax in enumerate(g_row):
         sns.lineplot(data=all_binned_average.loc[
-            (all_binned_average['dpf']==all_cond1[j]) & (all_binned_average['ztime']==all_ztime[i]),:
+            (all_binned_average['cond0']==all_cond0[j]) & (all_binned_average['ztime']==all_ztime[i]),:
                 ], 
                     x=feature_names[0],y=feature_names[1], 
-                    hue='condition',alpha=0.5,
+                    hue='cond1',alpha=0.5,
                     ax=ax)
         ax.set_ylim(-10,10)
     
@@ -198,16 +198,16 @@ plt.savefig(filename,format='PDF')
 defaultPlotting(size=12)
 plt.figure()
 p = sns.catplot(
-    data = all_coef, y='slope',x='dpf',kind='point',join=False,
-    col_order=all_cond1,ci='sd',
+    data = all_coef, y='slope',x='cond0',kind='point',join=False,
+    col_order=all_cond0,ci='sd',
     row = 'ztime', row_order=all_ztime,
     # units=excluded_exp,
-    hue='condition', dodge=True,
-    hue_order = all_cond2,
+    hue='cond1', dodge=True,
+    hue_order = all_cond0,
 )
-p.map(sns.lineplot,'dpf','slope',estimator=None,
+p.map(sns.lineplot,'cond0','slope',estimator=None,
       units='excluded_exp',
-      hue='condition',
+      hue='cond1',
       alpha=0.2,
       data=all_coef)
 filename = os.path.join(fig_dir,"slope_together.pdf")
@@ -219,17 +219,17 @@ defaultPlotting(size=12)
 for coef_name in ['k','xval','min','height','slope']:
     plt.figure()
     p = sns.catplot(
-        data = all_coef, y=coef_name,x='condition',kind='point',join=False,
-        col='dpf',col_order=all_cond1,
+        data = all_coef, y=coef_name,x='cond1',kind='point',join=False,
+        col='cond0',col_order=all_cond0,
         ci='sd',
         row = 'ztime', row_order=all_ztime,
         # units=excluded_exp,
-        hue='condition', dodge=True,
-        hue_order = all_cond2,
+        hue='cond1', dodge=True,
+        hue_order = all_cond0,
         sharey=False,
         aspect=.6,
     )
-    p.map(sns.lineplot,'condition',coef_name,estimator=None,
+    p.map(sns.lineplot,'cond1',coef_name,estimator=None,
         units='excluded_exp',
         color='grey',
         alpha=0.2,

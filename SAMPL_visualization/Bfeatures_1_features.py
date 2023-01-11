@@ -28,9 +28,9 @@ mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Select data and create figure folder
-pick_data = 'tau_bkg'
+pick_data = 'tmp'
 which_ztime = 'day'
-DAY_RESAMPLE = 1000
+DAY_RESAMPLE = 0
 
 # %%
 root, FRAME_RATE = get_data_dir(pick_data)
@@ -48,12 +48,12 @@ except:
     print('Notes: re-writing old figures')
 
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
 # all_ibi_cond, _, _  = get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
 # %% tidy data
 all_feature_cond = all_feature_cond.loc[all_feature_cond['spd_peak']>4]
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-# all_ibi_cond = all_ibi_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
+# all_ibi_cond = all_ibi_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 
 # all_ibi_cond = all_ibi_cond.assign(y_boutFreq=1/all_ibi_cond['propBoutIEI'],
                                     # direction = pd.cut(all_ibi_cond['propBoutIEI_pitch'],[-90,7.5,90],labels=['dive','climb']))
@@ -62,13 +62,13 @@ all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset
 # %%
 # assign up and down by set point
 # # get kinetics for separating up and down
-# all_kinetics = all_feature_cond.groupby(['dpf']).apply(
+# all_kinetics = all_feature_cond.groupby(['cond0']).apply(
 #                         lambda x: get_kinetics(x)
 #                         ).reset_index()
 # all_feature_UD = pd.DataFrame()
 # all_feature_cond = all_feature_cond.assign(direction=np.nan)
-# for key, group in all_feature_cond.groupby(['dpf']):
-#     this_setvalue = all_kinetics.loc[all_kinetics['dpf']==key,'set_point'].to_list()[0]
+# for key, group in all_feature_cond.groupby(['cond0']):
+#     this_setvalue = all_kinetics.loc[all_kinetics['cond0']==key,'set_point'].to_list()[0]
 #     print(this_setvalue)
 #     group['direction'] = pd.cut(group['pitch_initial'],
 #                                 bins=[-1000,this_setvalue,1000],
@@ -79,7 +79,7 @@ all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset
 
 all_feature_UD = pd.DataFrame()
 all_feature_cond = all_feature_cond.assign(direction=np.nan)
-for key, group in all_feature_cond.groupby(['dpf']):
+for key, group in all_feature_cond.groupby(['cond0']):
     group['direction'] = pd.cut(group['pitch_initial'],
                                 bins=[-1000,10,1000],
                                 labels=['dn','up'])
@@ -90,7 +90,7 @@ for key, group in all_feature_cond.groupby(['dpf']):
 
 # %%
 #mean
-cat_cols = ['condition','expNum','direction','dpf','bout_time','ztime']
+cat_cols = ['cond1','expNum','direction','cond0','bout_time','ztime']
 feature_to_plt = [c for c in all_feature_UD.columns if c not in cat_cols]
 feature_for_comp = feature_to_plt + ['expNum']
 # jackknife
@@ -98,17 +98,17 @@ all_feature_sampled = all_feature_UD
 
 if DAY_RESAMPLE != 0:
     all_feature_sampled = all_feature_sampled.groupby(
-            ['dpf','condition','expNum','direction']
+            ['cond0','cond1','expNum','direction']
             ).sample(
                     n=DAY_RESAMPLE,
                     replace=True
                     )
 
-cat_cols = ['dpf','condition','direction','expNum']
+cat_cols = ['cond0','cond1','direction','expNum']
 mean_data = all_feature_sampled.groupby(cat_cols).mean()
 mean_data = mean_data.reset_index()
 
-cat_cols = ['dpf','condition','direction']
+cat_cols = ['cond0','cond1','direction']
 
 mean_data_jackknife = all_feature_sampled.groupby(cat_cols)[feature_for_comp].apply(
     lambda x: jackknife_mean_by_col(x,'expNum')
@@ -121,13 +121,14 @@ for feature in feature_to_plt:
     
     g = sns.catplot(data=toplt, 
                     y = feature,
-                    x='condition',
-                    col="dpf", row="direction",col_order=all_cond1,hue='condition',
+                    x='cond1',
+                    col='cond0', row="direction",col_order=all_cond0,hue='cond1',
                     sharey=False,
-                    kind='point', marker=['d','d'],
+                    kind='point', 
+                    # marker=['d','d'],
                     aspect=.8,
                 )
-    (g.map(sns.lineplot,'condition',feature,
+    (g.map(sns.lineplot,'cond1',feature,
           estimator=None,
           units='jackknife_idx',
           data = toplt,
@@ -146,15 +147,15 @@ for feature in feature_to_plt:
     
     g = sns.catplot(data=toplt, 
                     y = feature,
-                    x='condition',
-                    col="dpf", row="direction",col_order=all_cond1,
-                    hue='condition',
+                    x='cond1',
+                    col='cond0', row="direction",col_order=all_cond0,
+                    hue='cond1',
                     sharey=False,
                     kind='point', 
                     # marker=['d','d'],
                     aspect=.8,
                 )
-    (g.map(sns.lineplot,'condition',feature,
+    (g.map(sns.lineplot,'cond1',feature,
           estimator=None,
           units='expNum',
           data = toplt,

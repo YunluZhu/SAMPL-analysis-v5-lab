@@ -102,8 +102,8 @@ for folder in os.listdir(root):
 
 
 all_around_peak_data = pd.DataFrame()
-all_cond1 = []
-all_cond2 = []
+all_cond0 = []
+all_cond0 = []
 
 # go through each condition folders under the root
 for condition_idx, folder in enumerate(folder_paths):
@@ -141,17 +141,17 @@ for condition_idx, folder in enumerate(folder_paths):
                 around_peak_data = pd.concat([around_peak_data,exp_data.loc[rows,:]])
             # combine data from different conditions
             cond1 = all_conditions[condition_idx].split("_")[0]
-            all_cond1.append(cond1)
-            cond2 = all_conditions[condition_idx].split("_")[1]
-            all_cond2.append(cond2)
+            all_cond0.append(cond1)
+            cond1 = all_conditions[condition_idx].split("_")[1]
+            all_cond0.append(cond1)
             all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=cond1,
-                                                                                            condition=cond2)])
+                                                                                            cond1=cond1)])
 all_around_peak_data = all_around_peak_data.assign(time_ms = (all_around_peak_data['idx']-peak_idx)/FRAME_RATE*1000)
 # %% tidy data
-all_cond1 = list(set(all_cond1))
-all_cond1.sort()
-all_cond2 = list(set(all_cond2))
-all_cond2.sort()
+all_cond0 = list(set(all_cond0))
+all_cond0.sort()
+all_cond0 = list(set(all_cond0))
+all_cond0.sort()
 
 all_around_peak_data = all_around_peak_data.reset_index(drop=True)
 peak_speed = all_around_peak_data.loc[all_around_peak_data.idx==peak_idx,'propBoutAligned_speed'],
@@ -194,8 +194,8 @@ all_around_peak_data = all_around_peak_data.assign(
 # which to corr
 # which_to_corr = 'initial_pitch' # initial_pitch or pre_bout_angle
 for which_to_corr in ['initial_pitch', 'pre_bout_angle']:
-    # cat_cols = ['speed_bin','condition','initial_posture','dpf']
-    # # cat_cols = ['condition','initial_posture']
+    # cat_cols = ['speed_bin','cond1','initial_posture','cond0']
+    # # cat_cols = ['cond1','initial_posture']
     # grp_cols = cat_cols + ['time_ms']
 
     # corr_angvel = all_around_peak_data.groupby(grp_cols).apply(
@@ -207,11 +207,11 @@ for which_to_corr in ['initial_pitch', 'pre_bout_angle']:
     # palette = sns.color_palette("mako_r", 4)
 
     # g = sns.relplot(
-    #     style='condition',
+    #     style='cond1',
     #     row='initial_posture',
     #     # hue_order=[0,2,4],
     #     hue='speed_bin',
-    #     col='dpf',
+    #     col='cond0',
     #     # size='speed_bin', size_order=[3,2,1,0],
 
     #     x='time_ms',y='corr',
@@ -222,7 +222,7 @@ for which_to_corr in ['initial_pitch', 'pre_bout_angle']:
     # g.set(xlim=(-200,200))
     # plt.savefig(fig_dir+f"/{which_to_corr}_by dir and spd.pdf",format='PDF')
 
-    cat_cols = ['condition','initial_posture','dpf']
+    cat_cols = ['cond1','initial_posture','cond0']
     grp_cols = cat_cols + ['time_ms']
 
     corr_angvel = all_around_peak_data.groupby(grp_cols).apply(
@@ -233,8 +233,8 @@ for which_to_corr in ['initial_pitch', 'pre_bout_angle']:
 
     g = sns.relplot(
         row='initial_posture',
-        col='dpf',
-        hue='condition',
+        col='cond0',
+        hue='cond1',
         x='time_ms',y='corr',
         data=corr_angvel,
         kind='line',
@@ -246,7 +246,7 @@ for which_to_corr in ['initial_pitch', 'pre_bout_angle']:
 
     # %%
     # ignore dir
-    cat_cols = ['condition','dpf']
+    cat_cols = ['cond1','cond0']
     grp_cols = cat_cols + ['time_ms']
 
     corr_angvel = all_around_peak_data.groupby(grp_cols).apply(
@@ -256,11 +256,11 @@ for which_to_corr in ['initial_pitch', 'pre_bout_angle']:
     corr_angvel = corr_angvel.reset_index()
 
     g = sns.relplot(
-        hue='condition',
+        hue='cond1',
         x='time_ms',y='corr',
         data=corr_angvel,
         kind='line',
-        col='dpf',
+        col='cond0',
         # palette="flare", 
         # hue_norm=mpl.colors.LogNorm()
         )

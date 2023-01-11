@@ -124,8 +124,8 @@ for folder in os.listdir(root):
         all_conditions.append(folder)
 
 all_around_peak_data = pd.DataFrame()
-all_cond1 = []
-all_cond2 = []
+all_cond0 = []
+all_cond0 = []
 
 # go through each condition folders under the root
 for condition_idx, folder in enumerate(folder_paths):
@@ -164,20 +164,20 @@ for condition_idx, folder in enumerate(folder_paths):
                 around_peak_data = pd.concat([around_peak_data,exp_data.loc[rows,:]])
     # combine data from different conditions
     cond1 = all_conditions[condition_idx].split("_")[0]
-    all_cond1.append(cond1)
-    cond2 = all_conditions[condition_idx].split("_")[1]
-    all_cond2.append(cond2)
+    all_cond0.append(cond1)
+    cond1 = all_conditions[condition_idx].split("_")[1]
+    all_cond0.append(cond1)
     all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=cond1,
-                                                                                            condition=cond2)])
+                                                                                            cond1=cond1)])
 all_around_peak_data = all_around_peak_data.assign(
     time_ms = (all_around_peak_data['idx']-peak_idx)/FRAME_RATE*1000,
 )
 
 # %% tidy data
-all_cond1 = list(set(all_cond1))
-all_cond1.sort()
-all_cond2 = list(set(all_cond2))
-all_cond2.sort()
+all_cond0 = list(set(all_cond0))
+all_cond0.sort()
+all_cond0 = list(set(all_cond0))
+all_cond0.sort()
 
 all_around_peak_data = all_around_peak_data.reset_index(drop=True)
 peak_speed = all_around_peak_data.loc[all_around_peak_data.idx==peak_idx,'propBoutAligned_speed'],
@@ -313,7 +313,7 @@ for excluded_exp, idx_group in enumerate(idx_list):
         # 'tsp_corr_atkAng':['tsp','atk_ang'],
     }
     
-    cat_cols = ['condition','dpf']
+    cat_cols = ['cond1','cond0']
     grp_cols = cat_cols + ['time_ms']
     
     df_to_corr = this_dpf_res#.loc[this_dpf_res['time_ms']<0]
@@ -340,14 +340,14 @@ corr_all = corr_all.assign(
 # plot two correlations
 for corr_which in corr_dict.keys():
     g = sns.relplot(
-        # col='condition',
+        # col='cond1',
         x='time_ms',
         y=corr_which,
-        col='dpf',
+        col='cond0',
         data=corr_all,
         kind='line',
-        # col='dpf',
-        hue='condition',
+        # col='cond0',
+        hue='cond1',
         ci='sd',
         aspect=1.2,
         height=3
@@ -360,14 +360,14 @@ for corr_which in corr_dict.keys():
 # %%
 
 p = sns.relplot(
-    # col='condition',
+    # col='cond1',
     x='time_ms',
     y='score',
     data=corr_all,
-    col='dpf',
+    col='cond0',
     kind='line',
-    # col='dpf',
-    hue='condition',
+    # col='cond0',
+    hue='cond1',
     ci='sd',
     aspect=1.2,
     height=3
@@ -378,16 +378,16 @@ p.set(xlim=(-250,0))
 plt.savefig(fig_dir+f"/score.pdf",format='PDF')
 
 # # %%
-# corr_all.loc[corr_all['time_ms']>-100].groupby(['exp_num','condition','dpf']).apply(
+# corr_all.loc[corr_all['time_ms']>-100].groupby(['exp_num','cond1','cond0']).apply(
 #     lambda bout: bout.loc[bout['score'].idxmax(),'time_ms']
 # )
 # %%
 corr_all = corr_all.assign(
     score_sm = savgol_filter(corr_all['score'],3,2)
 )
-max_score_time = corr_all.groupby(['exp_num','condition','dpf']).apply(
+max_score_time = corr_all.groupby(['exp_num','cond1','cond0']).apply(
     lambda bout: bout.loc[bout['score'].idxmax(),'time_ms']
     ).reset_index()
 
-max_score_time.groupby(['condition','dpf']).median()
+max_score_time.groupby(['cond1','cond0']).median()
 # %%

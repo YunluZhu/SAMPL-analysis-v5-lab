@@ -153,7 +153,7 @@ def distribution_binned_average(df, condition):
     df = df.sort_values(by='posture_chg')
     bins = pd.cut(df['posture_chg'], list(AVERAGE_BIN))
     grp = df.groupby(bins)
-    df_out = grp[['posture_chg','atk_ang']].mean().assign(dpf=condition[0],condition=condition[4:])
+    df_out = grp[['posture_chg','atk_ang']].mean().assign(dpf=condition[0],cond1=condition[4:])
     return df_out
 # %%
 # get data 
@@ -223,19 +223,19 @@ for condition_idx, folder in enumerate(folder_paths):
             
             binned_atk_angles = pd.concat([binned_atk_angles, distribution_binned_average(all_for_fit, all_conditions[condition_idx])],ignore_index=True)
             mean_data_cond = pd.concat([mean_data_cond, mean_data.assign(dpf=all_conditions[condition_idx][0],
-                                                                         condition=all_conditions[condition_idx][4:])])
+                                                                         cond1=all_conditions[condition_idx][4:])])
             all_data_cond = pd.concat([all_data_cond, all_for_fit.assign(dpf=all_conditions[condition_idx][0],
-                                                                         condition=all_conditions[condition_idx][4:])])
+                                                                         cond1=all_conditions[condition_idx][4:])])
 
             # jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
             # for excluded_exp, idx_group in enumerate(jackknife_idx):
             #     coef, fitted_y = sigmoid_fit(all_for_fit.loc[all_for_fit['expNum'].isin(idx_group)], X_RANGE)
 
             #     jackknifed_coef = pd.concat([jackknifed_coef, coef.assign(dpf=all_conditions[condition_idx][0],
-            #                                                               condition=all_conditions[condition_idx][4:],
+            #                                                               cond1=all_conditions[condition_idx][4:],
             #                                                               excluded_exp=all_for_fit.loc[all_for_fit['expNum']==excluded_exp,'date'].iloc[0])])
             #     jackknifed_y = pd.concat([jackknifed_y, fitted_y.assign(dpf=all_conditions[condition_idx][0],
-            #                                                             condition=all_conditions[condition_idx][4:],
+            #                                                             cond1=all_conditions[condition_idx][4:],
             #                                                             excluded_exp=all_for_fit.loc[all_for_fit['expNum']==excluded_exp,'date'].iloc[0])])
 
 # %%
@@ -248,17 +248,17 @@ steep_data = all_data_cond.loc[all_data_cond['heading']>20,:]
 
 
 # rename and sort
-# jackknifed_coef.columns = ['slope','locX','minY','maxY','dpf','condition','excluded_exp']
-# jackknifed_coef.sort_values(by=['condition','dpf','excluded_exp'],inplace=True, ignore_index=True)            
+# jackknifed_coef.columns = ['slope','locX','minY','maxY','cond0','cond1','excluded_exp']
+# jackknifed_coef.sort_values(by=['cond1','cond0','excluded_exp'],inplace=True, ignore_index=True)            
             
-all_data_cond.sort_values(by=['condition','dpf'],inplace=True, ignore_index=True)            
-mean_data_cond.sort_values(by=['condition','dpf'],inplace=True, ignore_index=True)   
+all_data_cond.sort_values(by=['cond1','cond0'],inplace=True, ignore_index=True)            
+mean_data_cond.sort_values(by=['cond1','cond0'],inplace=True, ignore_index=True)   
 
 # %%
 # master fit = fit with ALL data from ALL conditions other than lesion
 # to reduce free parameters, use c (min y) and d (max y) from master fit for jackknifed results
-# df = all_data_cond.loc[all_data_cond['condition']=='Tau']
-no_lesion_data =  all_data_cond.loc[all_data_cond['condition'].str.find('ib') !=-1,:]
+# df = all_data_cond.loc[all_data_cond['cond1']=='Tau']
+no_lesion_data =  all_data_cond.loc[all_data_cond['cond1'].str.find('ib') !=-1,:]
 
 df = no_lesion_data  # filter for the data you want to use for calculation
 coef_master, fitted_y_master, sigma_master = sigmoid_fit_4free(df, X_RANGE)
@@ -281,7 +281,7 @@ atk_max_other = 13.868823+3.354505 # 21.242327 [13.868823 for sibs] # also paste
 jackknifed_coef = pd.DataFrame()  # coef results calculated with jackknifed pitch data
 jackknifed_y = pd.DataFrame()  # fitted y using jackknifed pitch data
 
-for condition, for_fit in all_data_cond.groupby('condition'):
+for condition, for_fit in all_data_cond.groupby('cond1'):
     expNum = for_fit['expNum'].max()
     jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
     if condition.find('esion')==-1:
@@ -289,26 +289,26 @@ for condition, for_fit in all_data_cond.groupby('condition'):
             coef, fitted_y = sigmoid_fit(for_fit.loc[for_fit['expNum'].isin(idx_group)], X_RANGE)
             slope = coef.iloc[0,0]*atk_max_other / 4
             jackknifed_coef = pd.concat([jackknifed_coef, coef.assign(slope=slope,
-                                                                      dpf=for_fit['dpf'].iloc[0],
-                                                                      condition=condition,
+                                                                      dpf=for_fit['cond0'].iloc[0],
+                                                                      cond1=condition,
                                                                       excluded_exp=for_fit.loc[for_fit['expNum']==excluded_exp,'date'].iloc[0])])
-            jackknifed_y = pd.concat([jackknifed_y, fitted_y.assign(dpf=for_fit['dpf'].iloc[0],
-                                                                    condition=condition,
+            jackknifed_y = pd.concat([jackknifed_y, fitted_y.assign(dpf=for_fit['cond0'].iloc[0],
+                                                                    cond1=condition,
                                                                     excluded_exp=for_fit.loc[for_fit['expNum']==excluded_exp,'date'].iloc[0])])
     elif condition.find('esion')!=-1:
         for excluded_exp, idx_group in enumerate(jackknife_idx):
             coef, fitted_y = sigmoid_fit_lesion(for_fit.loc[for_fit['expNum'].isin(idx_group)], X_RANGE)
             slope = coef.iloc[0,0]*atk_max_lesion / 4
             jackknifed_coef = pd.concat([jackknifed_coef, coef.assign(slope=slope,
-                                                                      dpf=for_fit['dpf'].iloc[0],
-                                                                      condition=condition,
+                                                                      dpf=for_fit['cond0'].iloc[0],
+                                                                      cond1=condition,
                                                                       excluded_exp=for_fit.loc[for_fit['expNum']==excluded_exp,'date'].iloc[0])])
-            jackknifed_y = pd.concat([jackknifed_y, fitted_y.assign(dpf=for_fit['dpf'].iloc[0],
-                                                                    condition=condition,
+            jackknifed_y = pd.concat([jackknifed_y, fitted_y.assign(dpf=for_fit['cond0'].iloc[0],
+                                                                    cond1=condition,
                                                                     excluded_exp=for_fit.loc[for_fit['expNum']==excluded_exp,'date'].iloc[0])])
 # rename and sort
-jackknifed_coef.columns = ['a','locX','minY','maxY','slope','dpf','condition','excluded_exp']
-jackknifed_coef.sort_values(by=['condition','dpf','excluded_exp'],inplace=True, ignore_index=True)            
+jackknifed_coef.columns = ['a','locX','minY','maxY','slope','cond0','cond1','excluded_exp']
+jackknifed_coef.sort_values(by=['cond1','cond0','excluded_exp'],inplace=True, ignore_index=True)            
 
 # %% 
 # PLOTs
@@ -320,36 +320,36 @@ hue_order = list(set(jackknifed_y.condition))
 hue_order.sort()
 defaultPlotting()
 
-g = sns.lineplot(x='x',y=jackknifed_y[0],data=jackknifed_y, hue='condition',hue_order = hue_order,style='dpf',ci='sd')
+g = sns.lineplot(x='x',y=jackknifed_y[0],data=jackknifed_y, hue='cond1',hue_order = hue_order,style='cond0',ci='sd')
 
-# g = sns.scatterplot(x='posture_chg',y='atk_ang',hue='condition',hue_order = hue_order,s=30, data=binned_atk_angles, alpha=0.3,linewidth=1)
-g = sns.lineplot(x='posture_chg',y='atk_ang',hue='condition', data=binned_atk_angles, alpha=0.3,linewidth=1)
+# g = sns.scatterplot(x='posture_chg',y='atk_ang',hue='cond1',hue_order = hue_order,s=30, data=binned_atk_angles, alpha=0.3,linewidth=1)
+g = sns.lineplot(x='posture_chg',y='atk_ang',hue='cond1', data=binned_atk_angles, alpha=0.3,linewidth=1)
 
 plt.show()
-# g = sns.lineplot(x='x',y=raw_y[0],data=raw_y, hue='condition',style='dpf',ci='sd')
+# g = sns.lineplot(x='x',y=raw_y[0],data=raw_y, hue='cond1',style='cond0',ci='sd')
 
 #%%
 # plot 2 paramit fit coef
 f, axes = plt.subplots(nrows=2, ncols=2, figsize=(6, 8),sharex='all')
-flatui = ["#D0D0D0"] * (jackknifed_coef.groupby('condition').size().max())
+flatui = ["#D0D0D0"] * (jackknifed_coef.groupby('cond1').size().max())
 
-g1 = sns.pointplot(y='slope',x='condition', hue='excluded_exp', data=jackknifed_coef,ax=axes[0,0],
+g1 = sns.pointplot(y='slope',x='cond1', hue='excluded_exp', data=jackknifed_coef,ax=axes[0,0],
                    palette=sns.color_palette(flatui), scale=0.5,
                    )
-g1 = sns.pointplot(y='slope',x='condition', hue='condition', data=jackknifed_coef,ax=axes[0,0],
+g1 = sns.pointplot(y='slope',x='cond1', hue='cond1', data=jackknifed_coef,ax=axes[0,0],
                    linewidth=0,
                    alpha=0.9,
                    ci=None,
                    markers='d',)
 # g1.set_yticks(np.arange(0.12,0.24,0.02))
 
-g2 = sns.pointplot(y='locX',x='condition', hue='excluded_exp', data=jackknifed_coef,ax=axes[0,1],
+g2 = sns.pointplot(y='locX',x='cond1', hue='excluded_exp', data=jackknifed_coef,ax=axes[0,1],
                    palette=sns.color_palette(flatui), scale=0.5,                  
                    )
-# g3 = sns.pointplot(y='minY',x='condition', hue='excluded_exp', data=jackknifed_coef,ax=axes[1,0],
+# g3 = sns.pointplot(y='minY',x='cond1', hue='excluded_exp', data=jackknifed_coef,ax=axes[1,0],
 #                    palette=sns.color_palette(flatui), scale=0.5,
 #                    order=hue_order)
-# g4 = sns.pointplot(y='maxY',x='condition', hue='excluded_exp', data=jackknifed_coef,ax=axes[1,1],
+# g4 = sns.pointplot(y='maxY',x='cond1', hue='excluded_exp', data=jackknifed_coef,ax=axes[1,1],
 #                    palette=sns.color_palette(flatui), scale=0.5,
 #                    order=hue_order)
 g1.legend_.remove()
@@ -358,14 +358,14 @@ g2.legend_.remove()
 # g4.legend_.remove()
 sns.despine(trim=True)
 
-ttest_res, ttest_p = ttest_rel(jackknifed_coef.loc[jackknifed_coef['condition']==hue_order[0],'slope'],
-                               jackknifed_coef.loc[jackknifed_coef['condition']==hue_order[1],'slope'])
+ttest_res, ttest_p = ttest_rel(jackknifed_coef.loc[jackknifed_coef['cond1']==hue_order[0],'slope'],
+                               jackknifed_coef.loc[jackknifed_coef['cond1']==hue_order[1],'slope'])
 print(f'slope: Sibs v.s. Tau: paired t-test p-value = {ttest_p}')
 
 
 
-ttest_res, ttest_p = scipy.stats.ttest_ind(jackknifed_coef.loc[jackknifed_coef['condition']==hue_order[0],'slope'],
-                                           jackknifed_coef.loc[jackknifed_coef['condition']==hue_order[1],'slope'])
+ttest_res, ttest_p = scipy.stats.ttest_ind(jackknifed_coef.loc[jackknifed_coef['cond1']==hue_order[0],'slope'],
+                                           jackknifed_coef.loc[jackknifed_coef['cond1']==hue_order[1],'slope'])
 print(f'slope: Sibs v.s. Lesion: paired t-test p-value = {ttest_p}')
 plt.show()
 
@@ -380,11 +380,11 @@ for string in all_conditions:  # if has lesion data or not
         
 if if_plt_percentage == 1: # if contain lesion data    
     all_conditions.sort()
-    tmp = jackknifed_coef.groupby('condition').mean()
+    tmp = jackknifed_coef.groupby('cond1').mean()
     lesion_mean = tmp.iloc[-1,:]
     lesion_mean = lesion_mean['slope']
-    cond0_plt =  jackknifed_coef.loc[jackknifed_coef['condition'].str.find('ib') !=-1,:]
-    cond1_plt =  jackknifed_coef.loc[jackknifed_coef['condition'].str.find('au') !=-1,:]
+    cond0_plt =  jackknifed_coef.loc[jackknifed_coef['cond1'].str.find('ib') !=-1,:]
+    cond1_plt =  jackknifed_coef.loc[jackknifed_coef['cond1'].str.find('au') !=-1,:]
 
     cond0_plt = cond0_plt.sort_values(by=['excluded_exp']).reset_index()
     cond1_plt = cond1_plt.sort_values(by=['excluded_exp']).reset_index()
@@ -400,28 +400,28 @@ if if_plt_percentage == 1: # if contain lesion data
     
     defaultPlotting()
     
-    age_condition = set(plt_data['dpf'].values)
+    age_cond1 = set(plt_data['cond0'].values)
 
     # initialize a multi-plot, feel free to change the plot size
     f, axes = plt.subplots(nrows=2, ncols=1, figsize=(2.5*(1), 10), sharey='row')
     axes = axes.flatten()  # flatten if multidimenesional (multiple dpf)
     # setup color scheme for dot plots
-    flatui = ["#D0D0D0"] * (plt_data.groupby('condition').size()[0])
+    flatui = ["#D0D0D0"] * (plt_data.groupby('cond1').size()[0])
     defaultPlotting()
 
     # loop through differrent age (dpf), plot parabola in the first row and sensitivy in the second.
     for i, age in enumerate(age_condition):
         
         # plot std
-        std_plt = plt_data.loc[plt_data['dpf']==age]
+        std_plt = plt_data.loc[plt_data['cond0']==age]
         # plot jackknifed paired data
-        p = sns.pointplot(x='condition', y='y', hue='excluded_exp',data=std_plt,
+        p = sns.pointplot(x='cond1', y='y', hue='excluded_exp',data=std_plt,
                         palette=sns.color_palette(flatui), scale=0.5,
                         ax=axes[i+1],
                     #   order=['Sibs','Tau','Lesion'],
         )
         # plot mean data
-        p = sns.pointplot(x='condition', y='y',hue='condition',data=std_plt, 
+        p = sns.pointplot(x='cond1', y='y',hue='cond1',data=std_plt, 
                         linewidth=0,
                         alpha=0.9,
                         ci=None,
@@ -446,18 +446,18 @@ if if_plt_percentage == 1: # if contain lesion data
 # Posture change - attack angle KDE joint plot
 
 # This is a simple kde plot
-# p = sns.relplot(data=all_data_cond, x='posture_chg',y='atk_ang',col='condition',row='dpf',alpha=0.1,kind='scatter')
+# p = sns.relplot(data=all_data_cond, x='posture_chg',y='atk_ang',col='cond1',row='cond0',alpha=0.1,kind='scatter')
 # p.set(xlim=(-20, 20), ylim=(-20, 25))
 
 # This is the joint plot
 df = all_data_cond
 
-plt_condition = list(set(df['condition']))
+plt_cond1 = list(set(df['cond1']))
 plt_condition.sort()
-plt_dpf = ['7','7']
+plt_cond0 = ['7','7']
 
 for i in range(2):
-    df_to_plot = df.loc[(df['dpf']==plt_dpf[i]) & (df['condition']==plt_condition[i]),:]
+    df_to_plot = df.loc[(df['cond0']==plt_dpf[i]) & (df['cond1']==plt_condition[i]),:]
     print(f'* {plt_dpf[i]} dpf | {plt_condition[i]}')
     sns.jointplot(df_to_plot['posture_chg'], df_to_plot['atk_ang'], kind="kde", height=5, space=0, xlim=(-12, 12), ylim=(-20, 25))
     # plt.show()
@@ -465,13 +465,13 @@ for i in range(2):
 # %%
 # plot mean attack angles, mean max speed, mean posture change (Figure 1—figure supplement 3)
 
-multi_comp = MultiComparison(mean_data_cond['atkAng'], mean_data_cond['dpf']+mean_data_cond['condition'])
+multi_comp = MultiComparison(mean_data_cond['atkAng'], mean_data_cond['cond0']+mean_data_cond['cond1'])
 print('* attack angles')
 print(multi_comp.tukeyhsd().summary())
-multi_comp = MultiComparison(mean_data_cond['maxSpd'], mean_data_cond['dpf']+mean_data_cond['condition'])
+multi_comp = MultiComparison(mean_data_cond['maxSpd'], mean_data_cond['cond0']+mean_data_cond['cond1'])
 print('* max Speed')
 print(multi_comp.tukeyhsd().summary())
-multi_comp = MultiComparison(mean_data_cond['meanRot'], mean_data_cond['dpf']+mean_data_cond['condition'])
+multi_comp = MultiComparison(mean_data_cond['meanRot'], mean_data_cond['cond0']+mean_data_cond['cond1'])
 print('* mean rotation')
 print(multi_comp.tukeyhsd().summary())
 
@@ -481,11 +481,11 @@ fig.set_figheight(15)
 fig.set_figwidth(4)
 
 for i, ax in enumerate(axs):
-    g = sns.pointplot(x='condition',y=mean_data_cond.iloc[:,i], hue='date',data=mean_data_cond,
+    g = sns.pointplot(x='cond1',y=mean_data_cond.iloc[:,i], hue='date',data=mean_data_cond,
                   palette=sns.color_palette(flatui), scale=0.5,
                   order=['Sibs','Tau','Lesion'],
                   ax=ax)
-    g = sns.pointplot(x='condition', y=mean_data_cond.iloc[:,i],hue='condition',data=mean_data_cond, 
+    g = sns.pointplot(x='cond1', y=mean_data_cond.iloc[:,i],hue='cond1',data=mean_data_cond, 
                   linewidth=0,
                   alpha=0.9,
                   order=['Sibs','Tau','Lesion'],
@@ -494,8 +494,8 @@ for i, ax in enumerate(axs):
                   ax=ax
                   )
     # p-value calculation
-    ttest_res, ttest_p = ttest_rel(mean_data_cond.loc[mean_data_cond['condition']=='Sibs',mean_data_cond.columns[i]],
-                                   mean_data_cond.loc[mean_data_cond['condition']=='Tau',mean_data_cond.columns[i]])
+    ttest_res, ttest_p = ttest_rel(mean_data_cond.loc[mean_data_cond['cond1']=='Sibs',mean_data_cond.columns[i]],
+                                   mean_data_cond.loc[mean_data_cond['cond1']=='Tau',mean_data_cond.columns[i]])
     print(f'{mean_data_cond.columns[i]} Sibs v.s. Tau: paired t-test p-value = {ttest_p}')
 
     g.legend_.remove()
@@ -509,14 +509,14 @@ df = steep_data
 defaultPlotting()
 current_palette = sns.color_palette()
 
-data_7S = df.loc[(df['dpf']=='7') & (df['condition']=='Sibs'),:]
-data_7T = df.loc[(df['dpf']=='7') & (df['condition']=='Tau'),:]
+data_7S = df.loc[(df['cond0']=='7') & (df['cond1']=='Sibs'),:]
+data_7T = df.loc[(df['cond0']=='7') & (df['cond1']=='Tau'),:]
 
 p = sns.kdeplot(data=data_7S['pitch'],cumulative=True,color=current_palette[0],linewidth=2,label="day7_Sibs")
 p = sns.kdeplot(data=data_7T['pitch'],cumulative=True,color=current_palette[1],linewidth=2,label="day7_Tau")
 
-data_4S = df.loc[(df['dpf']=='4') & (df['condition']=='Sibs'),:]
-data_4T = df.loc[(df['dpf']=='4') & (df['condition']=='Tau'),:]
+data_4S = df.loc[(df['cond0']=='4') & (df['cond1']=='Sibs'),:]
+data_4T = df.loc[(df['cond0']=='4') & (df['cond1']=='Tau'),:]
 
 p = sns.kdeplot(data=data_4S['pitch'],cumulative=True,color=sns.color_palette("pastel", 8)[0],label="day4_Sibs")
 p = sns.kdeplot(data=data_4T['pitch'],cumulative=True,color=sns.color_palette("pastel", 8)[1],label="day4_Sibs")
@@ -531,22 +531,22 @@ p.set_xlim(-10,90)
 
 # for multiple conditions under the same dpf
 
-plt_condition = ['Sibs','Tau','Lesion']
+plt_cond1 = ['Sibs','Tau','Lesion']
 df = steep_data
 df_absmean = pd.DataFrame()
 for condition in plt_condition:
-    tmp = df.loc[df['condition']==condition ,:]
+    tmp = df.loc[df['cond1']==condition ,:]
     abs_mean_data = tmp.groupby('expNum')[['atk_ang','posture_chg','heading','pitch']].apply(
         lambda x: x.abs().mean()
     )
-    abs_mean_data = abs_mean_data.assign(condition=condition,
+    abs_mean_data = abs_mean_data.assign(cond1=condition,
                                          date=tmp.groupby('expNum')['date'].head(1).values)
     df_absmean = pd.concat([df_absmean,abs_mean_data],ignore_index=True)
     
-p = sns.pointplot(data=df_absmean, x='condition',y='pitch', hue='date',                  
+p = sns.pointplot(data=df_absmean, x='cond1',y='pitch', hue='date',                  
               palette=sns.color_palette(flatui), scale=0.5,
 )
-p = sns.pointplot(data=df_absmean, x='condition',y='pitch', hue='condition',
+p = sns.pointplot(data=df_absmean, x='cond1',y='pitch', hue='cond1',
               linewidth=0,
               alpha=0.9,
               ci=None,
@@ -556,8 +556,8 @@ p.legend_.remove()
 
 plt.ylabel("Deviation of posture from horizontal")
   
-ttest_res, ttest_p = ttest_rel(df_absmean.loc[df_absmean['condition']=='Sibs','pitch'],
-                               df_absmean.loc[df_absmean['condition']=='Tau','pitch'])
+ttest_res, ttest_p = ttest_rel(df_absmean.loc[df_absmean['cond1']=='Sibs','pitch'],
+                               df_absmean.loc[df_absmean['cond1']=='Tau','pitch'])
 plt.show()
 
 print(f'Sibs v.s. Tau: paired t-test p-value = {ttest_p}')
@@ -565,43 +565,43 @@ print(f'Sibs v.s. Tau: paired t-test p-value = {ttest_p}')
 # # for 4 conditions X dpf:
 # df = steep_data
 
-# plt_condition = ['Sibs','Tau','Sibs','Tau']
-# plt_dpf = ['4','4','7','7']
+# plt_cond1 = ['Sibs','Tau','Sibs','Tau']
+# plt_cond0 = ['4','4','7','7']
 # df_absmean = pd.DataFrame()
 
 # for i in range(4):
-#     tmp = df.loc[(df['dpf']==plt_dpf[i]) & (df['condition']==plt_condition[i]),:]
+#     tmp = df.loc[(df['cond0']==plt_dpf[i]) & (df['cond1']==plt_condition[i]),:]
 #     abs_mean_data = tmp.groupby('expNum')[['atk_ang','posture_chg','heading','pitch']].apply(
 #         lambda x: x.abs().mean()
 #     )
-#     abs_mean_data = abs_mean_data.assign(dpf=plt_dpf[i], condition=plt_condition[i])
+#     abs_mean_data = abs_mean_data.assign(dpf=plt_dpf[i], cond1=plt_condition[i])
 #     df_absmean = pd.concat([df_absmean,abs_mean_data],ignore_index=True)
 
-# sns.violinplot(data=df_absmean, x='dpf',y='pitch', hue='condition',dodge=True, ci='sd')
+# sns.violinplot(data=df_absmean, x='cond0',y='pitch', hue='cond1',dodge=True, ci='sd')
 # plt.ylabel("Deviation of posture from horizontal")
 
-# multi_comp = MultiComparison(df_absmean['pitch'], df_absmean['dpf']+df_absmean['condition'])
+# multi_comp = MultiComparison(df_absmean['pitch'], df_absmean['cond0']+df_absmean['cond1'])
 # print(multi_comp.tukeyhsd().summary())
 # plt.show()
 # %%
 # Posture change (Figure 3D)
 
-plt_condition = ['Sibs','Tau','Lesion']
+plt_cond1 = ['Sibs','Tau','Lesion']
 df = all_data_cond
 df_mean = pd.DataFrame()
 for condition in plt_condition:
-    tmp = df.loc[df['condition']==condition ,:]
+    tmp = df.loc[df['cond1']==condition ,:]
     mean_data = tmp.groupby('expNum')[['atk_ang','posture_chg','heading','pitch']].apply(
         lambda x: x.median()
     )
-    mean_data = mean_data.assign(condition=condition,
+    mean_data = mean_data.assign(cond1=condition,
                                          date=tmp.groupby('expNum')['date'].head(1).values)
     df_mean = pd.concat([df_mean,mean_data],ignore_index=True)
     
-p = sns.pointplot(data=df_mean, x='condition',y='pitch', hue='date',                  
+p = sns.pointplot(data=df_mean, x='cond1',y='pitch', hue='date',                  
               palette=sns.color_palette(flatui), scale=0.5,
 )
-p = sns.pointplot(data=df_mean, x='condition',y='pitch', hue='condition',
+p = sns.pointplot(data=df_mean, x='cond1',y='pitch', hue='cond1',
               linewidth=0,
               alpha=0.9,
               ci=None,
@@ -611,14 +611,14 @@ p.legend_.remove()
 
 plt.ylabel("Posture change")
   
-ttest_res, ttest_p = ttest_rel(df_mean.loc[df_mean['condition']=='Sibs','pitch'],
-                               df_mean.loc[df_mean['condition']=='Tau','pitch'])
+ttest_res, ttest_p = ttest_rel(df_mean.loc[df_mean['cond1']=='Sibs','pitch'],
+                               df_mean.loc[df_mean['cond1']=='Tau','pitch'])
 plt.show()
 
 print(f'Sibs v.s. Tau: paired t-test p-value = {ttest_p}')
 # %%
 # # pitch - heading. eLife 2019 Figure 1B
-# g = sns.relplot(data=all_data_cond, x='pitch',y='heading',hue='condition',col='condition',row='dpf',alpha=0.1,kind='scatter')
+# g = sns.relplot(data=all_data_cond, x='pitch',y='heading',hue='cond1',col='cond1',row='cond0',alpha=0.1,kind='scatter')
 # g.set(xlim=(-30, 30), ylim=(-90, 90))
 # ax1, ax2 = g.axes[0]
 # lims = [-90,90]
@@ -640,14 +640,14 @@ df = negPitch_data
 defaultPlotting()
 current_palette = sns.color_palette()
 
-data_7S = df.loc[(df['dpf']=='7') & (df['condition']=='Sibs'),:]
-data_7T = df.loc[(df['dpf']=='7') & (df['condition']=='Tau'),:]
+data_7S = df.loc[(df['cond0']=='7') & (df['cond1']=='Sibs'),:]
+data_7T = df.loc[(df['cond0']=='7') & (df['cond1']=='Tau'),:]
 
 p = sns.kdeplot(data=data_7S['pitch'],cumulative=True,color=current_palette[0],linewidth=2,label="day7_Sibs")
 p = sns.kdeplot(data=data_7T['pitch'],cumulative=True,color=current_palette[1],linewidth=2,label="day7_Tau")
 
-data_4S = df.loc[(df['dpf']=='4') & (df['condition']=='Sibs'),:]
-data_4T = df.loc[(df['dpf']=='4') & (df['condition']=='Tau'),:]
+data_4S = df.loc[(df['cond0']=='4') & (df['cond1']=='Sibs'),:]
+data_4T = df.loc[(df['cond0']=='4') & (df['cond1']=='Tau'),:]
 
 p = sns.kdeplot(data=data_4S['pitch'],cumulative=True,color=sns.color_palette("pastel", 8)[0],label="day4_Sibs")
 p = sns.kdeplot(data=data_4T['pitch'],cumulative=True,color=sns.color_palette("pastel", 8)[1],label="day4_Sibs")
@@ -661,21 +661,21 @@ plt.show()
 
 
 # deviation of posture from horizontal
-plt_condition = ['Sibs','Tau','Lesion']
+plt_cond1 = ['Sibs','Tau','Lesion']
 df_absmean = pd.DataFrame()
 for condition in plt_condition:
-    tmp = df.loc[df['condition']==condition ,:]
+    tmp = df.loc[df['cond1']==condition ,:]
     abs_mean_data = tmp.groupby('expNum')[['atk_ang','posture_chg','heading','pitch']].apply(
         lambda x: x.abs().mean()
     )
-    abs_mean_data = abs_mean_data.assign(condition=condition,
+    abs_mean_data = abs_mean_data.assign(cond1=condition,
                                          date=tmp.groupby('expNum')['date'].head(1).values)
     df_absmean = pd.concat([df_absmean,abs_mean_data],ignore_index=True)
     
-p = sns.pointplot(data=df_absmean, x='condition',y='pitch', hue='date',                  
+p = sns.pointplot(data=df_absmean, x='cond1',y='pitch', hue='date',                  
               palette=sns.color_palette(flatui), scale=0.5,
 )
-p = sns.pointplot(data=df_absmean, x='condition',y='pitch', hue='condition',
+p = sns.pointplot(data=df_absmean, x='cond1',y='pitch', hue='cond1',
               linewidth=0,
               alpha=0.9,
               ci=None,
@@ -685,8 +685,8 @@ p.legend_.remove()
 
 plt.ylabel("Deviation of posture from horizontal")
   
-ttest_res, ttest_p = ttest_rel(df_absmean.loc[df_absmean['condition']=='Sibs','pitch'],
-                               df_absmean.loc[df_absmean['condition']=='Tau','pitch'])
+ttest_res, ttest_p = ttest_rel(df_absmean.loc[df_absmean['cond1']=='Sibs','pitch'],
+                               df_absmean.loc[df_absmean['cond1']=='Tau','pitch'])
 plt.show()
 
 print(f'Sibs v.s. Tau: paired t-test p-value = {ttest_p}')
@@ -694,21 +694,21 @@ print(f'Sibs v.s. Tau: paired t-test p-value = {ttest_p}')
 
 #  Posture change 
 
-plt_condition = ['Sibs','Tau','Lesion']
+plt_cond1 = ['Sibs','Tau','Lesion']
 df_mean = pd.DataFrame()
 for condition in plt_condition:
-    tmp = df.loc[df['condition']==condition ,:]
+    tmp = df.loc[df['cond1']==condition ,:]
     mean_data = tmp.groupby('expNum')[['atk_ang','posture_chg','heading','pitch']].apply(
         lambda x: x.median()
     )
-    mean_data = mean_data.assign(condition=condition,
+    mean_data = mean_data.assign(cond1=condition,
                                          date=tmp.groupby('expNum')['date'].head(1).values)
     df_mean = pd.concat([df_mean,mean_data],ignore_index=True)
     
-p = sns.pointplot(data=df_mean, x='condition',y='pitch', hue='date',                  
+p = sns.pointplot(data=df_mean, x='cond1',y='pitch', hue='date',                  
               palette=sns.color_palette(flatui), scale=0.5,
 )
-p = sns.pointplot(data=df_mean, x='condition',y='pitch', hue='condition',
+p = sns.pointplot(data=df_mean, x='cond1',y='pitch', hue='cond1',
               linewidth=0,
               alpha=0.9,
               ci=None,
@@ -718,17 +718,17 @@ p.legend_.remove()
 
 plt.ylabel("pitch (posture change)")
   
-ttest_res, ttest_p = ttest_rel(df_mean.loc[df_mean['condition']=='Sibs','pitch'],
-                               df_mean.loc[df_mean['condition']=='Tau','pitch'])
+ttest_res, ttest_p = ttest_rel(df_mean.loc[df_mean['cond1']=='Sibs','pitch'],
+                               df_mean.loc[df_mean['cond1']=='Tau','pitch'])
 plt.show()
 
 print(f'Sibs v.s. Tau: paired t-test p-value = {ttest_p}')
 
 # atk angle
-p = sns.pointplot(data=df_mean, x='condition',y='atk_ang', hue='date',                  
+p = sns.pointplot(data=df_mean, x='cond1',y='atk_ang', hue='date',                  
               palette=sns.color_palette(flatui), scale=0.5,
 )
-p = sns.pointplot(data=df_mean, x='condition',y='atk_ang', hue='condition',
+p = sns.pointplot(data=df_mean, x='cond1',y='atk_ang', hue='cond1',
               linewidth=0,
               alpha=0.9,
               ci=None,
@@ -738,17 +738,17 @@ p.legend_.remove()
 
 plt.ylabel("atk_ang")
   
-ttest_res, ttest_p = ttest_rel(df_mean.loc[df_mean['condition']=='Sibs','pitch'],
-                               df_mean.loc[df_mean['condition']=='Tau','pitch'])
+ttest_res, ttest_p = ttest_rel(df_mean.loc[df_mean['cond1']=='Sibs','pitch'],
+                               df_mean.loc[df_mean['cond1']=='Tau','pitch'])
 plt.show()
 
 print(f'Sibs v.s. Tau: paired t-test p-value = {ttest_p}')
 
 # heading
-p = sns.pointplot(data=df_mean, x='condition',y='heading', hue='date',                  
+p = sns.pointplot(data=df_mean, x='cond1',y='heading', hue='date',                  
               palette=sns.color_palette(flatui), scale=0.5,
 )
-p = sns.pointplot(data=df_mean, x='condition',y='heading', hue='condition',
+p = sns.pointplot(data=df_mean, x='cond1',y='heading', hue='cond1',
               linewidth=0,
               alpha=0.9,
               ci=None,
@@ -758,17 +758,17 @@ p.legend_.remove()
 
 plt.ylabel("heading")
   
-ttest_res, ttest_p = ttest_rel(df_mean.loc[df_mean['condition']=='Sibs','pitch'],
-                               df_mean.loc[df_mean['condition']=='Tau','pitch'])
+ttest_res, ttest_p = ttest_rel(df_mean.loc[df_mean['cond1']=='Sibs','pitch'],
+                               df_mean.loc[df_mean['cond1']=='Tau','pitch'])
 plt.show()
 
 print(f'Sibs v.s. Tau: paired t-test p-value = {ttest_p}')
 
 # posture_chg
-p = sns.pointplot(data=df_mean, x='condition',y='posture_chg', hue='date',                  
+p = sns.pointplot(data=df_mean, x='cond1',y='posture_chg', hue='date',                  
               palette=sns.color_palette(flatui), scale=0.5,
 )
-p = sns.pointplot(data=df_mean, x='condition',y='posture_chg', hue='condition',
+p = sns.pointplot(data=df_mean, x='cond1',y='posture_chg', hue='cond1',
               linewidth=0,
               alpha=0.9,
               ci=None,
@@ -778,8 +778,8 @@ p.legend_.remove()
 
 plt.ylabel("posture_chg")
   
-ttest_res, ttest_p = ttest_rel(df_mean.loc[df_mean['condition']=='Sibs','pitch'],
-                               df_mean.loc[df_mean['condition']=='Tau','pitch'])
+ttest_res, ttest_p = ttest_rel(df_mean.loc[df_mean['cond1']=='Sibs','pitch'],
+                               df_mean.loc[df_mean['cond1']=='Tau','pitch'])
 plt.show()
 
 print(f'Sibs v.s. Tau: paired t-test p-value = {ttest_p}')

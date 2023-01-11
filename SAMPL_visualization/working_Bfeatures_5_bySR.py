@@ -38,7 +38,7 @@ def calc_jackknife_histogram(df_tocalc, feature, jackknife_col):
     
     jackknife_res = pd.DataFrame()
 
-    for condition, df_cond in df_tocalc.groupby('condition'):
+    for condition, df_cond in df_tocalc.groupby('cond1'):
         exp_df = df_cond.groupby(jackknife_col).size()
         jackknife_exp_matrix = jackknife_list(list(exp_df.index))
         for j, exp_group in enumerate(jackknife_exp_matrix):
@@ -51,14 +51,14 @@ def calc_jackknife_histogram(df_tocalc, feature, jackknife_col):
             binned_res = binned_res.assign(
                 jackknife_rep = j,
                 feature = mid_bins,
-                condition = condition
+                cond1 = condition
             )
-            binned_res.columns = ['probability','jackknife_rep',feature,'condition']
+            binned_res.columns = ['probability','jackknife_rep',feature,'cond1']
             jackknife_res = pd.concat([jackknife_res, binned_res], ignore_index=True)
             
     # print(f"{feature}:\n - bin num = {BIN_NUM}; bootstrap N = {bootstrap_n}")
-    # ctrl_data = df_tocalc.query("condition == @all_cond2[0]")[feature]
-    # cond_data = df_tocalc.query("condition == @all_cond2[1]")[feature]
+    # ctrl_data = df_tocalc.query("cond1 == @all_cond0[0]")[feature]
+    # cond_data = df_tocalc.query("cond1 == @all_cond0[1]")[feature]
     # ksres = st.ks_2samp(ctrl_data, cond_data)
     # print(f" - K-S p value = {ksres.pvalue}")
     return jackknife_res
@@ -89,13 +89,13 @@ df_bySpd_combined = pd.DataFrame()
 df_kinetics_combined = pd.DataFrame()
 for pick_data in data_list:
     root, FRAME_RATE = get_data_dir(pick_data)
-    all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond1, all_cond2 = get_bout_kinetics(root, FRAME_RATE, ztime=which_zeitgeber)
+    all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond0, all_cond0 = get_bout_kinetics(root, FRAME_RATE, ztime=which_zeitgeber)
     all_feature_cond, _, all_conditions = get_bout_features(root, FRAME_RATE, ztime=which_zeitgeber)
-    all_cond1 = pick_data
-    all_cond2.sort()
-    kinetics_bySpd_jackknife['dpf'] = pick_data
-    kinetics_jackknife['dpf'] = pick_data
-    all_feature_cond['dpf'] = pick_data
+    all_cond0 = pick_data
+    all_cond0.sort()
+    kinetics_bySpd_jackknife['cond0'] = pick_data
+    kinetics_jackknife['cond0'] = pick_data
+    all_feature_cond['cond0'] = pick_data
     df_bySpd_combined = pd.concat([df_bySpd_combined,kinetics_bySpd_jackknife], ignore_index=True)
     df_kinetics_combined = pd.concat([df_kinetics_combined,kinetics_jackknife], ignore_index=True)
     df_features_combined = pd.concat([df_features_combined,all_feature_cond], ignore_index=True)
@@ -104,11 +104,11 @@ for pick_data in data_list:
 df_features_combined = df_features_combined.assign(
     speed_bins = pd.cut(df_features_combined['spd_peak'],bins=spd_bins,labels=np.arange(len(spd_bins)-1))
 )
-df_bySpd_combined.rename(columns={'dpf':'dataset'},inplace=True)
-df_kinetics_combined.rename(columns={'dpf':'dataset'},inplace=True)
-df_features_combined.rename(columns={'dpf':'dataset'},inplace=True)
+df_bySpd_combined.rename(columns={'cond0':'dataset'},inplace=True)
+df_kinetics_combined.rename(columns={'cond0':'dataset'},inplace=True)
+df_features_combined.rename(columns={'cond0':'dataset'},inplace=True)
 
-df_features_combined['condition'] = df_features_combined['condition'].map(
+df_features_combined['cond1'] = df_features_combined['cond1'].map(
                                             {'1ctrl':'1ctrl',
                                              '2cond':'2cond',
                                              'hets':'1ctrl',
@@ -125,8 +125,8 @@ for dataset in data_list:
     df = df_features_combined.query("dataset == @dataset")
     for feature in feature_list:
         probab = calc_jackknife_histogram(df, feature, 'expNum')
-        control_probab = probab.query('condition == @all_conditions[0]').sort_values(by=['jackknife_rep',feature]).reset_index(drop=True)
-        condition_probab = probab.query('condition == @all_conditions[1]').sort_values(by=['jackknife_rep',feature]).reset_index(drop=True)
+        control_probab = probab.query('cond1 == @all_conditions[0]').sort_values(by=['jackknife_rep',feature]).reset_index(drop=True)
+        condition_probab = probab.query('cond1 == @all_conditions[1]').sort_values(by=['jackknife_rep',feature]).reset_index(drop=True)
         probab_diff = condition_probab
         probab_diff['probability'] = condition_probab['probability'] - control_probab['probability']
         
@@ -138,7 +138,7 @@ for dataset in data_list:
             x = feature,
             errorbar = 'sd',
             # errorbar=('ci',95),
-            # hue = 'condition',
+            # hue = 'cond1',
             # palette = ['black', 'red']
         )
         sns.despine()
@@ -160,7 +160,7 @@ for dataset in data_list:
             y = 'probability',
             x = feature,
             errorbar = 'sd',
-            hue = 'condition',
+            hue = 'cond1',
             palette = ['black', 'red']
         )
         sns.despine()
@@ -179,19 +179,19 @@ df_SRcat = df_features_combined.assign(
     SR_dir = [a + b for a, b in zip(R_dir, S_dir)]
 )
 
-df_SRcat.groupby(['dataset','SR_dir','condition']).mean()['traj_peak']
+df_SRcat.groupby(['dataset','SR_dir','cond1']).mean()['traj_peak']
 df_kinetics_combined.groupby('dataset')['set_point_jack'].mean()
 
-df_SRcat.sort_values(by=['dataset','condition'], inplace=True)
+df_SRcat.sort_values(by=['dataset','cond1'], inplace=True)
  # %%
 feature = 'rot_l_accel'
 g = sns.catplot(
     data = df_SRcat,
     col = 'dataset',
     row = 'SR_dir',
-    hue = 'condition',
+    hue = 'cond1',
     kind = 'point',
-    x = 'condition',
+    x = 'cond1',
     y = feature,
     sharey=False,
     height=3

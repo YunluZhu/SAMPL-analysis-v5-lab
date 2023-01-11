@@ -47,10 +47,10 @@ except:
     print('Notes: re-writing old figures')
 
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime = which_zeitgeber)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime = which_zeitgeber)
 
 # %% tidy data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 # all_feature_cond.drop(all_feature_cond[all_feature_cond['spd_peak']<7].index, inplace=True)
 
 # %% fit sigmoid - master
@@ -66,7 +66,7 @@ def func(x,k,b):
 # df_tofit = all_feature_cond
 # if DAY_RESAMPLE != 0:
 #     df_tofit = all_feature_cond.groupby(
-#             ['dpf','condition','expNum']
+#             ['cond0','cond1','expNum']
 #             ).sample(
 #                     n=DAY_RESAMPLE,
 #                     replace=True
@@ -79,7 +79,7 @@ if which_zeitgeber != 'night':
             ]
     if DAY_RESAMPLE != 0:  # if resampled
         all_feature_day = all_feature_day.groupby(
-                ['dpf','condition','expNum']
+                ['cond0','cond1','expNum']
                 ).sample(
                         n=DAY_RESAMPLE,
                         replace=True
@@ -92,7 +92,7 @@ if which_zeitgeber != 'day':
             ]
     if NIGHT_RESAMPLE != 0:  # if resampled
         all_feature_night = all_feature_night.groupby(
-                ['dpf','condition','expNum']
+                ['cond0','cond1','expNum']
                 ).sample(
                         n=NIGHT_RESAMPLE,
                         replace=True
@@ -101,7 +101,7 @@ if which_zeitgeber != 'day':
 
 df_tofit = pd.concat([all_feature_day,all_feature_night],ignore_index=True)
 
-for (cond1,cond2,this_ztime), for_fit in df_tofit.groupby(['condition','dpf','ztime']):
+for (cond1,cond1,this_ztime), for_fit in df_tofit.groupby(['cond1','cond0','ztime']):
     expNum = for_fit['expNum'].max()
     jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
     for excluded_exp, idx_group in enumerate(jackknife_idx):
@@ -115,8 +115,8 @@ for (cond1,cond2,this_ztime), for_fit in df_tofit.groupby(['condition','dpf','zt
                 'k': k,
                 'y_intersect': y_intersect,
                 'x_intersect': x_intersect,
-                'dpf': cond2,
-                'condition': cond1,
+                'cond0': cond1,
+                'cond1': cond1,
                 'excluded_exp': excluded_exp,
                 'ztime': this_ztime,
             }, index=[0]
@@ -126,8 +126,8 @@ for (cond1,cond2,this_ztime), for_fit in df_tofit.groupby(['condition','dpf','zt
         y = func(X_RANGE,k, y_intersect)
         this_y = pd.DataFrame(data=y, columns=['y']).assign(
             x=X_RANGE,
-            dpf = cond2,
-            condition = cond1,
+            cond0 = cond1,
+            cond1 = cond1,
             excluded_exp = excluded_exp,
             ztime = this_ztime,)
         all_y = pd.concat([all_y, this_y], ignore_index=True)
@@ -140,9 +140,9 @@ plt.figure()
 
 g = sns.relplot(x='x',y='y', data=all_y, 
                 kind='line',
-                col='dpf',
+                col='cond0',
                 row = 'ztime', 
-                hue='condition',
+                hue='cond1',
                 ci='sd',
                 )
 g.set(xlim=(xmin, xmax))
@@ -156,19 +156,19 @@ plt.close()
     
 for feature in ['k',	'y_intersect',	'x_intersect']:
     p = sns.catplot(
-        data = all_coef, y=feature,x='condition',kind='point',join=False,
-        col='dpf',
+        data = all_coef, y=feature,x='cond1',kind='point',join=False,
+        col='cond0',
         ci='sd',
         row = 'ztime', row_order=all_ztime,
         # units=excluded_exp,
-        hue='condition', dodge=True,
-        hue_order = all_cond2,
+        hue='cond1', dodge=True,
+        hue_order = all_cond0,
         aspect=0.6, sharey='row'
     )
-    p.map(sns.lineplot,'condition',feature,
+    p.map(sns.lineplot,'cond1',feature,
           estimator=None,
         units='excluded_exp',
-        # hue='condition',
+        # hue='cond1',
         color='grey',
         alpha=0.2,
         data=all_coef)
@@ -181,18 +181,18 @@ plt.close()
 for feature in ['k',	'y_intersect',	'x_intersect']:
     p = sns.catplot(
         data = all_coef, y=feature,x='ztime',kind='point',join=False,
-        col='condition',
+        col='cond1',
         ci='sd',
-        row = 'dpf', 
+        row = 'cond0', 
         # units=excluded_exp,
-        hue='condition', dodge=True,
-        hue_order = all_cond2,
+        hue='cond1', dodge=True,
+        hue_order = all_cond0,
         aspect=0.6
     )
     p.map(sns.lineplot,'ztime',feature,
           estimator=None,
         units='excluded_exp',
-        # hue='condition',
+        # hue='cond1',
         color='grey',
         alpha=0.2,
         data=all_coef)

@@ -38,12 +38,12 @@ except:
 # %% get features
 spd_bins = np.arange(5,30,5)
 
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
-all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond1, all_cond2 = get_bout_kinetics(root, FRAME_RATE, ztime=which_ztime,speed_bins=spd_bins)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
+all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond0, all_cond0 = get_bout_kinetics(root, FRAME_RATE, ztime=which_ztime,speed_bins=spd_bins)
 
 # %% tidy data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-one_kinetics = all_feature_cond.groupby(['dpf']).apply(
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
+one_kinetics = all_feature_cond.groupby(['cond0']).apply(
                         lambda x: get_kinetics(x)
                         ).reset_index()
 # %%
@@ -55,7 +55,7 @@ all_feature_UD = all_feature_cond.assign(
     direction = 'up',
     speed_bins = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1)),
 )
-all_feature_UD = all_feature_UD.merge(one_kinetics[['dpf','set_point']],on='dpf')
+all_feature_UD = all_feature_UD.merge(one_kinetics[['cond0','set_point']],on='cond0')
 # %%
 all_feature_UD.loc[all_feature_UD['pitch_pre_bout']<all_feature_UD['set_point'],'direction']='dn'
 
@@ -67,8 +67,8 @@ toplt = all_feature_UD
 feature_to_plt = 'pitch_pre_bout'
 g = sns.FacetGrid(data=toplt,
             hue='speed_bins',
-            col='dpf',
-            row='condition',
+            col='cond0',
+            row='cond1',
             sharey =False,
             )
 g.map(sns.kdeplot,feature_to_plt,common_norm=False)
@@ -82,8 +82,8 @@ toplt = all_feature_UD
 feature_to_plt = 'tsp_peak'
 g = sns.FacetGrid(data=toplt,
             hue='speed_bins',
-            col='dpf',col_order=all_cond1,
-            row='condition',
+            col='cond0',col_order=all_cond0,
+            row='cond1',
             sharey =False,
             )
 g.map(sns.kdeplot,feature_to_plt,common_norm=False)
@@ -111,13 +111,13 @@ df = df.assign(
 )
 df.dropna(inplace=True)
 df = df.assign(
-    average_deviation = df.groupby(['direction','dpf','condition','posture_deviation_bins'])['deviationFromSet'].transform('mean')
+    average_deviation = df.groupby(['direction','cond0','cond1','posture_deviation_bins'])['deviationFromSet'].transform('mean')
 )
 g = sns.relplot(kind='line',
                 row='direction',
-                col='dpf',col_order=all_cond1,
+                col='cond0',col_order=all_cond0,
                 data = df,
-                hue='condition',
+                hue='cond1',
                 x='average_deviation',
                 y='absRightingRot',
                 markers=False,

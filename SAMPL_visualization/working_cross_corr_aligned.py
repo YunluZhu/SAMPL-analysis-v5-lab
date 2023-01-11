@@ -42,7 +42,7 @@ except:
     print('Notes: re-writing old figures')
 
 # %% get bout features and IBI data
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
 
 # %% get aligned time series data
 HEADING_LIM = 90
@@ -61,8 +61,8 @@ for folder in os.listdir(root):
 
 
 all_around_peak_data = pd.DataFrame()
-# all_cond1 = []
-# all_cond2 = []
+# all_cond0 = []
+# all_cond0 = []
 
 # go through each condition folders under the root
 for condition_idx, folder in enumerate(folder_paths):
@@ -116,21 +116,21 @@ for condition_idx, folder in enumerate(folder_paths):
   
             # # combine data from different conditions
             cond1 = all_conditions[condition_idx].split("_")[0]
-            # all_cond1.append(cond1)
-            cond2 = all_conditions[condition_idx].split("_")[1]
-            # all_cond2.append(cond2)
+            # all_cond0.append(cond1)
+            cond1 = all_conditions[condition_idx].split("_")[1]
+            # all_cond0.append(cond1)
             all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=cond1,
-                                                                                            condition=cond2)])
+                                                                                            cond1=cond1)])
 all_around_peak_data = all_around_peak_data.assign(time_ms = (all_around_peak_data['idx']-peak_idx)/FRAME_RATE*1000)
 
 # %% tidy feature data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 
 # get kinetics separated by dpf
-all_kinetics = all_feature_cond.groupby(['dpf','condition']).apply(
+all_kinetics = all_feature_cond.groupby(['cond0','cond1']).apply(
                         lambda x: get_kinetics(x)
                         ).reset_index()
-ctrl_kinetics = all_kinetics.loc[all_kinetics['condition']==all_cond2[0],:]
+ctrl_kinetics = all_kinetics.loc[all_kinetics['cond1']==all_cond0[0],:]
 
 
 # %% tidy aligned data
@@ -152,8 +152,8 @@ all_around_peak_data = all_around_peak_data.assign(
 # direction by set point
 all_aligned_UD = pd.DataFrame()
 all_around_peak_data = all_around_peak_data.assign(direction=np.nan)
-for key, group in all_around_peak_data.groupby(['dpf']):
-    this_setvalue = ctrl_kinetics.loc[ctrl_kinetics['dpf']==key,'set_point'].to_list()[0]
+for key, group in all_around_peak_data.groupby(['cond0']):
+    this_setvalue = ctrl_kinetics.loc[ctrl_kinetics['cond0']==key,'set_point'].to_list()[0]
     group['direction'] = pd.cut(group['pitch_initial'],
                                 bins=[-91,this_setvalue,91],
                                 labels=['dn','up'])
@@ -163,8 +163,8 @@ for key, group in all_around_peak_data.groupby(['dpf']):
 # %%
 # time series correlation
 all_correlated = pd.DataFrame()
-# df_toana = all_aligned_UD.loc[all_aligned_UD['condition']==all_cond2[0],:]
-# df_toana = df_toana.loc[df_toana['dpf']==all_cond1[1],:]
+# df_toana = all_aligned_UD.loc[all_aligned_UD['cond1']==all_cond0[0],:]
+# df_toana = df_toana.loc[df_toana['cond0']==all_cond0[1],:]
 df_toana = all_aligned_UD
 
 
@@ -188,7 +188,7 @@ idx_range = all_correlated['idx'].max()-all_correlated['idx'].min()
 all_correlated['time_ms'] = (np.arange(idx_range)-idx_range/2)/FRAME_RATE*1000
 # %%
 # if plotting below is too slow, calculate average fist
-cat_col = ['direction','idx','condition','ztime','dpf']
+cat_col = ['direction','idx','cond1','ztime','cond0']
 mean_correlated = all_correlated.groupby(cat_col).mean().reset_index()
 mean_correlated['time_ms'] = (mean_correlated['idx']-peak_idx)/FRAME_RATE*1000
 
@@ -198,11 +198,11 @@ df_to_plt = all_correlated
 p = sns.relplot(
     data = df_to_plt, x = 'time_ms', y = 'corr', 
     row = 'direction',
-    col='dpf',
+    col='cond0',
     hue = 'speed_bin',
-    # hue_order=all_cond2,
-    style = 'dpf',
-    style_order=all_cond1,
+    # hue_order=all_cond0,
+    style = 'cond0',
+    style_order=all_cond0,
     # ci='sd',
     kind = 'line',aspect=3, height=4
 )
@@ -215,11 +215,11 @@ df_to_plt = all_correlated
 p = sns.relplot(
     data = df_to_plt, x = 'time_ms', y = 'corr', 
     row = 'direction',
-    col='dpf',
-    hue = 'condition',
-    hue_order=all_cond2,
-    style = 'dpf',
-    style_order=all_cond1,
+    col='cond0',
+    hue = 'cond1',
+    hue_order=all_cond0,
+    style = 'cond0',
+    style_order=all_cond0,
     # ci='sd',
     kind = 'line',aspect=3, height=4
 )
@@ -230,8 +230,8 @@ plt.savefig(fig_dir+f"/crossCorr pitch-pitch by condition.pdf",format='PDF')
 # corr angvel
 # time series correlation
 all_correlated = pd.DataFrame()
-# df_toana = all_aligned_UD.loc[all_aligned_UD['condition']==all_cond2[0],:]
-# df_toana = df_toana.loc[df_toana['dpf']==all_cond1[1],:]
+# df_toana = all_aligned_UD.loc[all_aligned_UD['cond1']==all_cond0[0],:]
+# df_toana = df_toana.loc[df_toana['cond0']==all_cond0[1],:]
 df_toana = all_aligned_UD
 
 
@@ -256,11 +256,11 @@ df_to_plt = all_correlated
 p = sns.relplot(
     data = df_to_plt, x = 'time_ms', y = 'corr', 
     row = 'direction',
-    col='dpf',
-    hue = 'condition',
-    hue_order=all_cond2,
-    style = 'dpf',
-    style_order=all_cond1,
+    col='cond0',
+    hue = 'cond1',
+    hue_order=all_cond0,
+    style = 'cond0',
+    style_order=all_cond0,
     # ci='sd',
     kind = 'line',aspect=3, height=4
 )
@@ -294,11 +294,11 @@ df_to_plt = all_correlated
 p = sns.relplot(
     data = df_to_plt, x = 'time_ms', y = 'corr', 
     row = 'direction',
-    col='dpf', col_order=all_cond1,
-    hue = 'condition',
-    hue_order=all_cond2,
-    style = 'dpf',
-    style_order=all_cond1,
+    col='cond0', col_order=all_cond0,
+    hue = 'cond1',
+    hue_order=all_cond0,
+    style = 'cond0',
+    style_order=all_cond0,
     # ci='sd',
     kind = 'line',aspect=3, height=4
 )

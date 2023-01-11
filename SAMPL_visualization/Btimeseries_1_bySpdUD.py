@@ -84,8 +84,8 @@ for folder in os.listdir(root):
 
 
 all_around_peak_data = pd.DataFrame()
-all_cond1 = []
-all_cond2 = []
+all_cond0 = []
+all_cond0 = []
 
 # go through each condition folders under the root
 for condition_idx, folder in enumerate(folder_paths):
@@ -132,17 +132,17 @@ for condition_idx, folder in enumerate(folder_paths):
                 around_peak_data = pd.concat([around_peak_data,exp_data])
     # combine data from different conditions
     cond1 = all_conditions[condition_idx].split("_")[0]
-    all_cond1.append(cond1)
-    cond2 = all_conditions[condition_idx].split("_")[1]
-    all_cond2.append(cond2)
+    all_cond0.append(cond1)
+    cond1 = all_conditions[condition_idx].split("_")[1]
+    all_cond0.append(cond1)
     all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=cond1,
-                                                                                            condition=cond2)])
+                                                                                            cond1=cond1)])
 all_around_peak_data = all_around_peak_data.assign(time_ms = (all_around_peak_data['idx']-peak_idx)/FRAME_RATE*1000)
 # %% tidy data
-all_cond1 = list(set(all_cond1))
-all_cond1.sort()
-all_cond2 = list(set(all_cond2))
-all_cond2.sort()
+all_cond0 = list(set(all_cond0))
+all_cond0.sort()
+all_cond0 = list(set(all_cond0))
+all_cond0.sort()
 
 all_around_peak_data = all_around_peak_data.reset_index(drop=True)
 peak_speed = all_around_peak_data.loc[all_around_peak_data.idx==peak_idx,'propBoutAligned_speed'],
@@ -195,7 +195,7 @@ peak_data = peak_data.assign(
 )
 
 
-peak_grp = peak_data.groupby(['expNum','condition'],as_index=False)
+peak_grp = peak_data.groupby(['expNum','cond1'],as_index=False)
 
 # assign by pitch
 neg_pitch_bout_num = peak_data.loc[peak_data['pitch_pre_bout']<10,'bout_number']
@@ -223,11 +223,11 @@ if if_plot_by_speed:
     for feature_toplt in tqdm(all_features):
         p = sns.relplot(
         data = toplt, x = 'time_ms', y = feature_toplt, row = 'speed_bin',
-        col='dpf',
-        hue = 'condition',
-        hue_order=all_cond2,
-        style = 'dpf',
-        style_order=all_cond1,
+        col='cond0',
+        hue = 'cond1',
+        hue_order=all_cond0,
+        style = 'cond0',
+        style_order=all_cond0,
         # ci='sd',
         kind = 'line',aspect=3, height=2
         )
@@ -241,11 +241,11 @@ print('Plotting features binned by pitch dir...')
 for feature_toplt in tqdm(all_features):
     p = sns.relplot(
         data = toplt, x = 'time_ms', y = feature_toplt, row = 'pitch_dir',
-        col='dpf',
-        hue = 'condition',
-        hue_order=all_cond2,
-        style = 'dpf',
-        style_order=all_cond1,
+        col='cond0',
+        hue = 'cond1',
+        hue_order=all_cond0,
+        style = 'cond0',
+        style_order=all_cond0,
         # ci='sd',
         kind = 'line',aspect=3, height=2
     )
@@ -261,11 +261,11 @@ for feature_toplt in tqdm(all_features):
     p = sns.relplot(
         data = toplt, x = 'time_ms', y = feature_toplt, 
         row = 'pitch_dir',
-        col='condition', 
-        hue = 'dpf',
-        hue_order=all_cond1,
-        style = 'dpf',
-        style_order=all_cond1,
+        col='cond1', 
+        hue = 'cond0',
+        hue_order=all_cond0,
+        style = 'cond0',
+        style_order=all_cond0,
         # ci='sd',
         kind = 'line',aspect=3, height=2,
         facet_kws={'sharey': False, 'sharex': True}
@@ -281,11 +281,11 @@ for feature_toplt in tqdm(all_features):
 # for feature_toplt in tqdm(all_features):
 #     p = sns.relplot(
 #     data = toplt, x = 'time_ms', y = feature_toplt, row = 'traj_deviation_dir',
-#     col='dpf',
-#     hue = 'condition',
-#     hue_order=all_cond2,
-#     style = 'dpf',
-#     style_order=all_cond1,
+#     col='cond0',
+#     hue = 'cond1',
+#     hue_order=all_cond0,
+#     style = 'cond0',
+#     style_order=all_cond0,
 #     ci=None,
 #     kind = 'line',aspect=3, height=2
 #     )
@@ -304,10 +304,10 @@ if if_plot_by_speed:
         data = toplt, x = 'time_ms', y = feature_toplt, 
         row = 'speed_bin', col = 'pitch_dir',
         
-        hue = 'condition',
-        hue_order=all_cond2,
-        style = 'dpf',
-        style_order=all_cond1,
+        hue = 'cond1',
+        hue_order=all_cond0,
+        style = 'cond0',
+        style_order=all_cond0,
         kind = 'line',aspect=3, height=2
         )
         g.map(plt.axvline, x=0, linewidth=1, color=".5", zorder=0)

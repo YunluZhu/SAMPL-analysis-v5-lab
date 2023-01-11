@@ -43,13 +43,13 @@ except:
     print('Notes: re-writing old figures')
 
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime = which_zeitgeber)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime = which_zeitgeber)
 
 # %% tidy data
-# all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+# all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 # all_feature_cond.drop(all_feature_cond[all_feature_cond['spd_peak']<7].index, inplace=True)
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-# one_kinetics = all_feature_cond.groupby(['dpf']).apply(
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
+# one_kinetics = all_feature_cond.groupby(['cond0']).apply(
 #                         lambda x: get_kinetics(x)
 #                         ).reset_index()
 # assign up and down
@@ -99,9 +99,9 @@ df = df.assign(
 )
 g = sns.relplot(kind='line',
                 col='direction',
-                row='dpf',
+                row='cond0',
                 data = df,
-                hue='condition',
+                hue='cond1',
                 x='average_deviation',
                 y='absRightingRot',
                 markers=False,

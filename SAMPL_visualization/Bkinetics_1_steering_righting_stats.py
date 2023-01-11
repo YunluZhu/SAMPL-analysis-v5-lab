@@ -37,10 +37,10 @@ except:
 spd_bins = np.arange(5,25,4)
 
 root, FRAME_RATE = get_data_dir(pick_data)
-all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond1, all_cond2 = get_bout_kinetics(root, FRAME_RATE, ztime=which_zeitgeber)
+all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond0, all_cond0 = get_bout_kinetics(root, FRAME_RATE, ztime=which_zeitgeber)
 all_feature_cond, _, _ = get_bout_features(root, FRAME_RATE, ztime=which_zeitgeber)
-all_cond1 = pick_data
-all_cond2.sort()
+all_cond0 = pick_data
+all_cond0.sort()
 
 
 all_feature_cond = all_feature_cond.assign(
@@ -54,15 +54,15 @@ sns.set_style("ticks")
 # %%
 # kinetics by speed bins
 toplt = kinetics_bySpd_jackknife
-cat_cols = ['jackknife_group','condition','expNum','dataset','ztime']
+cat_cols = ['jackknife_group','cond1','expNum','dataset','ztime']
 # all_features = [c for c in toplt.columns if c not in cat_cols]
 all_features = ['steering_gain','righting_gain']
 
 for feature_toplt in (all_features):
     g = sns.relplot(
         data = toplt,
-        col = 'dpf',
-        hue = 'condition',
+        col = 'cond0',
+        hue = 'cond1',
         x = 'average_speed',
         y = feature_toplt,
         kind = 'line',
@@ -77,16 +77,16 @@ for feature_toplt in (all_features):
     
 # %% Compare by condition
 toplt = kinetics_jackknife.reset_index(drop=True)
-cat_cols = ['jackknife_group','condition','expNum','dataset','ztime']
+cat_cols = ['jackknife_group','cond1','expNum','dataset','ztime']
 # all_features = [c for c in toplt.columns if c not in cat_cols]
 all_features = ['steering_gain_jack','righting_gain_jack']
 
 for feature_toplt in (all_features):
     g = sns.catplot(
         data = toplt,
-        col = 'dpf',
-        hue = 'condition',
-        x = 'condition',
+        col = 'cond0',
+        hue = 'cond1',
+        x = 'cond1',
         y = feature_toplt,
         linestyles = '',
         kind = 'point',
@@ -94,7 +94,7 @@ for feature_toplt in (all_features):
         aspect=.6,
         height=3,
     )
-    g.map(sns.lineplot,'condition',feature_toplt,estimator=None,
+    g.map(sns.lineplot,'cond1',feature_toplt,estimator=None,
       units='jackknife_group',
       data = toplt,
       sort=False,
@@ -113,7 +113,7 @@ for feature_toplt in (all_features):
 
 df_toplt = kinetics_jackknife
 for feature_toplt in ['righting_gain_jack','steering_gain_jack']:
-    multi_comp = MultiComparison(df_toplt[feature_toplt], df_toplt['dpf']+"|"+df_toplt['condition'])
+    multi_comp = MultiComparison(df_toplt[feature_toplt], df_toplt['cond0']+"|"+df_toplt['cond1'])
     print(f'* {feature_toplt}')
     print(multi_comp.tukeyhsd().summary())
     # print(multi_comp.tukeyhsd().pvalues)

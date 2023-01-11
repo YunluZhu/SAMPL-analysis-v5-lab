@@ -73,7 +73,7 @@ def day_night_split2(df,time_col_name):
 #     bins raw pitch data and return mean. Used to plot data points on the parabola.'''
 #     df = df.sort_values(by='propBoutIEI_pitch')
 #     df = df.assign(y_boutFreq = 1/df['propBoutIEI'])
-#     df_out = df.groupby(np.arange(len(df))//samples_per_bin)[['propBoutIEI_pitch','y_boutFreq']].mean().assign(dpf=condition[0],condition=condition[4:])
+#     df_out = df.groupby(np.arange(len(df))//samples_per_bin)[['propBoutIEI_pitch','y_boutFreq']].mean().assign(dpf=condition[0],cond1=condition[4:])
 #     return df_out
 
 def distribution_binned_average(df, bin_width):
@@ -98,7 +98,7 @@ def parabola_fit1(df, X_RANGE_to_fit = X_RANGE_FULL):
     '''
     popt, pcov = curve_fit(ffunc1, df['propBoutIEI_pitch'], df['y_boutFreq'], p0=(0.0002,3,0.8) , bounds=((0, -10, 0),(0.5, 15, 10)))
     # output = pd.DataFrame(data=popt,columns=['sensitivity','x_inter','y_inter'])
-    # output = output.assign(condition=condition)
+    # output = output.assign(cond1=condition)
     y = []
     for x in X_RANGE_to_fit:
         y.append(ffunc1(x,*popt))
@@ -143,51 +143,51 @@ for condition_idx, folder in enumerate(folder_paths):
                 # enter next folder under the current condition
             
             cond1 = all_conditions[condition_idx].split("_")[0]
-            cond2 = all_conditions[condition_idx].split("_")[1]    
+            cond1 = all_conditions[condition_idx].split("_")[1]    
             all_day_angles = all_day_angles.assign(y_boutFreq=1/all_day_angles['propBoutIEI'])
             # get all angles at all conditions, for validation. not needed for plotting
-            all_cond_angles = pd.concat([all_cond_angles,all_day_angles.assign(condition=all_conditions[condition_idx])],ignore_index=True)
+            all_cond_angles = pd.concat([all_cond_angles,all_day_angles.assign(cond1=all_conditions[condition_idx])],ignore_index=True)
             # get binned mean of angles for plotting "raw" data 
             this_binned_angles = distribution_binned_average(all_day_angles, BIN_WIDTH)
             this_binned_angles = this_binned_angles.assign(
-                dpf = cond1,
-                condition = cond2
+                cond0 = cond1,
+                cond1 = cond1
             )
             binned_angles = pd.concat([binned_angles, this_binned_angles],ignore_index=True)
             
             # fit angles condition by condition and concatenate results
             coef, fitted_y = parabola_fit1(all_day_angles, X_RANGE_FULL)
-            coef_ori = pd.concat([coef_ori, coef.assign(dpf=all_conditions[condition_idx][0:2],condition=all_conditions[condition_idx][4:])])
-            fitted_y_ori = pd.concat([fitted_y_ori, fitted_y.assign(dpf=all_conditions[condition_idx][0:2],condition=all_conditions[condition_idx][4:])])
+            coef_ori = pd.concat([coef_ori, coef.assign(dpf=all_conditions[condition_idx][0:2],cond1=all_conditions[condition_idx][4:])])
+            fitted_y_ori = pd.concat([fitted_y_ori, fitted_y.assign(dpf=all_conditions[condition_idx][0:2],cond1=all_conditions[condition_idx][4:])])
             
             # jackknife for the index
             jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
             for excluded_exp, idx_group in enumerate(jackknife_idx):
                 coef, fitted_y = parabola_fit1(all_day_angles.loc[all_day_angles['expNum'].isin(idx_group)], X_RANGE_FULL)
                 jackknifed_coef = pd.concat([jackknifed_coef, coef.assign(dpf=cond1,
-                                                                        condition=cond2,
+                                                                        cond1=cond1,
                                                                         excluded_exp=all_day_angles.loc[all_day_angles['expNum']==excluded_exp,'date'].iloc[0])])
                 jackknifed_y = pd.concat([jackknifed_y, fitted_y.assign(dpf=cond1,
-                                                                        condition=cond2,
+                                                                        cond1=cond1,
                                                                         excluded_exp=all_day_angles.loc[all_day_angles['expNum']==excluded_exp,'date'].iloc[0])])
             # Finish the current condition, enter next condition
 
 coef_all_cond, fitted_y_all_cond = parabola_fit1(all_cond_angles, X_RANGE_FULL)
 
 
-jackknifed_coef.columns = ['sensitivity','x_inter','y_inter','dpf','condition','jackknife_excluded_sample']
-jackknifed_coef.sort_values(by=['condition','dpf'],inplace=True, ignore_index=True)
+jackknifed_coef.columns = ['sensitivity','x_inter','y_inter','cond0','cond1','jackknife_excluded_sample']
+jackknifed_coef.sort_values(by=['cond1','cond0'],inplace=True, ignore_index=True)
 jackknifed_coef['sensitivity'] = jackknifed_coef['sensitivity']*1000  # unit: mHz/deg**2
 
-jackknifed_y.columns = ['y','x','dpf','condition','jackknife_excluded_sample']
-jackknifed_y.sort_values(by=['condition','dpf'],inplace=True, ignore_index=True)
-binned_angles.sort_values(by=['condition','dpf'],inplace=True, ignore_index=True)
+jackknifed_y.columns = ['y','x','cond0','cond1','jackknife_excluded_sample']
+jackknifed_y.sort_values(by=['cond1','cond0'],inplace=True, ignore_index=True)
+binned_angles.sort_values(by=['cond1','cond0'],inplace=True, ignore_index=True)
 
-coef_ori.columns = ['sensitivity','x_inter','y_inter','dpf','condition']
-coef_ori.sort_values(by=['condition','dpf'],inplace=True, ignore_index=True)
+coef_ori.columns = ['sensitivity','x_inter','y_inter','cond0','cond1']
+coef_ori.sort_values(by=['cond1','cond0'],inplace=True, ignore_index=True)
 
-fitted_y_ori.columns = ['y','x','dpf','condition']         
-fitted_y_ori.sort_values(by=['condition','dpf'],inplace=True, ignore_index=True) 
+fitted_y_ori.columns = ['y','x','cond0','cond1']         
+fitted_y_ori.sort_values(by=['cond1','cond0'],inplace=True, ignore_index=True) 
 
 # %%
 print("Fitted coefs using ALL data (for reference):")
@@ -197,36 +197,36 @@ print(coef_all_cond)
 defaultPlotting()
 
 # Separate data by age.
-age_condition = set(jackknifed_y['dpf'].values)
+age_cond1 = set(jackknifed_y['cond0'].values)
 age_cond_num = len(age_condition)
 
 # initialize a multi-plot, feel free to change the plot size
 f, axes = plt.subplots(nrows=4, ncols=age_cond_num, figsize=(2*(age_cond_num), 12), sharey='row')
 axes = axes.flatten()  # flatten if multidimenesional (multiple dpf)
 # setup color scheme for dot plots
-flatui = ["#D0D0D0"] * (jackknifed_coef.groupby('condition').size()[0])
+flatui = ["#D0D0D0"] * (jackknifed_coef.groupby('cond1').size()[0])
 defaultPlotting()
 
 # loop through differrent age (dpf), plot parabola in the first row and sensitivy in the second.
 for i, age in enumerate(age_condition):
-    fitted = jackknifed_y.loc[jackknifed_y['dpf']==age]
+    fitted = jackknifed_y.loc[jackknifed_y['cond0']==age]
     # dots are plotted with binned average pitches
-    binned = binned_angles.loc[binned_angles['dpf']==age]
-    g = sns.lineplot(x='x',y='y',hue='condition',data=fitted, ci="sd", ax=axes[i]).set(title=age)
-    g = sns.scatterplot(x='propBoutIEI_pitch',y='y_boutFreq',hue='condition',s=20, data=binned, alpha=0.3, ax=axes[i],linewidth=0)
+    binned = binned_angles.loc[binned_angles['cond0']==age]
+    g = sns.lineplot(x='x',y='y',hue='cond1',data=fitted, ci="sd", ax=axes[i]).set(title=age)
+    g = sns.scatterplot(x='propBoutIEI_pitch',y='y_boutFreq',hue='cond1',s=20, data=binned, alpha=0.3, ax=axes[i],linewidth=0)
     g.set_xticks(np.arange(-40,60,20))      # adjust ticks
     g.set_ylim(0, None,30)
     
     # SENSITIVITY
-    coef_plt = jackknifed_coef.loc[jackknifed_coef['dpf']==age]
+    coef_plt = jackknifed_coef.loc[jackknifed_coef['cond0']==age]
     # plot jackknifed paired data
-    p = sns.pointplot(x='condition', y='sensitivity', hue='jackknife_excluded_sample',data=coef_plt,
+    p = sns.pointplot(x='cond1', y='sensitivity', hue='jackknife_excluded_sample',data=coef_plt,
                     palette=sns.color_palette(flatui), scale=0.5,
                     ax=axes[i+age_cond_num],
                 #   order=['Sibs','Tau','Lesion'],
     )
     # plot mean data
-    p = sns.pointplot(x='condition', y='sensitivity',hue='condition',data=coef_plt, 
+    p = sns.pointplot(x='cond1', y='sensitivity',hue='cond1',data=coef_plt, 
                     linewidth=0,
                     alpha=0.9,
                     ci=None,
@@ -240,27 +240,27 @@ for i, age in enumerate(age_condition):
     # sns.despine(trim=True)
     
     # p values for sensitivity
-    condition_s = set(coef_plt['condition'].values)
+    condition_s = set(coef_plt['cond1'].values)
     condition_s = list(condition_s)
     
     # Paired T Test for 2 conditions 
     if len(condition_s) == 2:      
         # Separate data by condition.
-        coef_cond1 = coef_plt.loc[coef_plt['condition']==condition_s[0]].sort_values(by='jackknife_excluded_sample')
-        coef_cond2 = coef_plt.loc[coef_plt['condition']==condition_s[1]].sort_values(by='jackknife_excluded_sample')
-        ttest_res, ttest_p = ttest_rel(coef_cond1['sensitivity'],coef_cond2['sensitivity'])
+        coef_cond1 = coef_plt.loc[coef_plt['cond1']==condition_s[0]].sort_values(by='jackknife_excluded_sample')
+        coef_cond1 = coef_plt.loc[coef_plt['cond1']==condition_s[1]].sort_values(by='jackknife_excluded_sample')
+        ttest_res, ttest_p = ttest_rel(coef_cond1['sensitivity'],coef_cond1['sensitivity'])
         print(f'* Age {age} Sensitivity: {condition_s[0]} v.s. {condition_s[1]} paired t-test p-value = {ttest_p}')
     elif len(condition_s) > 2:      
-        multi_comp = MultiComparison(coef_plt['sensitivity'], coef_plt['dpf']+coef_plt['condition'])
+        multi_comp = MultiComparison(coef_plt['sensitivity'], coef_plt['cond0']+coef_plt['cond1'])
         print(f'* Age {age} Sensitivity:' )
         print(multi_comp.tukeyhsd().summary())
     else:
         pass
     
     # X INTERSECT
-    sns.swarmplot(x='condition', y='x_inter', data=coef_plt,ax=axes[i+age_cond_num*2])
+    sns.swarmplot(x='cond1', y='x_inter', data=coef_plt,ax=axes[i+age_cond_num*2])
     # Y INTERSECT
-    sns.swarmplot(x='condition', y='y_inter', data=coef_plt,ax=axes[i+age_cond_num*3])
+    sns.swarmplot(x='cond1', y='y_inter', data=coef_plt,ax=axes[i+age_cond_num*3])
     
 plt.savefig(fig_dir+f"/{pick_data}'s sensitivity_3full.pdf",format='PDF')
 
@@ -272,14 +272,14 @@ plt.savefig(fig_dir+f"/{pick_data}'s sensitivity_3full.pdf",format='PDF')
 
 # plt.figure(figsize=(2.5,7))
 
-# df = jackknifed_coef.loc[jackknifed_coef['condition'] != 'Lesion']
-# flatui = ["#D0D0D0"] * (df.groupby('condition').size()[0])
+# df = jackknifed_coef.loc[jackknifed_coef['cond1'] != 'Lesion']
+# flatui = ["#D0D0D0"] * (df.groupby('cond1').size()[0])
 
-# p = sns.pointplot(x='condition', y='sensitivity', hue='jackknife_excluded_sample',data=jackknifed_coef,
+# p = sns.pointplot(x='cond1', y='sensitivity', hue='jackknife_excluded_sample',data=jackknifed_coef,
 #                   palette=sns.color_palette(flatui), scale=0.5,
 #                 #   order=['Sibs','Tau','Lesion'],
 # )
-# p = sns.pointplot(x='condition', y='sensitivity',hue='condition',data=jackknifed_coef, 
+# p = sns.pointplot(x='cond1', y='sensitivity',hue='cond1',data=jackknifed_coef, 
 #                   linewidth=0,
 #                   alpha=0.9,
 #                 #   order=['Sibs','Tau','Lesion'],
@@ -298,11 +298,11 @@ plt.savefig(fig_dir+f"/{pick_data}'s sensitivity_3full.pdf",format='PDF')
 # f, axes = plt.subplots(nrows=3, ncols=1, figsize=(8, 12),sharex='all')
 # plt.subplots_adjust(left=None, bottom=None, right=None, top=None,
 #                 wspace=0.4, hspace=None)
-# g1 = sns.swarmplot(y='sensitivity',x='dpf', hue='condition', data=jackknifed_coef,ax=axes[0])
+# g1 = sns.swarmplot(y='sensitivity',x='cond0', hue='cond1', data=jackknifed_coef,ax=axes[0])
 # g1.set_ylim([0,0.001])
-# g2 = sns.swarmplot(y='x_inter',x='dpf', hue='condition', data=jackknifed_coef,ax=axes[1])
+# g2 = sns.swarmplot(y='x_inter',x='cond0', hue='cond1', data=jackknifed_coef,ax=axes[1])
 # # g2.set_ylim([4.999,5.001])
-# sns.swarmplot(y='y_inter',x='dpf', hue='condition', data=jackknifed_coef,ax=axes[2])
+# sns.swarmplot(y='y_inter',x='cond0', hue='cond1', data=jackknifed_coef,ax=axes[2])
 
 # # %%
 # # boxplot
@@ -311,8 +311,8 @@ plt.savefig(fig_dir+f"/{pick_data}'s sensitivity_3full.pdf",format='PDF')
 # f, axes = plt.subplots(nrows=3, ncols=1, figsize=(8, 16),sharex='all')
 # plt.subplots_adjust(left=None, bottom=None, right=None, top=None,
 #                 wspace=0.4, hspace=0.1)
-# g1 = sns.boxplot(y='sensitivity',x='dpf', hue='condition', data=jackknifed_coef,ax=axes[0])
+# g1 = sns.boxplot(y='sensitivity',x='cond0', hue='cond1', data=jackknifed_coef,ax=axes[0])
 # g1.set_ylim([0,0.001])
-# g2 = sns.boxplot(y='x_inter',x='dpf', hue='condition', data=jackknifed_coef,ax=axes[1])
+# g2 = sns.boxplot(y='x_inter',x='cond0', hue='cond1', data=jackknifed_coef,ax=axes[1])
 # # g2.set_ylim([4.999,5.001])
-# sns.boxplot(y='y_inter',x='dpf', hue='condition', data=jackknifed_coef,ax=axes[2])
+# sns.boxplot(y='y_inter',x='cond0', hue='cond1', data=jackknifed_coef,ax=axes[2])

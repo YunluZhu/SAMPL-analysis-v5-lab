@@ -167,12 +167,12 @@ for condition_idx, folder in enumerate(folder_paths):
             # combine data from different conditions
             all_feature_cond = pd.concat([all_feature_cond, bout_features.assign(
                 # dpf=all_conditions[condition_idx][0:2],
-                condition=all_conditions[condition_idx][4:]
+                cond1=all_conditions[condition_idx][4:]
                 )])
 
 # %% tidy data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-# mean_data_cond = mean_data_cond.reset_index().sort_values(by='condition').reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
+# mean_data_cond = mean_data_cond.reset_index().sort_values(by='cond1').reset_index(drop=True)
 
 
 rolling_windows = pd.DataFrame(data=bins).rolling(2, min_periods=1)
@@ -187,9 +187,9 @@ all_feature_cond = all_feature_cond.assign(
 )
 
 # %% Jackknife resampling
-cat_cols = ['condition','expNum','binned_feat']
+cat_cols = ['cond1','expNum','binned_feat']
 mean_data = all_feature_cond.groupby(cat_cols).mean().reset_index()
-mean_data_jackknife = mean_data.groupby(['condition','binned_feat']).apply(
+mean_data_jackknife = mean_data.groupby(['cond1','binned_feat']).apply(
     lambda x: jackknife_mean(x)
 ).reset_index()
 
@@ -213,14 +213,14 @@ mean_data_jackknife.rename(columns={c:c+'_jack' for c in mean_data_jackknife.col
 
 # print('Point plot categorized by speed and pitch direction')
 # for feature_toplt in tqdm(all_features):
-#     g = sns.catplot(data = toplt, x = 'condition', y = feature_toplt,
+#     g = sns.catplot(data = toplt, x = 'cond1', y = feature_toplt,
 #                     col="binned_feat",
 #                     height=4, aspect=0.8, kind='point',
-#                     hue='condition', markers='d',sharey=False,
+#                     hue='cond1', markers='d',sharey=False,
 #                     ci=None, zorder=10
 #                     )
 #     g.map_dataframe(sns.pointplot, 
-#                     x = "condition", y = feature_toplt,
+#                     x = 'cond1', y = feature_toplt,
 #                     hue='expNum', ci=None,palette=sns.color_palette(flatui), scale=0.5,zorder=-1)
 #     plt.savefig(fig_dir+f"/{pick_data}'s {feature_toplt}.pdf",format='PDF')
 #     plt.clf()
@@ -241,7 +241,7 @@ for feature_toplt in ['pitch','traj','spd','rot','tsp']:
     g = sns.FacetGrid(df_toplt,
                     #   row = "direction", 
                     col='feature',
-                    hue = 'condition', 
+                    hue = 'cond1', 
                     height=5, aspect=.8, 
                     sharey=False,
                     )

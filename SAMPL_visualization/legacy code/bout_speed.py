@@ -78,18 +78,18 @@ for condition_idx, folder in enumerate(folder_paths):
             jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
             # get the distribution of every jackknifed sample
             jack_y = pd.concat([pd.DataFrame(np.histogram(all_speed.iloc[idx_group].to_numpy().flatten(), bins=bins, density=True)) for idx_group in jackknife_idx], axis=1).transpose()
-            jack_y_all = pd.concat([jack_y_all, jack_y.assign(age=all_conditions[condition_idx][0], condition=all_conditions[condition_idx][4:])], axis=0, ignore_index=True)
+            jack_y_all = pd.concat([jack_y_all, jack_y.assign(age=all_conditions[condition_idx][0], cond1=all_conditions[condition_idx][4:])], axis=0, ignore_index=True)
             # # get the std of every jackknifed sample
             # for idx_group in jackknife_idx:
             #     ang_std.append(np.nanstd(all_speed.iloc[idx_group].to_numpy().flatten())) 
             # ang_std = pd.DataFrame(ang_std)
-            # ang_std_all = pd.concat([ang_std_all, ang_std.assign(age=all_conditions[condition_idx][0], condition=all_conditions[condition_idx][4:])], axis=0, ignore_index=True)
+            # ang_std_all = pd.concat([ang_std_all, ang_std.assign(age=all_conditions[condition_idx][0], cond1=all_conditions[condition_idx][4:])], axis=0, ignore_index=True)
 
-jack_y_all.columns = ['Probability','swim_speed','dpf','condition']
-jack_y_all.sort_values(by=['dpf','condition'],inplace=True)
+jack_y_all.columns = ['Probability','swim_speed','cond0','cond1']
+jack_y_all.sort_values(by=['cond0','cond1'],inplace=True)
 
 # %%
 defaultPlotting()
-g = sns.lineplot(x='swim_speed',y='Probability', hue='condition', style='dpf', data=jack_y_all, ci='sd', err_style='band')
+g = sns.lineplot(x='swim_speed',y='Probability', hue='cond1', style='cond0', data=jack_y_all, ci='sd', err_style='band')
 
 plt.show()

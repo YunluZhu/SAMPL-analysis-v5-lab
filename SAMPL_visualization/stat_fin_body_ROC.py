@@ -94,10 +94,10 @@ except:
 
 # %%
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime = which_zeitgeber)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime = which_zeitgeber)
 
 # %% tidy data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 if FRAME_RATE > 100:
     all_feature_cond.drop(all_feature_cond[all_feature_cond['spd_peak']<7].index, inplace=True)
 elif FRAME_RATE == 40:
@@ -109,7 +109,7 @@ all_y = pd.DataFrame()
 all_binned_average = pd.DataFrame()
 
 
-for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['condition','dpf','ztime']):
+for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['cond1','cond0','ztime']):
     expNum = for_fit['expNum'].max()
     jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
     for excluded_exp, idx_group in enumerate(jackknife_idx):
@@ -120,14 +120,14 @@ for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['condi
         fitted_y.columns = ['Attack angle','Pre-bout rotation']
         all_y = pd.concat([all_y, fitted_y.assign(
             dpf=cond_dpf,
-            condition=cond_abla,
+            cond1=cond_abla,
             excluded_exp = excluded_exp,
             ztime=cond_ztime,
             )])
         all_coef = pd.concat([all_coef, coef.assign(
             slope=slope,
             dpf=cond_dpf,
-            condition=cond_abla,
+            cond1=cond_abla,
             excluded_exp = excluded_exp,
             ztime=cond_ztime,
             )])
@@ -135,21 +135,21 @@ for (cond_abla,cond_dpf,cond_ztime), for_fit in all_feature_cond.groupby(['condi
     binned_df.columns=['Pre-bout rotation','atk_ang']
     all_binned_average = pd.concat([all_binned_average,binned_df.assign(
         dpf=cond_dpf,
-        condition=cond_abla,
+        cond1=cond_abla,
         ztime=cond_ztime,
         )],ignore_index=True)
     
 all_y = all_y.reset_index(drop=True)
 all_coef = all_coef.reset_index(drop=True)
 all_coef.columns=['k','xval','min','height',
-                  'slope','dpf','condition','excluded_exp','ztime']
+                  'slope','cond0','cond1','excluded_exp','ztime']
 all_ztime = list(set(all_coef['ztime']))
 all_ztime.sort()
 
 # %%
 feature='height'
-FPR_list, TPR_list, auc = calc_ROC(all_coef,feature,all_cond2[0],'increase')  
-# TPR_list, FPR_list, auc = calc_ROC(jackknifed_coef,'x intersect',cond2_all[0],'right') 
+FPR_list, TPR_list, auc = calc_ROC(all_coef,feature,all_cond0[0],'increase')  
+# TPR_list, FPR_list, auc = calc_ROC(jackknifed_coef,'x intersect',cond1_all[0],'right') 
 # %%
 fig, ax = plt.subplots(1,1, figsize=(3,3))
 
@@ -166,17 +166,17 @@ ax.legend([f"AUC = {np.mean(auc):.3f}±{np.std(auc):.3f}"])
 filename = os.path.join(fig_dir,f"ROC_coordination_{feature}_{which_ztime}_sample{RESAMPLE}.pdf")
 plt.savefig(filename,format='PDF')
 # %%
-for condition in all_cond1:
-    df = all_coef.loc[all_coef.dpf == condition]
-    cond = df.loc[df.condition==all_cond2[0],feature].values
-    ctrl = df.loc[df.condition==all_cond2[1],feature].values
+for condition in all_cond0:
+    df = all_coef.loc[all_coef.cond0 == condition]
+    cond = df.loc[df.cond1==all_cond0[0],feature].values
+    ctrl = df.loc[df.cond1==all_cond0[1],feature].values
     print(f'{condition} {feature} cond-ctrl paired ttest')
     print(stats.ttest_rel(cond,ctrl))
 
 # %%
 feature='slope'
-TPR_list, FPR_list, auc = calc_ROC(all_coef,feature,all_cond2[0],'left')  # left = cond is expected to be smaller than ctrl
-# TPR_list, FPR_list, auc = calc_ROC(jackknifed_coef,'x intersect',cond2_all[0],'right') 
+TPR_list, FPR_list, auc = calc_ROC(all_coef,feature,all_cond0[0],'left')  # left = cond is expected to be smaller than ctrl
+# TPR_list, FPR_list, auc = calc_ROC(jackknifed_coef,'x intersect',cond1_all[0],'right') 
 # %%
 fig, ax = plt.subplots(1,1, figsize=(3,3))
 
@@ -193,9 +193,9 @@ ax.legend([f"AUC = {np.mean(auc):.3f}±{np.std(auc):.3f}"])
 filename = os.path.join(fig_dir,f"ROC_coordination_{feature}_{which_ztime}_sample{RESAMPLE}.pdf")
 plt.savefig(filename,format='PDF')
 
-for condition in all_cond1:
-    df = all_coef.loc[all_coef.dpf == condition]
-    cond = df.loc[df.condition==all_cond2[0],feature].values
-    ctrl = df.loc[df.condition==all_cond2[1],feature].values
+for condition in all_cond0:
+    df = all_coef.loc[all_coef.cond0 == condition]
+    cond = df.loc[df.cond1==all_cond0[0],feature].values
+    ctrl = df.loc[df.cond1==all_cond0[1],feature].values
     print(f'{condition} {feature} cond-ctrl paired ttest')
     print(stats.ttest_rel(cond,ctrl))

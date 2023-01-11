@@ -54,7 +54,7 @@ except:
     
 # %%
 # get data
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE)
 
 # %% tidy data
 
@@ -74,7 +74,7 @@ all_feature_cond = all_feature_cond.assign(
 # print(all_feature_cond.groupby('speed_bins')['spd_peak'].agg('max'))
 
 # %% 
-cat_cols = ['condition','posture_bins','dpf']
+cat_cols = ['cond1','posture_bins','cond0']
 
 def add_average_pitch_initial(grp):
     grp['average_pitch_initial'] = grp['pitch_initial'].mean()
@@ -86,7 +86,7 @@ all_feature_cond = all_feature_cond.reset_index(drop=True)
 
 # %% 
 set_font_type()
-cat_cols = ['condition','posture_bins','dpf','expNum','ztime']
+cat_cols = ['cond1','posture_bins','cond0','expNum','ztime']
 
 # plot each feature vs {bin by} 
 toplt = all_feature_cond
@@ -99,19 +99,19 @@ ci_dic = {1:None,2:"sd",3:"sd"}
 
 print('Point plot categorized by pitch')
 for feature_toplt in tqdm(all_features):
-    g = sns.catplot(data = toplt, x ='condition', y = feature_toplt,
+    g = sns.catplot(data = toplt, x ='cond1', y = feature_toplt,
                     # row="direction",
                     col='posture_bins', 
                     height=4, aspect=0.8, kind='point',
-                    hue='dpf', 
-                    hue_order=all_cond1,
+                    hue='cond0', 
+                    hue_order=all_cond0,
                     markers='d',sharey='row',
-                    ci=ci_dic[len(all_cond1)],
+                    ci=ci_dic[len(all_cond0)],
                     zorder=10
                     )
-    if len(all_cond1) == 1: # if only one cond1, plot indivial repeats
+    if len(all_cond0) == 1: # if only one cond1, plot indivial repeats
         g.map_dataframe(sns.pointplot, 
-                        x = "condition", y = feature_toplt,
+                        x = 'cond1', y = feature_toplt,
                         hue='expNum', ci=None,palette=sns.color_palette(flatui), scale=0.5,zorder=-1)
     plt.savefig(fig_dir+f"/{pick_data}'s {feature_toplt}.pdf",format='PDF')
     plt.clf()
@@ -119,7 +119,7 @@ plt.close('all')
 
 # %% 
 # Plot with long format. as a function of speed. col = time duration
-cat_cols = ['condition','posture_bins','dpf']
+cat_cols = ['cond1','posture_bins','cond0']
 
 toplt = all_feature_cond
 all_features = [c for c in toplt.columns if c not in cat_cols]
@@ -141,18 +141,18 @@ for feature_toplt in tqdm([
     g = sns.FacetGrid(df_toplt,
                     #   row = "direction", 
                       col='feature',
-                      hue = 'condition', 
+                      hue = 'cond1', 
                       height=3, aspect=1.8, 
                       sharey='row',
                       )
     g.map_dataframe(sns.lineplot, 
                     x = 'posture_bins', y = feature_toplt,
-                    style='dpf',
+                    style='cond0',
                     err_style='band', 
                     )
     g.map_dataframe(sns.pointplot, 
                     x = 'posture_bins', y = feature_toplt, 
-                    hue ='dpf',
+                    hue ='cond0',
                     ci=None, join=False,
                     )
     g.add_legend()

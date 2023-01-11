@@ -52,11 +52,11 @@ except:
     print('Notes: re-writing old figures')
 
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE)
 
 # %% tidy data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-# mean_data_cond = mean_data_cond.reset_index().sort_values(by='condition').reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
+# mean_data_cond = mean_data_cond.reset_index().sort_values(by='cond1').reset_index(drop=True)
 
 
 all_feature_cond = all_feature_cond.assign(
@@ -64,13 +64,13 @@ all_feature_cond = all_feature_cond.assign(
 )
 
 # %% Jackknife resampling
-cat_cols = ['condition','expNum','direction','dpf']
+cat_cols = ['cond1','expNum','direction','cond0']
 mean_data = all_feature_cond.groupby(cat_cols).mean().reset_index()
-mean_data_jackknife = mean_data.groupby(['condition','direction','dpf']).apply(
+mean_data_jackknife = mean_data.groupby(['cond1','direction','cond0']).apply(
     lambda x: jackknife_mean(x)
  )
 try:
-    mean_data_jackknife.drop(columns=['dpf'],inplace=True)
+    mean_data_jackknife.drop(columns=['cond0'],inplace=True)
 except:
     pass
 mean_data_jackknife = mean_data_jackknife.reset_index()
@@ -103,14 +103,14 @@ print('Point plot categorized by speed and pitch direction')
 for feature_toplt in tqdm(all_features):
     g = sns.catplot(data=toplt, 
                     y = feature_toplt,
-                    x='condition',
-                    col="dpf", row="direction",col_order=all_cond1,hue='condition',
+                    x='cond1',
+                    col='cond0', row="direction",col_order=all_cond0,hue='cond1',
                     sharey=False,
                     kind='point', 
                     # marker=['d','d'],
                     aspect=.8,
                 )
-    (g.map(sns.lineplot,'condition',feature_toplt,
+    (g.map(sns.lineplot,'cond1',feature_toplt,
           estimator=None,
           units='expNum',
           data = toplt,

@@ -63,7 +63,7 @@ def day_night_split(df,time_col_name):
 #     df = df.sort_values(by='pre_posture_chg')
 #     bins = pd.cut(df['pre_posture_chg'], list(AVERAGE_BIN))
 #     grp = df.groupby(bins)
-#     df_out = grp[['pre_posture_chg','atk_ang']].mean().assign(dpf=condition[0],condition=condition[4:])
+#     df_out = grp[['pre_posture_chg','atk_ang']].mean().assign(dpf=condition[0],cond1=condition[4:])
 #     return df_out
 # %%
 # get data 
@@ -122,7 +122,7 @@ for condition_idx, folder in enumerate(folder_paths):
 
                 all_bouts_data = pd.concat([all_bouts_data, re_format_day])
                 
-            all_cond_bouts = pd.concat([all_cond_bouts,all_bouts_data.assign(condition=all_conditions[condition_idx])])
+            all_cond_bouts = pd.concat([all_cond_bouts,all_bouts_data.assign(cond1=all_conditions[condition_idx])])
                                        
 data_to_ana = all_cond_bouts.dropna().reset_index(drop=True)
 df_std = StandardScaler().fit_transform(data_to_ana.iloc[:,0:-1])
@@ -179,7 +179,7 @@ plt.show()
 # plt.figure(figsize=(16,10))
 # sns.scatterplot(
 #     x="pca1", y="pca2",
-#     hue="condition",
+#     hue='cond1',
 #     # palette=sns.color_palette("hls", 2),
 #     data=tmp_plt,
 #     legend="full",
@@ -280,11 +280,11 @@ print(eigeness)
 # all_size = pd.DataFrame()
 # for cluster_num in set(df_pca_kmeans.Segment_Kmeans_PCA.values):
 #     current_cluster = df_pca_kmeans.loc[df_pca_kmeans.Segment_Kmeans_PCA==cluster_num]
-#     cluster_size = current_cluster.groupby('condition').size()
+#     cluster_size = current_cluster.groupby('cond1').size()
 #     all_size = pd.concat([all_size, cluster_size],axis=1)
 #     all_size.columns.values[-1:]=[cluster_num]
     
-# total = all_cond_bouts.groupby('condition').size()
+# total = all_cond_bouts.groupby('cond1').size()
 # all_size.iloc[0,:] = all_size.iloc[0,:] /total.values[0]
 # all_size.iloc[1,:] = all_size.iloc[1,:] /total.values[1]
 

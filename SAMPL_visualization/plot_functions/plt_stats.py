@@ -15,12 +15,12 @@ def calc_ROC(data,feature,ctrl_name, chg_dir):
     else:
         pos_label = 1
             
-    y_true = data['condition'].map({'1sibs':1,'2tau':0})
+    y_true = data['cond1'].map({'1sibs':1,'2tau':0})
     y_test = data[feature]
     fpr, tpr, thresholds = metrics.roc_curve(y_true, y_test, pos_label = pos_label)
     
     # jackknife to calculate auc variance
-    ctrl_all = data.loc[data.condition==ctrl_name,feature].values
+    ctrl_all = data.loc[data.cond1==ctrl_name,feature].values
     cond_all = data.loc[data.condition!=ctrl_name,feature].values
     auc = []
     for jack in range(len(ctrl_all)-1):
@@ -32,7 +32,7 @@ def calc_ROC(data,feature,ctrl_name, chg_dir):
         auc.append(metrics.auc(fpr_jack, tpr_jack))                       
     
     return fpr, tpr, auc
-    # ctrl_all = data.loc[data.condition==ctrl_name,feature].values
+    # ctrl_all = data.loc[data.cond1==ctrl_name,feature].values
     # cond_all = data.loc[data.condition!=ctrl_name,feature].values
     # auc = []
     # ymin = data[feature].min()

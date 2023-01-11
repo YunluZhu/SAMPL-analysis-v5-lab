@@ -100,7 +100,7 @@ for condition_idx, folder in enumerate(folder_paths):
                 around_peak_data = pd.concat([around_peak_data,exp_data.loc[rows,:]])
             # combine data from different conditions
             all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=all_conditions[condition_idx].split("_")[0],
-                                                                                            condition=all_conditions[condition_idx].split("_")[1])])
+                                                                                            cond1=all_conditions[condition_idx].split("_")[1])])
             
             
 # %%
@@ -112,7 +112,7 @@ all_around_peak_data = all_around_peak_data.assign(
 
 # Peak data 
 peak_data = all_around_peak_data.loc[all_around_peak_data['idx']==peak_idx].reset_index(drop=True)
-peak_grp = peak_data.groupby(['expNum','condition'],as_index=False)
+peak_grp = peak_data.groupby(['expNum','cond1'],as_index=False)
 
 
 # %%
@@ -122,22 +122,22 @@ x_ticks = np.arange(min(all_around_peak_data['idx'])-1,max(all_around_peak_data[
 
 # # plot speed as a function of time during bouts
 # defaultPlotting()
-# g = sns.relplot(x='idx',y='propBoutAligned_speed', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
+# g = sns.relplot(x='idx',y='propBoutAligned_speed', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
 #                 aspect=2)
 # plt.xticks(x_ticks)
 # plt.show()
 
-# g = sns.relplot(x='idx',y='propBoutAligned_speed_hDn', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
+# g = sns.relplot(x='idx',y='propBoutAligned_speed_hDn', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
 #                 aspect=2)
 # plt.xticks(x_ticks)
 # plt.show()
 
-# g = sns.relplot(x='idx',y='propBoutAligned_speed_hUp', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
+# g = sns.relplot(x='idx',y='propBoutAligned_speed_hUp', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
 #                 aspect=2)
 # plt.xticks(x_ticks)
 # plt.show()
 
-# g = sns.relplot(x='idx',y='propBoutAligned_speed_flat', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
+# g = sns.relplot(x='idx',y='propBoutAligned_speed_flat', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
 #                 aspect=2)
 # plt.xticks(x_ticks)
 # plt.show()
@@ -147,33 +147,33 @@ x_ticks = np.arange(min(all_around_peak_data['idx'])-1,max(all_around_peak_data[
 
 
 # # all_around_peak_data = all_around_peak_data.loc[all_around_peak_data['idx'] != 14]
-# sns.relplot(x='idx',y='linear_accel', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
+# sns.relplot(x='idx',y='linear_accel', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
 #             aspect=2)
 # plt.xticks(x_ticks)
 # plt.show()
-# sns.relplot(x='idx',y='ang_accel', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
+# sns.relplot(x='idx',y='ang_accel', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
 #             aspect=2)
 # plt.xticks(x_ticks)
 # plt.show()
 
 # %%
 # plot Angular speed as a function of time during bouts
-g = sns.relplot(x='idx',y='ang_speed', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
+g = sns.relplot(x='idx',y='ang_speed', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
                 aspect=2)
 plt.xticks(x_ticks)
 plt.show()
 
-g = sns.relplot(x='idx',y='propBoutAligned_angVel_hDn', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
+g = sns.relplot(x='idx',y='propBoutAligned_angVel_hDn', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
                 aspect=2)
 plt.xticks(x_ticks)
 plt.show()
 
-g = sns.relplot(x='idx',y='propBoutAligned_angVel_hUp', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
+g = sns.relplot(x='idx',y='propBoutAligned_angVel_hUp', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
                 aspect=2)
 plt.xticks(x_ticks)
 plt.show()
 
-g = sns.relplot(x='idx',y='propBoutAligned_angVel_flat', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
+g = sns.relplot(x='idx',y='propBoutAligned_angVel_flat', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
                 aspect=2)
 plt.xticks(x_ticks)
 plt.show()
@@ -182,22 +182,22 @@ plt.show()
 # %%
 # plot pitch change during bouts
 defaultPlotting()
-sns.relplot(x='idx',y='propBoutAligned_pitch', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
+sns.relplot(x='idx',y='propBoutAligned_pitch', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
             aspect=2)
 plt.xticks(x_ticks)
 
 plt.show()
-sns.relplot(x='idx',y='propBoutAligned_pitch_hDn', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
+sns.relplot(x='idx',y='propBoutAligned_pitch_hDn', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
             aspect=2)
 plt.xticks(x_ticks)
 
 plt.show()
-sns.relplot(x='idx',y='propBoutAligned_pitch_hUp', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
+sns.relplot(x='idx',y='propBoutAligned_pitch_hUp', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
             aspect=2)
 plt.xticks(x_ticks)
 plt.show()
 
-sns.relplot(x='idx',y='propBoutAligned_pitch_flat', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
+sns.relplot(x='idx',y='propBoutAligned_pitch_flat', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band',
             aspect=2)
 plt.xticks(x_ticks)
 plt.show()
@@ -206,7 +206,7 @@ plt.show()
 # plot y change during bouts
 
 defaultPlotting()
-sns.relplot(x='idx',y='propBoutAligned_y', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
+sns.relplot(x='idx',y='propBoutAligned_y', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
 plt.xticks(x_ticks)
 
 plt.show()
@@ -216,17 +216,17 @@ plt.show()
 # Peak speed
 
 # defaultPlotting()
-# g = sns.boxplot(x='condition',y='propBoutAligned_speed', hue='condition', data=peak_data, dodge=True)
+# g = sns.boxplot(x='cond1',y='propBoutAligned_speed', hue='cond1', data=peak_data, dodge=True)
 # plt.show()
 
 defaultPlotting()
 data = peak_grp['propBoutAligned_speed'].aggregate(np.average)
 
-flatui = ["#D0D0D0"] * (data.groupby('condition').size()[0])
+flatui = ["#D0D0D0"] * (data.groupby('cond1').size()[0])
 
-g = sns.pointplot(x='condition',y='propBoutAligned_speed', hue='expNum', data=data,
+g = sns.pointplot(x='cond1',y='propBoutAligned_speed', hue='expNum', data=data,
                   palette=sns.color_palette(flatui), scale=0.5)
-p = sns.pointplot(data=data.groupby('condition',as_index=False).aggregate(np.average), x='condition',y='propBoutAligned_speed', hue='condition',
+p = sns.pointplot(data=data.groupby('cond1',as_index=False).aggregate(np.average), x='cond1',y='propBoutAligned_speed', hue='cond1',
               linewidth=0,
               alpha=0.9,
               ci=None,
@@ -237,9 +237,9 @@ plt.show()
 # %%
 # some Peak parameters 
 defaultPlotting()
-g = sns.boxplot(x='dpf',y='linear_accel', hue='condition', data=peak_data, dodge=True)
+g = sns.boxplot(x='cond0',y='linear_accel', hue='cond1', data=peak_data, dodge=True)
 plt.show()
-g = sns.boxplot(x='dpf',y='ang_speed', hue='condition', data=peak_data, dodge=True)
+g = sns.boxplot(x='cond0',y='ang_speed', hue='cond1', data=peak_data, dodge=True)
 plt.show()
 # %%
 # # determine the range to use for pre bout rotation (posture change) calculation
@@ -257,10 +257,10 @@ plt.show()
 # %%
 # Conditions below are hard-coded
 # # Separate conditions
-# aligned_4s = all_around_peak_data.loc[(all_around_peak_data['dpf']=='4') & (all_around_peak_data['condition']=='Sibs')]
-# aligned_4t = all_around_peak_data.loc[(all_around_peak_data['dpf']=='4') & (all_around_peak_data['condition']=='Tau')]
-# aligned_7s = all_around_peak_data.loc[(all_around_peak_data['dpf']=='7') & (all_around_peak_data['condition']=='Sibs')]
-# aligned_7t = all_around_peak_data.loc[(all_around_peak_data['dpf']=='7') & (all_around_peak_data['condition']=='Tau')]
+# aligned_4s = all_around_peak_data.loc[(all_around_peak_data['cond0']=='4') & (all_around_peak_data['cond1']=='Sibs')]
+# aligned_4t = all_around_peak_data.loc[(all_around_peak_data['cond0']=='4') & (all_around_peak_data['cond1']=='Tau')]
+# aligned_7s = all_around_peak_data.loc[(all_around_peak_data['cond0']=='7') & (all_around_peak_data['cond1']=='Sibs')]
+# aligned_7t = all_around_peak_data.loc[(all_around_peak_data['cond0']=='7') & (all_around_peak_data['cond1']=='Tau')]
 
 # # %%
 # sns.distplot(aligned_4s['propBoutAligned_pitch'])

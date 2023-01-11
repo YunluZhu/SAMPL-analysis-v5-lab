@@ -167,24 +167,24 @@ for condition_idx, folder in enumerate(folder_paths):
                 around_peak_data = pd.concat([around_peak_data,trunc_day_exp_data])
                 bout_features = pd.concat([bout_features,this_exp_features])
             # combine data from different conditions
-            all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=all_conditions[condition_idx][0:2],condition=all_conditions[condition_idx][4:])])
-            all_feature_cond = pd.concat([all_feature_cond, bout_features.assign(dpf=all_conditions[condition_idx][0:2],condition=all_conditions[condition_idx][4:])])
+            all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=all_conditions[condition_idx][0:2],cond1=all_conditions[condition_idx][4:])])
+            all_feature_cond = pd.concat([all_feature_cond, bout_features.assign(dpf=all_conditions[condition_idx][0:2],cond1=all_conditions[condition_idx][4:])])
             # this_cond_mean = bout_features.groupby('expNum').mean()
-            # mean_data_cond = pd.concat([mean_data_cond, this_cond_mean.assign(dpf=all_conditions[condition_idx][0:2],condition=all_conditions[condition_idx][4:])])
+            # mean_data_cond = pd.concat([mean_data_cond, this_cond_mean.assign(dpf=all_conditions[condition_idx][0:2],cond1=all_conditions[condition_idx][4:])])
             
 # %% tidy data
-all_around_peak_data = all_around_peak_data.sort_values(by='condition').reset_index(drop=True)
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-# mean_data_cond = mean_data_cond.reset_index().sort_values(by='condition').reset_index(drop=True)
+all_around_peak_data = all_around_peak_data.sort_values(by='cond1').reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
+# mean_data_cond = mean_data_cond.reset_index().sort_values(by='cond1').reset_index(drop=True)
 
 if pick_data == 'for_paper':
-    # all_cond2 = ['4dpf','7dpf','14dpf']
-    all_around_peak_data = all_around_peak_data.sort_values('condition'
+    # all_cond0 = ['4dpf','7dpf','14dpf']
+    all_around_peak_data = all_around_peak_data.sort_values('cond1'
                             , key=lambda col: col.map(
                                     {'4dpf':1,
                                       '7dpf':2,
                                       '14dpf':3}))
-    all_feature_cond = all_feature_cond.sort_values('condition'
+    all_feature_cond = all_feature_cond.sort_values('cond1'
                             , key=lambda col: col.map(
                                     {'4dpf':1,
                                       '7dpf':2,
@@ -202,9 +202,9 @@ all_feature_cond = all_feature_cond.assign(
 average_speed = all_feature_cond.groupby('speed_bins')['speed_peak'].mean().values
 
 # %% Jackknife resampling
-cat_cols = ['condition','expNum','pitch_dir','speed_bins']
+cat_cols = ['cond1','expNum','pitch_dir','speed_bins']
 mean_data = all_feature_cond.groupby(cat_cols).mean().reset_index()
-mean_data_jackknife = mean_data.groupby(['condition','pitch_dir','speed_bins']).apply(
+mean_data_jackknife = mean_data.groupby(['cond1','pitch_dir','speed_bins']).apply(
     lambda x: jackmean(x)
  ).reset_index()
 
@@ -225,14 +225,14 @@ defaultPlotting()
 
 print('Point plot categorized by speed and pitch direction')
 for feature_toplt in tqdm(all_features):
-    g = sns.catplot(data = toplt, x = 'condition', y = feature_toplt,
+    g = sns.catplot(data = toplt, x = 'cond1', y = feature_toplt,
                     row="pitch_dir",col='speed_bins', 
                     height=4, aspect=0.8, kind='point',
-                    hue='condition', markers='d',sharey=False,
+                    hue='cond1', markers='d',sharey=False,
                     ci=None, zorder=10
                     )
     g.map_dataframe(sns.pointplot, 
-                    x = "condition", y = feature_toplt,
+                    x = 'cond1', y = feature_toplt,
                     hue='expNum', ci=None,palette=sns.color_palette(flatui), scale=0.5,zorder=-1)
     plt.savefig(fig_dir+f"/{pick_data}'s {feature_toplt}.pdf",format='PDF')
     plt.clf()
@@ -248,7 +248,7 @@ plt.close('all')
 # for feature_toplt in tqdm(all_features):
 #     g = sns.FacetGrid(toplt,
 #                       row = "pitch_dir", 
-#                       hue = 'condition', 
+#                       hue = 'cond1', 
 #                       height=3, aspect=1.8, 
 #                       sharey=False,
 #                       )
@@ -279,7 +279,7 @@ for feature_toplt in ['pitch','traj','tsp']:
     toplt = long_data.reset_index()
     g = sns.FacetGrid(toplt,
                       row = "pitch_dir", col='duration',
-                      hue = 'condition', 
+                      hue = 'cond1', 
                       height=3, aspect=1.8, 
                       sharey='row',
                       )

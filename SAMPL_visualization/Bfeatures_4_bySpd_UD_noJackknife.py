@@ -52,11 +52,11 @@ except:
     print('Notes: re-writing old figures')
 
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE)
 
 # %% tidy data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-# mean_data_cond = mean_data_cond.reset_index().sort_values(by='condition').reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
+# mean_data_cond = mean_data_cond.reset_index().sort_values(by='cond1').reset_index(drop=True)
 
 
 all_feature_cond = all_feature_cond.assign(
@@ -66,7 +66,7 @@ all_feature_cond = all_feature_cond.assign(
 )
 
 # %% 
-cat_cols = ['condition','direction','speed_bins','dpf']
+cat_cols = ['cond1','direction','speed_bins','cond0']
 # mean_data = all_feature_cond.groupby(cat_cols).mean().reset_index()
 
 def add_average_peak_speed(grp):
@@ -77,8 +77,8 @@ all_feature_cond = all_feature_cond.groupby(cat_cols).apply(add_average_peak_spe
 all_feature_cond.drop(columns=['bout_time'],inplace=True)
 # %% ignore this
 # if pick_data == 'for_paper':
-#     all_cond2 = ['4dpf','7dpf','14dpf']
-#     all_feature_cond = all_feature_cond.sort_values('condition'
+#     all_cond0 = ['4dpf','7dpf','14dpf']
+#     all_feature_cond = all_feature_cond.sort_values('cond1'
 #                             , key=lambda col: col.map(
 #                                     {'4dpf':1,
 #                                       '7dpf':2,
@@ -86,7 +86,7 @@ all_feature_cond.drop(columns=['bout_time'],inplace=True)
 
 # %% Compare Sibs & Tau
 toplt = all_feature_cond
-cat_cols = ['condition', 'direction', 'speed_bins', 'dpf','ztime']
+cat_cols = ['cond1', 'direction', 'speed_bins', 'cond0','ztime']
 all_features = [c for c in toplt.columns if c not in cat_cols]
 
 flatui = ["#D0D0D0"] * (toplt['expNum'].max())
@@ -96,18 +96,18 @@ ci_dic = {1:None,2:"sd",3:"sd"}
 
 print('Point plot categorized by speed and pitch direction')
 for feature_toplt in tqdm(all_features):
-    g = sns.catplot(data = toplt, x ='condition', y = feature_toplt,
+    g = sns.catplot(data = toplt, x ='cond1', y = feature_toplt,
                     row="direction",col='speed_bins', 
                     height=4, aspect=0.8, kind='point',
-                    hue='dpf', 
-                    hue_order=all_cond1,
+                    hue='cond0', 
+                    hue_order=all_cond0,
                     markers='d',sharey='row',
-                    ci=ci_dic[len(all_cond1)],
+                    ci=ci_dic[len(all_cond0)],
                     zorder=10
                     )
-    if len(all_cond1) == 1: # if only one cond1, plot indivial repeats
+    if len(all_cond0) == 1: # if only one cond1, plot indivial repeats
         g.map_dataframe(sns.pointplot, 
-                        x = "condition", y = feature_toplt,
+                        x = 'cond1', y = feature_toplt,
                         hue='expNum', ci=None,palette=sns.color_palette(flatui), scale=0.5,zorder=-1)
     plt.savefig(fig_dir+f"/{pick_data}'s {feature_toplt}.pdf",format='PDF')
     plt.clf()
@@ -115,7 +115,7 @@ plt.close('all')
 
 # %% 
 # Plot with long format. as a function of speed. col = time duration
-cat_cols = ['condition','expNum','direction','speed_bins','dpf']
+cat_cols = ['cond1','expNum','direction','speed_bins','cond0']
 
 toplt = all_feature_cond
 all_features = [c for c in toplt.columns if c not in cat_cols]
@@ -135,18 +135,18 @@ for feature_toplt in tqdm([
     g = sns.FacetGrid(df_toplt,
                       row = "direction", 
                       col='feature',
-                      hue = 'condition', 
+                      hue = 'cond1', 
                       height=3, aspect=1.8, 
                       sharey='row',
                       )
     g.map_dataframe(sns.lineplot, 
                     x = 'speed_bins', y = feature_toplt,
-                    style='dpf',
+                    style='cond0',
                     err_style='band', 
                     )
     g.map_dataframe(sns.pointplot, 
                     x = 'speed_bins', y = feature_toplt, 
-                    hue ='dpf',
+                    hue ='cond0',
                     ci=None, join=False,
                     )
     g.add_legend()
@@ -158,11 +158,11 @@ for feature_toplt in tqdm([
 
 # plt.close('all')
 # cat_cols = [
-#     'condition',
+#     'cond1',
 #     'expNum',
 #     'direction',
 #     'speed_bins',
-#     'dpf',
+#     'cond0',
 #     'average_spd_peak'
 #     ]
 # for feature_toplt in tqdm(['pitch','traj','angvel','rot','tsp','bout']):
@@ -174,18 +174,18 @@ for feature_toplt in tqdm([
 #     g = sns.FacetGrid(df_toplt,
 #                       row = "direction", 
 #                       col='feature',
-#                       hue = 'condition', 
+#                       hue = 'cond1', 
 #                       height=3, aspect=1.8, 
 #                       sharey='row',
 #                       )
 #     g.map_dataframe(sns.lineplot, 
 #                     x = 'average_spd_peak', y = feature_toplt,
-#                     style='dpf',
+#                     style='cond0',
 #                     err_style='band', 
 #                     )
 #     g.map_dataframe(sns.pointplot, 
 #                     x = 'average_spd_peak', y = feature_toplt, 
-#                     hue ='dpf',
+#                     hue ='cond0',
 #                     ci=None, join=False,
 #                     )
 #     g.add_legend()
@@ -204,7 +204,7 @@ for feature_toplt in tqdm([
 # for feature_toplt in tqdm(all_features):
 #     g = sns.FacetGrid(toplt,
 #                       row = "direction", 
-#                       hue = 'condition', 
+#                       hue = 'cond1', 
 #                       height=3, aspect=1.8, 
 #                       sharey=False,
 #                       )

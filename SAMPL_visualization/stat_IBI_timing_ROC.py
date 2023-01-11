@@ -79,7 +79,7 @@ def parabola_fit1(df, X_RANGE_to_fit = X_RANGE_FULL):
                            p0=(0.005,3,0.5) , 
                            bounds=((0, -5, 0),(10, 15, 10)))
     # output = pd.DataFrame(data=popt,columns=['sensitivity','x_inter','y_inter'])
-    # output = output.assign(condition=condition)
+    # output = output.assign(cond1=condition)
     y = []
     for x in X_RANGE_to_fit:
         y.append(ffunc1(x,*popt))
@@ -88,7 +88,7 @@ def parabola_fit1(df, X_RANGE_to_fit = X_RANGE_FULL):
     return output_coef, output_fitted
 
 # %%
-IBI_angles, cond1_all, cond2_all= get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
+IBI_angles, cond1_all, cond1_all= get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
 IBI_angles = IBI_angles.assign(y_boutFreq=1/IBI_angles['propBoutIEI'])
 IBI_angles = IBI_angles.loc[IBI_angles['y_boutFreq']<frequency_th]
 IBI_angles = IBI_angles.loc[IBI_angles['propBoutIEI_angVel'].abs()<30]
@@ -99,11 +99,11 @@ IBI_angles = IBI_angles.loc[IBI_angles['propBoutIEI_pitch'].abs()<65]
 jackknifed_coef = pd.DataFrame()
 jackknifed_y = pd.DataFrame()
 binned_angles = pd.DataFrame()
-cat_cols = ['condition','dpf','ztime']
+cat_cols = ['cond1','cond0','ztime']
 
 IBI_sampled = IBI_angles
 if RESAMPLE !=0:
-    IBI_sampled = IBI_sampled.groupby(['condition','dpf','ztime','exp']).sample(
+    IBI_sampled = IBI_sampled.groupby(['cond1','cond0','ztime','exp']).sample(
         n=RESAMPLE,
         replace=True,
         )
@@ -114,24 +114,24 @@ for (this_cond, this_dpf, this_ztime), group in IBI_sampled.groupby(cat_cols):
         this_df_toFit.dropna(inplace=True)
         coef, fitted_y = parabola_fit1(this_df_toFit, X_RANGE_FULL)
         jackknifed_coef = pd.concat([jackknifed_coef, coef.assign(dpf=this_dpf,
-                                                                condition=this_cond,
+                                                                cond1=this_cond,
                                                                 excluded_exp=excluded_exp,
                                                                 ztime=this_ztime)])
         jackknifed_y = pd.concat([jackknifed_y, fitted_y.assign(dpf=this_dpf,
-                                                                condition=this_cond,
+                                                                cond1=this_cond,
                                                                 excluded_exp=excluded_exp,
                                                                 ztime=this_ztime)])
         
     this_binned_angles = distribution_binned_average(this_df_toFit, BIN_WIDTH)
     this_binned_angles = this_binned_angles.assign(dpf=this_dpf,
-                                                    condition=this_cond,
+                                                    cond1=this_cond,
                                                     ztime=this_ztime)
     binned_angles = pd.concat([binned_angles, this_binned_angles],ignore_index=True)
 
-jackknifed_y.columns = ['bout frequency','IBI pitch','dpf','condition','jackknife num','ztime']
+jackknifed_y.columns = ['bout frequency','IBI pitch','cond0','cond1','jackknife num','ztime']
 jackknifed_y = jackknifed_y.reset_index(drop=True)
 
-jackknifed_coef.columns = ['sensitivity','x intersect','y intersect','dpf','condition','jackknife num','ztime']
+jackknifed_coef.columns = ['sensitivity','x intersect','y intersect','cond0','cond1','jackknife num','ztime']
 jackknifed_coef = jackknifed_coef.reset_index(drop=True)
 
 binned_angles = binned_angles.reset_index(drop=True)
@@ -146,8 +146,8 @@ jackknifed_coef['sensitivity'] = jackknifed_coef['sensitivity']*1000
 
         
 # %%
-FPR_list, TPR_list, auc = calc_ROC(jackknifed_coef,'sensitivity',cond2_all[0], 'decrease')  # left = cond is expected to be smaller than ctrl
-# TPR_list, FPR_list, auc = calc_ROC(jackknifed_coef,'x intersect',cond2_all[0],'right') 
+FPR_list, TPR_list, auc = calc_ROC(jackknifed_coef,'sensitivity',cond1_all[0], 'decrease')  # left = cond is expected to be smaller than ctrl
+# TPR_list, FPR_list, auc = calc_ROC(jackknifed_coef,'x intersect',cond1_all[0],'right') 
 # %%
 fig, ax = plt.subplots(1,1, figsize=(3,3))
 
@@ -168,9 +168,9 @@ plt.savefig(filename,format='PDF')
 
 # %%
 for condition in cond1_all:
-    df = jackknifed_coef.loc[jackknifed_coef.dpf == condition]
-    cond = df.loc[df.condition==cond2_all[0],'sensitivity'].values
-    ctrl = df.loc[df.condition==cond2_all[1],'sensitivity'].values
+    df = jackknifed_coef.loc[jackknifed_coef.cond0 == condition]
+    cond = df.loc[df.cond1==cond1_all[0],'sensitivity'].values
+    ctrl = df.loc[df.cond1==cond1_all[1],'sensitivity'].values
     print(f'{condition} sensitivity cond-ctrl paired ttest')
     print(stats.ttest_rel(cond,ctrl))
     

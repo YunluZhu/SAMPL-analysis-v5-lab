@@ -90,22 +90,22 @@ for condition_idx, folder in enumerate(folder_paths):
                 
             # combine conditions
             jack_y_all = pd.concat([jack_y_all, jack_y.assign(age=all_conditions[condition_idx].split("_")[0], 
-                                                            condition=all_conditions[condition_idx].split("_")[1])], axis=0, ignore_index=True)
+                                                            cond1=all_conditions[condition_idx].split("_")[1])], axis=0, ignore_index=True)
             # get the std of every jackknifed sample
             for excluded_exp, idx_group in enumerate(jackknife_idx):
                 ang_std.append(np.nanstd(all_angles.iloc[idx_group].to_numpy().flatten())) 
             ang_std = pd.DataFrame(ang_std).assign(excluded_exp=exp_date_match['date'])
-            ang_std_all = pd.concat([ang_std_all, ang_std.assign(age=all_conditions[condition_idx].split("_")[0], condition=all_conditions[condition_idx].split("_")[1])], axis=0, ignore_index=True)
+            ang_std_all = pd.concat([ang_std_all, ang_std.assign(age=all_conditions[condition_idx].split("_")[0], cond1=all_conditions[condition_idx].split("_")[1])], axis=0, ignore_index=True)
 
-jack_y_all.columns = ['Probability','Posture (deg)','dpf','condition']
-jack_y_all.sort_values(by=['condition'],inplace=True)
-ang_std_all.columns = ['std(posture)','excluded_exp','dpf','condition']                
-ang_std_all.sort_values(by=['condition'],inplace=True)
+jack_y_all.columns = ['Probability','Posture (deg)','cond0','cond1']
+jack_y_all.sort_values(by=['cond1'],inplace=True)
+ang_std_all.columns = ['std(posture)','excluded_exp','cond0','cond1']                
+ang_std_all.sort_values(by=['cond1'],inplace=True)
 
 # %%
 # Stats
 # # For multiple comparison
-# multi_comp = MultiComparison(ang_std_all['std(posture)'], ang_std_all['dpf']+ang_std_all['condition'])
+# multi_comp = MultiComparison(ang_std_all['std(posture)'], ang_std_all['cond0']+ang_std_all['cond1'])
 # print(multi_comp.tukeyhsd().summary())
 
 # %%
@@ -114,37 +114,37 @@ ang_std_all.sort_values(by=['condition'],inplace=True)
 defaultPlotting()
 
 # Separate data by age.
-age_condition = list(jack_y_all['dpf'].values)
+age_cond1 = list(jack_y_all['cond0'].values)
 age_condition.sort()
-age_condition = set(age_condition)
+age_cond1 = set(age_condition)
 age_cond_num = len(age_condition)
 
 # initialize a multi-plot, feel free to change the plot size
 f, axes = plt.subplots(nrows=2, ncols=age_cond_num, figsize=(2.5*(age_cond_num), 10), sharey='row')
 axes = axes.flatten()  # flatten if multidimenesional (multiple dpf)
 # setup color scheme for dot plots
-flatui = ["#D0D0D0"] * (ang_std_all.groupby('condition').size()[0])
+flatui = ["#D0D0D0"] * (ang_std_all.groupby('cond1').size()[0])
 
 # loop through differrent age (dpf), plot parabola in the first row and sensitivy in the second.
 for i, age in enumerate(age_condition):
-    fitted = jack_y_all.loc[jack_y_all['dpf']==age]
+    fitted = jack_y_all.loc[jack_y_all['cond0']==age]
     g = sns.lineplot(
-        x='Posture (deg)',y='Probability', hue='condition', 
-        style='dpf', data=fitted, ci='sd', err_style='band', 
+        x='Posture (deg)',y='Probability', hue='cond1', 
+        style='cond0', data=fitted, ci='sd', err_style='band', 
         ax=axes[i], legend=False)
     # g.set_yticks(np.arange(x,y,step))  # adjust y ticks
     g.set_xticks(np.arange(-90,135,45))
     g.set(title=age)# adjust x ticks
 
     # plot std
-    std_plt = ang_std_all.loc[ang_std_all['dpf']==age]
+    std_plt = ang_std_all.loc[ang_std_all['cond0']==age]
     # plot jackknifed paired data
-    p = sns.pointplot(x='condition', y='std(posture)', hue='excluded_exp',data=std_plt,
+    p = sns.pointplot(x='cond1', y='std(posture)', hue='excluded_exp',data=std_plt,
                     palette=sns.color_palette(flatui), scale=0.5,
                     ax=axes[i+age_cond_num],
     )
     # plot mean data
-    p = sns.pointplot(x='condition', y='std(posture)',hue='condition',data=std_plt, 
+    p = sns.pointplot(x='cond1', y='std(posture)',hue='cond1',data=std_plt, 
                     linewidth=0,
                     alpha=0.9,
                     ci=None,
@@ -156,20 +156,20 @@ for i, age in enumerate(age_condition):
     # p.set_yticks(np.arange(0.1,0.52,0.04))
     sns.despine(trim=False)
     
-    condition_s = set(std_plt['condition'].values)
+    condition_s = set(std_plt['cond1'].values)
     condition_s = list(condition_s)
 
     if len(condition_s) == 2:      
         # Paired T Test for 2 conditions
         # Separate data by condition.
-        std_cond1 = std_plt.loc[std_plt['condition']==condition_s[0]].sort_values(by='excluded_exp')
-        std_cond2 = std_plt.loc[std_plt['condition']==condition_s[1]].sort_values(by='excluded_exp')
-        ttest_res, ttest_p = ttest_rel(std_cond1['std(posture)'],std_cond2['std(posture)'])
+        std_cond1 = std_plt.loc[std_plt['cond1']==condition_s[0]].sort_values(by='excluded_exp')
+        std_cond1 = std_plt.loc[std_plt['cond1']==condition_s[1]].sort_values(by='excluded_exp')
+        ttest_res, ttest_p = ttest_rel(std_cond1['std(posture)'],std_cond1['std(posture)'])
         print(f'* {age}: {condition_s[0]} v.s. {condition_s[1]} paired t-test p-value = {ttest_p}')
     elif len(condition_s) > 2: 
         # multiple comparison for more than 2 conditions
         print(f'* {age}:' )
-        multi_comp = MultiComparison(ang_std_all['std(posture)'], ang_std_all['dpf']+ang_std_all['condition'])
+        multi_comp = MultiComparison(ang_std_all['std(posture)'], ang_std_all['cond0']+ang_std_all['cond1'])
         print(multi_comp.tukeyhsd().summary())
     else:
         pass

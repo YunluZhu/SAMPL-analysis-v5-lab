@@ -84,7 +84,7 @@ for condition_idx, folder in enumerate(folder_paths):
                 exp_data = exp_data.assign(expNum = expNum)
                 around_peak_data = pd.concat([around_peak_data,exp_data.loc[rows,:]])
             # combine data from different conditions
-            all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=all_conditions[condition_idx][0:2],condition=all_conditions[condition_idx][4:])])
+            all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=all_conditions[condition_idx][0:2],cond1=all_conditions[condition_idx][4:])])
             
             
 # %%
@@ -97,45 +97,45 @@ all_around_peak_data = all_around_peak_data.assign(
 peak_data = all_around_peak_data.loc[all_around_peak_data['idx']==30].reset_index(drop=True)
 peak_data = peak_data.assign(atk_ang = peak_data['propBoutAligned_heading']-peak_data['propBoutAligned_pitch'])
 
-peak_grp = peak_data.groupby(['expNum','condition'],as_index=False)
+peak_grp = peak_data.groupby(['expNum','cond1'],as_index=False)
 
 # %%
 # plot linear and angular acceleration during swim bouts
 defaultPlotting()
 
 all_around_peak_data = all_around_peak_data.loc[all_around_peak_data['idx'] != 14]
-sns.relplot(x='idx',y='linear_accel', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
-sns.relplot(x='idx',y='ang_accel', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
+sns.relplot(x='idx',y='linear_accel', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
+sns.relplot(x='idx',y='ang_accel', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
 plt.show()
 
 # %%
 # plot Angular speed as a function of time during bouts
 defaultPlotting()
-g = sns.relplot(x='idx',y='ang_speed', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
+g = sns.relplot(x='idx',y='ang_speed', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
 g.axes[0,0].set_ylim(0,)
 plt.show()
 
 # %%
 # plot speed as a function of time during bouts
 defaultPlotting()
-g = sns.relplot(x='idx',y='propBoutAligned_speed', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
+g = sns.relplot(x='idx',y='propBoutAligned_speed', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
 plt.show()
 
 # %%
 # plot pitch change during bouts
 defaultPlotting()
-sns.relplot(x='idx',y='propBoutAligned_pitch', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
+sns.relplot(x='idx',y='propBoutAligned_pitch', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
 plt.show()
-sns.relplot(x='idx',y='propBoutAligned_pitch_hDn', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
+sns.relplot(x='idx',y='propBoutAligned_pitch_hDn', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
 plt.show()
-sns.relplot(x='idx',y='propBoutAligned_pitch_hUp', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
+sns.relplot(x='idx',y='propBoutAligned_pitch_hUp', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
 plt.show()
 
 # %%
 # plot pitch change during bouts
 
 defaultPlotting()
-sns.relplot(x='idx',y='propBoutAligned_y', hue='condition', col='dpf', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
+sns.relplot(x='idx',y='propBoutAligned_y', hue='cond1', col='cond0', data=all_around_peak_data, kind="line",ci='sd', err_style='band')
 plt.show()
 
 
@@ -143,17 +143,17 @@ plt.show()
 # Plot attack angles across conditions
 
 # defaultPlotting()
-# g = sns.boxplot(x='condition',y='atk_ang', hue='condition', data=peak_data)
+# g = sns.boxplot(x='cond1',y='atk_ang', hue='cond1', data=peak_data)
 # plt.show()
 
 defaultPlotting()
 data = peak_grp['atk_ang'].aggregate(np.average)
 
-flatui = ["#D0D0D0"] * (data.groupby('condition').size()[0])
+flatui = ["#D0D0D0"] * (data.groupby('cond1').size()[0])
 
-g = sns.pointplot(x='condition',y='atk_ang', hue='expNum', data=data,
+g = sns.pointplot(x='cond1',y='atk_ang', hue='expNum', data=data,
                   palette=sns.color_palette(flatui), scale=0.5)
-p = sns.pointplot(data=data.groupby('condition',as_index=False).aggregate(np.average), x='condition',y='atk_ang', hue='condition',
+p = sns.pointplot(data=data.groupby('cond1',as_index=False).aggregate(np.average), x='cond1',y='atk_ang', hue='cond1',
               linewidth=0,
               alpha=0.9,
               ci=None,
@@ -167,17 +167,17 @@ plt.show()
 # Peak speed
 
 # defaultPlotting()
-# g = sns.boxplot(x='condition',y='propBoutAligned_speed', hue='condition', data=peak_data, dodge=True)
+# g = sns.boxplot(x='cond1',y='propBoutAligned_speed', hue='cond1', data=peak_data, dodge=True)
 # plt.show()
 
 defaultPlotting()
 data = peak_grp['propBoutAligned_speed'].aggregate(np.average)
 
-flatui = ["#D0D0D0"] * (data.groupby('condition').size()[0])
+flatui = ["#D0D0D0"] * (data.groupby('cond1').size()[0])
 
-g = sns.pointplot(x='condition',y='propBoutAligned_speed', hue='expNum', data=data,
+g = sns.pointplot(x='cond1',y='propBoutAligned_speed', hue='expNum', data=data,
                   palette=sns.color_palette(flatui), scale=0.5)
-p = sns.pointplot(data=data.groupby('condition',as_index=False).aggregate(np.average), x='condition',y='propBoutAligned_speed', hue='condition',
+p = sns.pointplot(data=data.groupby('cond1',as_index=False).aggregate(np.average), x='cond1',y='propBoutAligned_speed', hue='cond1',
               linewidth=0,
               alpha=0.9,
               ci=None,
@@ -188,7 +188,7 @@ plt.show()
 # %%
 # Peak linear acceleration
 defaultPlotting()
-g = sns.boxplot(x='dpf',y='linear_accel', hue='condition', data=peak_data, dodge=True)
+g = sns.boxplot(x='cond0',y='linear_accel', hue='cond1', data=peak_data, dodge=True)
 plt.show()
 
 # %%
@@ -207,10 +207,10 @@ print("for distribution under different conditions, see atk_angle_fin_body_ratio
 # %%
 # Conditions below are hard-coded
 # # Separate conditions
-# aligned_4s = all_around_peak_data.loc[(all_around_peak_data['dpf']=='4') & (all_around_peak_data['condition']=='Sibs')]
-# aligned_4t = all_around_peak_data.loc[(all_around_peak_data['dpf']=='4') & (all_around_peak_data['condition']=='Tau')]
-# aligned_7s = all_around_peak_data.loc[(all_around_peak_data['dpf']=='7') & (all_around_peak_data['condition']=='Sibs')]
-# aligned_7t = all_around_peak_data.loc[(all_around_peak_data['dpf']=='7') & (all_around_peak_data['condition']=='Tau')]
+# aligned_4s = all_around_peak_data.loc[(all_around_peak_data['cond0']=='4') & (all_around_peak_data['cond1']=='Sibs')]
+# aligned_4t = all_around_peak_data.loc[(all_around_peak_data['cond0']=='4') & (all_around_peak_data['cond1']=='Tau')]
+# aligned_7s = all_around_peak_data.loc[(all_around_peak_data['cond0']=='7') & (all_around_peak_data['cond1']=='Sibs')]
+# aligned_7t = all_around_peak_data.loc[(all_around_peak_data['cond0']=='7') & (all_around_peak_data['cond1']=='Tau')]
 
 # # %%
 # sns.distplot(aligned_4s['propBoutAligned_pitch'])

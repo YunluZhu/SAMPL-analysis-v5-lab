@@ -41,10 +41,10 @@ except:
 spd_bins = np.arange(5,25,4)
 
 root, FRAME_RATE = get_data_dir(pick_data)
-all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond1, all_cond2 = get_bout_kinetics(root, FRAME_RATE, ztime=which_zeitgeber)
+all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond0, all_cond0 = get_bout_kinetics(root, FRAME_RATE, ztime=which_zeitgeber)
 all_feature_cond, _, _ = get_bout_features(root, FRAME_RATE, ztime=which_zeitgeber)
-all_cond1 = pick_data
-all_cond2.sort()
+all_cond0 = pick_data
+all_cond0.sort()
 
 
 all_feature_cond = all_feature_cond.assign(
@@ -64,8 +64,8 @@ feature_to_plt = 'spd_peak'
 upper = np.percentile(toplt[feature_to_plt], 99.5)
 lower = np.percentile(toplt[feature_to_plt], 0.5)
 g = sns.FacetGrid(data=toplt,
-            col="dpf", 
-            hue="condition",
+            col='cond0', 
+            hue='cond1',
             sharey =False,
             sharex =True,
             )
@@ -86,7 +86,7 @@ plt.savefig(fig_dir+f"/{feature_to_plt} distribution.pdf",format='PDF')# %%
 col = 'expNum'
 # jackknife_mean = pd.DataFrame()
 jackknife_std = pd.DataFrame()
-for (dpf, condition), group in all_feature_cond.groupby(['dpf','condition']):
+for (dpf, condition), group in all_feature_cond.groupby(['cond0','cond1']):
     exp_df = group.groupby(col).size()
     jackknife_exp_matrix = jackknife_list(list(exp_df.index))
     output = pd.DataFrame()
@@ -96,14 +96,14 @@ for (dpf, condition), group in all_feature_cond.groupby(['dpf','condition']):
         this_jackknife_std = this_group_data.std(numeric_only=True).to_frame().T
         # jackknife_mean = pd.concat([jackknife_mean,
         #                             this_jackknife_mean.assign(
-        #                                 dpf = dpf,
-        #                                 condition = condition,
+        #                                 cond0 = dpf,
+        #                                 cond1 = condition,
         #                                 jakknife_group = j
         #                             )],ignore_index=True)
         jackknife_std = pd.concat([jackknife_std,
                                     this_jackknife_std.assign(
-                                        dpf = dpf,
-                                        condition = condition,
+                                        cond0 = dpf,
+                                        cond1 = condition,
                                         jakknife_group = j
                                     )],ignore_index=True)
 # %%
@@ -116,8 +116,8 @@ for feature_toplt in (all_features):
         x = 'average_speed',
         y = feature_toplt,
         kind = 'line',
-        hue = 'condition',
-        col = 'dpf',
+        hue = 'cond1',
+        col = 'cond0',
         errorbar=('ci', 95),
         err_style='bars',
         marker = True,
@@ -130,9 +130,9 @@ for feature_toplt in (all_features):
     plt.savefig(filename,format='PDF')
     
 # for sel_dpf in ['otog','tan']:
-#     df_toplt = toplt.query("dpf == @sel_dpf")
+#     df_toplt = toplt.query("cond0 == @sel_dpf")
 #     for feature_toplt in ['y_efficacy']:
-#         multi_comp = MultiComparison(df_toplt[feature_toplt], df_toplt['condition']+"|"+df_toplt['speed_bins'].astype('str'))
+#         multi_comp = MultiComparison(df_toplt[feature_toplt], df_toplt['cond1']+"|"+df_toplt['speed_bins'].astype('str'))
 #         print(f'* {feature_toplt}')
 #         print(multi_comp.tukeyhsd().summary())
         # print(multi_comp.tukeyhsd().pvalues)
@@ -147,8 +147,8 @@ for feature_toplt in (all_features):
         x = 'average_speed',
         y = feature_toplt,
         kind = 'line',
-        hue = 'condition',
-        col = 'dpf',
+        hue = 'cond1',
+        col = 'cond0',
         errorbar=('ci', 95),
         err_style='bars',
         marker = True,
@@ -161,9 +161,9 @@ for feature_toplt in (all_features):
     plt.savefig(filename,format='PDF')
     
 # for sel_dpf in ['otog','tan']:
-#     df_toplt = toplt.query("dpf == @sel_dpf")
+#     df_toplt = toplt.query("cond0 == @sel_dpf")
 #     for feature_toplt in ['y_efficacy']:
-#         multi_comp = MultiComparison(df_toplt[feature_toplt], df_toplt['condition']+"|"+df_toplt['speed_bins'].astype('str'))
+#         multi_comp = MultiComparison(df_toplt[feature_toplt], df_toplt['cond1']+"|"+df_toplt['speed_bins'].astype('str'))
 #         print(f'* {feature_toplt}')
 #         print(multi_comp.tukeyhsd().summary())
 #         # print(multi_comp.tukeyhsd().pvalues)

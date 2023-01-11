@@ -81,7 +81,7 @@ def parabola_fit1(df, X_RANGE_to_fit = X_RANGE_FULL):
                         #    bounds=((0, -5, 0),(10, 15, 10))
                            )
     # output = pd.DataFrame(data=popt,columns=['sensitivity','x_inter','y_inter'])
-    # output = output.assign(condition=condition)
+    # output = output.assign(cond1=condition)
     y = []
     for x in X_RANGE_to_fit:
         y.append(ffunc1(x,*popt))
@@ -90,20 +90,20 @@ def parabola_fit1(df, X_RANGE_to_fit = X_RANGE_FULL):
     return output_coef, output_fitted
 
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
 # %% tidy data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 
 # get kinetics for separating up and down
-all_kinetics = all_feature_cond.groupby(['dpf']).apply(
+all_kinetics = all_feature_cond.groupby(['cond0']).apply(
                         lambda x: get_kinetics(x)
                         ).reset_index()
 # %%
 # assign up and down
 all_feature_UD = pd.DataFrame()
 all_feature_cond = all_feature_cond.assign(direction=np.nan)
-for key, group in all_feature_cond.groupby(['dpf']):
-    this_setvalue = all_kinetics.loc[all_kinetics['dpf']==key,'set_point'].to_list()[0]
+for key, group in all_feature_cond.groupby(['cond0']):
+    this_setvalue = all_kinetics.loc[all_kinetics['cond0']==key,'set_point'].to_list()[0]
     print(this_setvalue)
     group['direction'] = pd.cut(group['pitch_initial'],
                                 bins=[-91,this_setvalue,91],
@@ -115,12 +115,12 @@ jackknifed_coef = pd.DataFrame()
 jackknifed_y = pd.DataFrame()
 binned_angles = pd.DataFrame()
 
-cat_cols = ['condition','dpf','ztime']
+cat_cols = ['cond1','cond0','ztime']
 
 if RESAMPLE == 0:
     sampled_angles = all_feature_UD
 else:
-    sampled_angles = all_feature_UD.groupby(['condition','dpf','ztime','exp']).sample(
+    sampled_angles = all_feature_UD.groupby(['cond1','cond0','ztime','exp']).sample(
         n=RESAMPLE,
         replace=True,
         )
@@ -131,25 +131,25 @@ for (this_cond, this_dpf, this_ztime), group in sampled_angles.groupby(cat_cols)
         this_df_toFit.dropna(inplace=True)
         coef, fitted_y = parabola_fit1(this_df_toFit, X_RANGE_FULL)
         jackknifed_coef = pd.concat([jackknifed_coef, coef.assign(dpf=this_dpf,
-                                                                condition=this_cond,
+                                                                cond1=this_cond,
                                                                 excluded_exp=excluded_exp,
                                                                 ztime=this_ztime)])
         jackknifed_y = pd.concat([jackknifed_y, fitted_y.assign(dpf=this_dpf,
-                                                                condition=this_cond,
+                                                                cond1=this_cond,
                                                                 excluded_exp=excluded_exp,
                                                                 ztime=this_ztime)])
         
     this_binned_angles = distribution_binned_average(this_df_toFit, BIN_WIDTH)
     this_binned_angles = this_binned_angles.assign(dpf=this_dpf,
-                                                    condition=this_cond,
+                                                    cond1=this_cond,
                                                     ztime=this_ztime)
     binned_angles = pd.concat([binned_angles, this_binned_angles],ignore_index=True)
 
 # %%
-jackknifed_y.columns = ['post angvel','end pitch','dpf','condition','jackknife num','ztime']
+jackknifed_y.columns = ['post angvel','end pitch','cond0','cond1','jackknife num','ztime']
 jackknifed_y = jackknifed_y.reset_index(drop=True)
 
-jackknifed_coef.columns = ['a','x intersect','y intersect','dpf','condition','jackknife num','ztime']
+jackknifed_coef.columns = ['a','x intersect','y intersect','cond0','cond1','jackknife num','ztime']
 jackknifed_coef = jackknifed_coef.reset_index(drop=True)
 
 binned_angles = binned_angles.reset_index(drop=True)
@@ -159,17 +159,17 @@ all_ztime.sort()
 # %% plot
 g = sns.relplot(x='end pitch',y='post angvel', data=jackknifed_y, 
                 kind='line',
-                col='dpf', col_order=all_cond1,
+                col='cond0', col_order=all_cond0,
                 row = 'ztime', row_order=all_ztime,
-                hue='condition', hue_order = all_cond2,ci='sd',
+                hue='cond1', hue_order = all_cond0,ci='sd',
                 )
 for i , g_row in enumerate(g.axes):
     for j, ax in enumerate(g_row):
         sns.lineplot(data=binned_angles.loc[
-            (binned_angles['dpf']==all_cond1[j]) & (binned_angles['ztime']==all_ztime[i]),:
+            (binned_angles['cond0']==all_cond0[j]) & (binned_angles['ztime']==all_ztime[i]),:
                 ], 
                     x='pitch_end', y='angvel_post_phase', 
-                    hue='condition',alpha=0.2,
+                    hue='cond1',alpha=0.2,
                     ax=ax)
 g.set(xlim=(-30, 40),
       ylim=(-12,10))
@@ -186,17 +186,17 @@ plt.close()
 col_to_plt = {0:'a',1:'x intersect',2:'y intersect'}
 for i in np.arange(len(coef.columns)):
     p = sns.catplot(
-        data = jackknifed_coef, y=col_to_plt[i],x='dpf',kind='point',join=False,
-        col_order=all_cond1,ci='sd',
+        data = jackknifed_coef, y=col_to_plt[i],x='cond0',kind='point',join=False,
+        col_order=all_cond0,ci='sd',
         row = 'ztime', row_order=all_ztime,
         # units=excluded_exp,
-        hue='condition', dodge=True,
-        hue_order = all_cond2,sharey=False
+        hue='cond1', dodge=True,
+        hue_order = all_cond0,sharey=False
     
     )
-    p.map(sns.lineplot,'dpf',col_to_plt[i],estimator=None,
+    p.map(sns.lineplot,'cond0',col_to_plt[i],estimator=None,
         units='jackknife num',
-        hue='condition',
+        hue='cond1',
         alpha=0.2,
         data=jackknifed_coef)
     filename = os.path.join(fig_dir,f"end angvel coef{i} sample{RESAMPLE}.pdf")

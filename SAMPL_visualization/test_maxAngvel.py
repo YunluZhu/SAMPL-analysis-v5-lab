@@ -51,9 +51,9 @@ except:
     print('Notes: re-writing old figures')
 
 # %%
-max_angvel_time, all_cond1, all_cond2 = get_max_angvel_rot_byBout(root, FRAME_RATE)
-all_cond1.sort()
-all_cond2.sort()
+max_angvel_time, all_cond0, all_cond0 = get_max_angvel_rot_byBout(root, FRAME_RATE)
+all_cond0.sort()
+all_cond0.sort()
 # adjust condition order
 
 # %%
@@ -70,16 +70,16 @@ feature_toplt = 'max_angvel_time'
 g = sns.catplot(
     data = toplt,
     row = 'cond1',
-    hue = 'cond2',
-    x = 'cond2',
-    order=all_cond2,
+    hue = 'cond1',
+    x = 'cond1',
+    order=all_cond0,
     y = feature_toplt,
     kind = 'point',
     # marker = True,
 )
-g.map(sns.lineplot,'cond2',feature_toplt,estimator=None,
+g.map(sns.lineplot,'cond1',feature_toplt,estimator=None,
 units='expNum',
-# hue = 'cond2',
+# hue = 'cond1',
 data = toplt,
 sort=False,
 color='grey',
@@ -91,29 +91,29 @@ sns.despine(offset=10, trim=True)
 # plt.savefig(filename,format='PDF')
 plt.show()
 # %% raw data. no jackknife
-# cat_cols = ['expNum','condition','dpf']
+# cat_cols = ['expNum','cond1','cond0']
 
 # toplt = all_kinetic_cond
 # all_features = [c for c in toplt.columns if c not in cat_cols]
 
-# flatui = ["#D0D0D0"] * (toplt.groupby('condition').size().max())
+# flatui = ["#D0D0D0"] * (toplt.groupby('cond1').size().max())
 
 # defaultPlotting()
 
 # # print('plot raw data')
 
 # for feature_toplt in (all_features):
-#     g = sns.catplot(data = toplt, x = 'condition', y = feature_toplt,
-#                     order=all_cond2,
+#     g = sns.catplot(data = toplt, x = 'cond1', y = feature_toplt,
+#                     order=all_cond0,
 #                     height=4, aspect=0.8, kind='point',
-#                     hue='dpf', markers='d',sharey=False,
-#                     hue_order=all_cond1,
+#                     hue='cond0', markers='d',sharey=False,
+#                     hue_order=all_cond0,
 #                     # ci=False, 
 #                     zorder=10
 #                     )
 #     g.map_dataframe(sns.pointplot, 
-#                     x = "condition", y = feature_toplt,
-#                     order=all_cond2,
+#                     x = 'cond1', y = feature_toplt,
+#                     order=all_cond0,
 #                     hue='expNum', ci=None,
 #                     palette=sns.color_palette(flatui), scale=0.5,zorder=-1)
     
@@ -122,7 +122,7 @@ plt.show()
 # plt.close('all')
 # # %% by speed bins
 # toplt = kinetics_bySpd_jackknife
-# cat_cols = ['speed_bins', 'condition','dpf']
+# cat_cols = ['speed_bins', 'cond1','cond0']
 # all_features = [c for c in toplt.columns if c not in cat_cols]
 
 # # print("Plot with long format. as a function of speed. ")
@@ -137,8 +137,8 @@ plt.show()
 #     df_toplt = long_data.reset_index()
 #     g = sns.FacetGrid(df_toplt,
 #                     row = "feature", 
-#                     col = 'dpf',
-#                     hue = 'condition', 
+#                     col = 'cond0',
+#                     hue = 'cond1', 
 #                     height=3, aspect=1.8, 
 #                     sharey='row',
 #                     )

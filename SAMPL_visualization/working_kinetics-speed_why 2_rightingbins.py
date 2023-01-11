@@ -48,20 +48,20 @@ except:
     print('Notes: re-writing old figures')
 
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
 # all_ibi_cond, _, _  = get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
 # %% tidy data
-if len(all_cond1) > 1:
-    print(all_cond1)
+if len(all_cond0) > 1:
+    print(all_cond0)
     j = input("pick a condition: ")
-    all_feature_cond = all_feature_cond.loc[all_feature_cond['dpf']==j]
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-# all_ibi_cond = all_ibi_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+    all_feature_cond = all_feature_cond.loc[all_feature_cond['cond0']==j]
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
+# all_ibi_cond = all_ibi_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 # all_ibi_cond = all_ibi_cond.assign(y_boutFreq=1/all_ibi_cond['propBoutIEI'],
 #                                     direction = pd.cut(all_ibi_cond['propBoutIEI_pitch'],[-90,7.5,90],labels=['dive','climb']))
 
 # get kinetics 
-all_kinetics = all_feature_cond.groupby(['condition']).apply(
+all_kinetics = all_feature_cond.groupby(['cond1']).apply(
                         lambda x: get_kinetics(x)
                         ).reset_index()
 # %%
@@ -76,32 +76,32 @@ all_feature_UD = all_feature_cond.assign(
     rightingRot_bins = pd.cut(all_feature_cond['rot_l_decel'],rot_bins,labels=np.arange(len(rot_bins)-1)),
     speed_bins = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1)),
 )
-if all_feature_UD.groupby(['speed_bins','condition']).size().min() < 20:
+if all_feature_UD.groupby(['speed_bins','cond1']).size().min() < 20:
     spd_bins = np.arange(spd_bins.min(),spd_bins.max(),round_half_up(np.mean(np.diff(spd_bins))))
     all_feature_UD['speed_bins'] = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1))
 
 all_feature_UD = all_feature_UD.dropna().reset_index(drop=True)
 
-df_kinetics = all_feature_UD.groupby(['speed_bins','condition']).apply(
+df_kinetics = all_feature_UD.groupby(['speed_bins','cond1']).apply(
                         lambda x: get_kinetics(x)
                         ).reset_index()
 df_kinetics = df_kinetics.assign(type='original')
 
 # %%
 # what are the ratio of pre-pitch bins  in different speed bins?
-rotbin_count = all_feature_UD.groupby(['speed_bins','rightingRot_bins','condition']).size()
+rotbin_count = all_feature_UD.groupby(['speed_bins','rightingRot_bins','cond1']).size()
 rotbin_count = rotbin_count.reset_index()
-rotbin_count.columns = ['speed_bins','rightingRot_bins','condition','count']
+rotbin_count.columns = ['speed_bins','rightingRot_bins','cond1','count']
 total_bins = list(set(rotbin_count['rightingRot_bins'].values))
-rotbin_count = rotbin_count.sort_values(by=['condition','speed_bins','rightingRot_bins']).reset_index(drop=True)
+rotbin_count = rotbin_count.sort_values(by=['cond1','speed_bins','rightingRot_bins']).reset_index(drop=True)
 
 rotbin_count = rotbin_count.assign(
-    total = rotbin_count.groupby(['speed_bins','condition'])['count'].cumsum()
+    total = rotbin_count.groupby(['speed_bins','cond1'])['count'].cumsum()
 )
-total = rotbin_count.groupby(['speed_bins','condition'])['total'].max()
-total = total.reset_index().sort_values(by=['condition','speed_bins'])
+total = rotbin_count.groupby(['speed_bins','cond1'])['total'].max()
+total = total.reset_index().sort_values(by=['cond1','speed_bins'])
 rotbin_count['total'] = np.repeat(total['total'],len(total_bins)).values
-rotbin_count['righting rotation'] = all_mid_angles[0:len(spd_bins)+2].tolist() * len(rotbin_count.groupby(['speed_bins','condition']).size())
+rotbin_count['righting rotation'] = all_mid_angles[0:len(spd_bins)+2].tolist() * len(rotbin_count.groupby(['speed_bins','cond1']).size())
 rotbin_count = rotbin_count.assign(
     percent = rotbin_count['count'] / rotbin_count['total']
 )
@@ -109,7 +109,7 @@ rotbin_count = rotbin_count.assign(
 # %%
 plt.figure()
 sns.catplot(data=rotbin_count,
-            col='condition',
+            col='cond1',
             kind='bar',
              x='righting rotation',
              y='percent',
@@ -121,7 +121,7 @@ plt.savefig(filename,format='PDF')
 
 plt.figure()
 sns.relplot(data=all_feature_UD,
-            col='condition',
+            col='cond1',
             kind='line',
              x='rightingRot_bins',
              y='spd_peak',
@@ -141,15 +141,15 @@ for i in ['try1','try2','try3']:
         total = row['total']
         count = row['count']
         this_df = row['count']
-        cond = row['condition']
+        cond = row['cond1']
         sel_bouts = all_feature_UD.loc[
-            (all_feature_UD['rightingRot_bins']==which_bin) & (all_feature_UD['condition']==cond)
+            (all_feature_UD['rightingRot_bins']==which_bin) & (all_feature_UD['cond1']==cond)
             ].sample(n=round_half_up(count))
         artificial_df = pd.concat(
             [artificial_df,sel_bouts]
         )
     # get kinetics
-    this_kinetics = artificial_df.groupby(['speed_bins','condition']).apply(
+    this_kinetics = artificial_df.groupby(['speed_bins','cond1']).apply(
                             lambda x: get_kinetics(x)
                             ).reset_index()
     this_kinetics = this_kinetics.assign(
@@ -167,12 +167,12 @@ kinetics_toplt = pd.concat([artificial_kinetics_byPreBout,df_kinetics]).reset_in
 
 # %%
 toplt = kinetics_toplt
-cat_cols = ['type','condition','speed_bins']
+cat_cols = ['type','cond1','speed_bins']
 all_features = [c for c in toplt.columns if c not in cat_cols]
 
 for feature_toplt in (all_features):
     g = sns.relplot(
-        col='condition',
+        col='cond1',
         data = toplt,
         hue = 'type',
         palette = my_palette,
@@ -188,7 +188,7 @@ for feature_toplt in (all_features):
 # does speed distribution remain the same?
 plt.figure()
 sns.relplot(data=bouts_combined,
-            col='condition',
+            col='cond1',
             hue='type',
             palette = my_palette,
             kind='line',

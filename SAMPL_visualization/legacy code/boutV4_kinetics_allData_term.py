@@ -91,8 +91,8 @@ for folder in os.listdir(root):
 all_feature_cond = pd.DataFrame()
 all_kinetic_cond = pd.DataFrame()
 # mean_data_cond = pd.DataFrame()
-all_cond1 = []
-all_cond2 = []
+all_cond0 = []
+all_cond0 = []
 # go through each condition folders under the root
 for condition_idx, folder in enumerate(folder_paths):
     # enter each condition folder (e.g. 7dd_ctrl)
@@ -145,31 +145,31 @@ for condition_idx, folder in enumerate(folder_paths):
                 
             # combine data from different conditions
             cond1 = all_conditions[condition_idx].split("_")[0]
-            cond2 = all_conditions[condition_idx].split("_")[1]
-            all_cond1.append(cond1)
-            all_cond2.append(cond2)
+            cond1 = all_conditions[condition_idx].split("_")[1]
+            all_cond0.append(cond1)
+            all_cond0.append(cond1)
             all_feature_cond = pd.concat([all_feature_cond, bout_features.assign(
                 dpf=cond1,
-                condition=cond2
+                cond1=cond1
                 )])
             all_kinetic_cond = pd.concat([all_kinetic_cond, bout_kinetics.assign(
                 dpf=cond1,
-                condition=cond2
+                cond1=cond1
                 )])
 
 # %% tidy data
-# all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-# all_kinetic_cond = all_kinetic_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+# all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
+# all_kinetic_cond = all_kinetic_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 
 
 all_feature_cond = all_feature_cond.assign(
     direction = pd.cut(all_feature_cond['pitch_peak'],[-80,0,80],labels=['dive','climb']),
     speed_bins = pd.cut(all_feature_cond['spd_peak'],spd_bins,labels=np.arange(len(spd_bins)-1)),
 )
-all_cond1 = list(set(all_cond1))
-all_cond1.sort()
-all_cond2 = list(set(all_cond2))
-all_cond2.sort()
+all_cond0 = list(set(all_cond0))
+all_cond0.sort()
+all_cond0 = list(set(all_cond0))
+all_cond0.sort()
 # %% data validation
 # to see the correlation of decel rot - initial pitch
 # sns.kdeplot(x='pitch_initial',y='rot_l_decel',data=all_feature_cond.sample(n=10000),alpha=0.05)
@@ -187,27 +187,27 @@ all_cond2.sort()
 # %% Jackknife resampling
 # calculate kinetics
 kinetics_jackknife = pd.DataFrame()
-for name, group in all_feature_cond.groupby(['condition','dpf']):
+for name, group in all_feature_cond.groupby(['cond1','cond0']):
     this_group_kinetics = jackknife_kinetics(group,'expNum')
     this_group_kinetics = this_group_kinetics.assign(
-        condition = name[0],
-        dpf = name[1])
+        cond1 = name[0],
+        cond0 = name[1])
     kinetics_jackknife = pd.concat([kinetics_jackknife,this_group_kinetics],ignore_index=True)
 # for i, condition in enumerate(set(all_feature_cond.condition)):
-#     this_cond_data = all_feature_cond.loc[all_feature_cond['condition']==condition,:]
+#     this_cond_data = all_feature_cond.loc[all_feature_cond['cond1']==condition,:]
 #     this_group_kinetics = jackknife_kinetics(this_cond_data)
-#     this_group_kinetics = this_group_kinetics.assign(condition = condition)
+#     this_group_kinetics = this_group_kinetics.assign(cond1 = condition)
 #     # output.reset_index(inplace=True)
 #     kinetics_jackknife = pd.concat([kinetics_jackknife,this_group_kinetics],ignore_index=True)
 
-cat_cols = ['jackknife_group','condition','dpf']
+cat_cols = ['jackknife_group','cond1','cond0']
 kinetics_jackknife.rename(columns={c:c+'_jack' for c in kinetics_jackknife.columns if c not in cat_cols},inplace=True)
-kinetics_jackknife = kinetics_jackknife.sort_values(by=['condition','jackknife_group','dpf']).reset_index(drop=True)
+kinetics_jackknife = kinetics_jackknife.sort_values(by=['cond1','jackknife_group','cond0']).reset_index(drop=True)
 
 # %%
 # calculate kinetics by speed bins
 kinetics_bySpd_jackknife = pd.DataFrame()
-for name, group in all_feature_cond.groupby(['condition','dpf']):
+for name, group in all_feature_cond.groupby(['cond1','cond0']):
     kinetics_all_speed = pd.DataFrame()
     for speed_bin in set(group.speed_bins):
         if pd.notna(speed_bin):
@@ -216,13 +216,13 @@ for name, group in all_feature_cond.groupby(['condition','dpf']):
             this_speed_kinetics = this_speed_kinetics.assign(speed_bins=speed_bin)
             kinetics_all_speed = pd.concat([kinetics_all_speed,this_speed_kinetics],ignore_index=True)
     kinetics_all_speed = kinetics_all_speed.assign(
-        condition = name[0],
-        dpf = name[1]
+        cond1 = name[0],
+        cond0 = name[1]
         )   
     kinetics_bySpd_jackknife = pd.concat([kinetics_bySpd_jackknife, kinetics_all_speed],ignore_index=True)
-kinetics_bySpd_jackknife = kinetics_bySpd_jackknife.sort_values(by=['condition','jackknife_group','dpf']).reset_index(drop=True)
+kinetics_bySpd_jackknife = kinetics_bySpd_jackknife.sort_values(by=['cond1','jackknife_group','cond0']).reset_index(drop=True)
 # for condition in set(all_feature_cond.condition):
-#     this_cond_data = all_feature_cond.loc[all_feature_cond['condition']==condition,:]
+#     this_cond_data = all_feature_cond.loc[all_feature_cond['cond1']==condition,:]
 #     kinetics_all_speed = pd.DataFrame()
 #     for speed_bin in set(this_cond_data.speed_bins):
 #         if pd.notna(speed_bin):
@@ -230,17 +230,17 @@ kinetics_bySpd_jackknife = kinetics_bySpd_jackknife.sort_values(by=['condition',
 #             this_speed_kinetics = jackknife_kinetics(this_speed_data)
 #             this_speed_kinetics = this_speed_kinetics.assign(speed_bins=speed_bin)
 #             kinetics_all_speed = pd.concat([kinetics_all_speed,this_speed_kinetics],ignore_index=True)
-#     kinetics_all_speed = kinetics_all_speed.assign(condition = condition)    
+#     kinetics_all_speed = kinetics_all_speed.assign(cond1 = condition)    
 #     kinetics_bySpd_jackknife = pd.concat([kinetics_bySpd_jackknife, kinetics_all_speed],ignore_index=True)
-# kinetics_bySpd_jackknife = kinetics_bySpd_jackknife.sort_values(by=['condition','jackknife_group','dpf']).reset_index(drop=True)
+# kinetics_bySpd_jackknife = kinetics_bySpd_jackknife.sort_values(by=['cond1','jackknife_group','cond0']).reset_index(drop=True)
 
 # %% Compare Sibs & Tau
-cat_cols = ['jackknife_group','condition','expNum','dpf']
+cat_cols = ['jackknife_group','cond1','expNum','cond0']
 
 toplt = kinetics_jackknife
 all_features = [c for c in toplt.columns if c not in cat_cols]
 
-flatui = ["#D0D0D0"] * (toplt.groupby('condition').size().max())
+flatui = ["#D0D0D0"] * (toplt.groupby('cond1').size().max())
 defaultPlotting()
 
 # print('plot jackknife data')
@@ -248,16 +248,16 @@ defaultPlotting()
 for feature_toplt in (all_features):
     fig, ax = plt.subplots(1, figsize=[3.2,4])
     sns.pointplot(
-                x = "condition", y = feature_toplt, data = toplt,
-                order=all_cond2,
+                x = 'cond1', y = feature_toplt, data = toplt,
+                order=all_cond0,
                 hue='jackknife_group', ci=None,
                 palette=sns.color_palette(flatui), scale=0.5,zorder=1,
                 ax=ax)
-    g = sns.pointplot(data = toplt, x = 'condition', y = feature_toplt,
-                    order=all_cond2,
+    g = sns.pointplot(data = toplt, x = 'cond1', y = feature_toplt,
+                    order=all_cond0,
                     linewidth=0,
-                    hue='dpf', markers='d',
-                    hue_order=all_cond1,
+                    hue='cond0', markers='d',
+                    hue_order=all_cond0,
                     # ci=False, 
                     zorder=100,
                     ax=ax,
@@ -270,29 +270,29 @@ for feature_toplt in (all_features):
 plt.close('all')
 
 # %% raw data. no jackknife
-cat_cols = ['expNum','condition','dpf']
+cat_cols = ['expNum','cond1','cond0']
 
 toplt = all_kinetic_cond
 all_features = [c for c in toplt.columns if c not in cat_cols]
 
-flatui = ["#D0D0D0"] * (toplt.groupby('condition').size().max())
+flatui = ["#D0D0D0"] * (toplt.groupby('cond1').size().max())
 
 defaultPlotting()
 
 # print('plot raw data')
 
 for feature_toplt in (all_features):
-    g = sns.catplot(data = toplt, x = 'condition', y = feature_toplt,
-                    order=all_cond2,
+    g = sns.catplot(data = toplt, x = 'cond1', y = feature_toplt,
+                    order=all_cond0,
                     height=4, aspect=0.8, kind='point',
-                    hue='dpf', markers='d',sharey=False,
-                    hue_order=all_cond1,
+                    hue='cond0', markers='d',sharey=False,
+                    hue_order=all_cond0,
                     # ci=False, 
                     zorder=10
                     )
     g.map_dataframe(sns.pointplot, 
-                    x = "condition", y = feature_toplt,
-                    order=all_cond2,
+                    x = 'cond1', y = feature_toplt,
+                    order=all_cond0,
                     hue='expNum', ci=None,
                     palette=sns.color_palette(flatui), scale=0.5,zorder=-1)
     
@@ -301,7 +301,7 @@ for feature_toplt in (all_features):
 plt.close('all')
 # %% by speed bins
 toplt = kinetics_bySpd_jackknife
-cat_cols = ['speed_bins', 'condition','dpf']
+cat_cols = ['speed_bins', 'cond1','cond0']
 all_features = [c for c in toplt.columns if c not in cat_cols]
 
 # print("Plot with long format. as a function of speed. ")
@@ -316,8 +316,8 @@ for feature_toplt in (['righting','set','steering','corr']):
     df_toplt = long_data.reset_index()
     g = sns.FacetGrid(df_toplt,
                     row = "feature", 
-                    col = 'dpf',
-                    hue = 'condition', 
+                    col = 'cond0',
+                    hue = 'cond1', 
                     height=3, aspect=1.8, 
                     sharey='row',
                     )

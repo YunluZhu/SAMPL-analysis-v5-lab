@@ -116,8 +116,8 @@ for folder in os.listdir(root):
         all_conditions.append(folder)
 
 all_around_peak_data = pd.DataFrame()
-all_cond1 = []
-all_cond2 = []
+all_cond0 = []
+all_cond0 = []
 
 # go through each condition folders under the root
 for condition_idx, folder in enumerate(folder_paths):
@@ -156,19 +156,19 @@ for condition_idx, folder in enumerate(folder_paths):
                 around_peak_data = pd.concat([around_peak_data,exp_data.loc[rows,:]])
     # combine data from different conditions
     cond1 = all_conditions[condition_idx].split("_")[0]
-    all_cond1.append(cond1)
-    cond2 = all_conditions[condition_idx].split("_")[1]
-    all_cond2.append(cond2)
+    all_cond0.append(cond1)
+    cond1 = all_conditions[condition_idx].split("_")[1]
+    all_cond0.append(cond1)
     all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=cond1,
-                                                                                            condition=cond2)])
+                                                                                            cond1=cond1)])
 all_around_peak_data = all_around_peak_data.assign(
     time_ms = (all_around_peak_data['idx']-peak_idx)/FRAME_RATE*1000,
 )
 # %% tidy data
-all_cond1 = list(set(all_cond1))
-all_cond1.sort()
-all_cond2 = list(set(all_cond2))
-all_cond2.sort()
+all_cond0 = list(set(all_cond0))
+all_cond0.sort()
+all_cond0 = list(set(all_cond0))
+all_cond0.sort()
 
 all_around_peak_data = all_around_peak_data.reset_index(drop=True)
 peak_speed = all_around_peak_data.loc[all_around_peak_data.idx==peak_idx,'propBoutAligned_speed'],
@@ -277,7 +277,7 @@ for excluded_exp, idx_group in enumerate(idx_list):
         # 'tsp_corr_atkAng':['tsp','atk_ang'],
     }
     
-    cat_cols = ['condition','dpf']
+    cat_cols = ['cond1','cond0']
     grp_cols = cat_cols + ['time_ms']
     for i, name in enumerate(corr_dict):
         [col1, col2] = corr_dict[name]
@@ -302,13 +302,13 @@ corr_all = corr_all.reset_index(drop=True)
 # plot inst traj. corr w. bout trajectory
 for corr_which in corr_dict.keys():
     g = sns.relplot(
-        # col='condition',
+        # col='cond1',
         x='time_ms',
         y=corr_which,
         data=corr_all,
         kind='line',
-        # col='dpf',
-        hue='condition',
+        # col='cond0',
+        hue='cond1',
         ci='sd',
         aspect=1.2,
         height=3
@@ -321,14 +321,14 @@ for corr_which in corr_dict.keys():
 
 # for corr_which in ['corr_preBoutPitch','corr_atkAng','corr_traj_deviation','corr_instTraj']:
 #     g = sns.relplot(
-#         # hue='condition',
+#         # hue='cond1',
 #         x='time_ms',
 #         y=corr_which,
 #         data=corr_bySpd,
 #         col='speed_bin',
 #         kind='line',
-#         # col='dpf',
-#         hue='condition',
+#         # col='cond0',
+#         hue='cond1',
 #         ci='sd',
 #         aspect=1.2,
 #         height=3

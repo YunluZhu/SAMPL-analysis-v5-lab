@@ -85,10 +85,10 @@ except:
     print('Notes: re-writing old figures')
 
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime = which_zeitgeber)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime = which_zeitgeber)
 
 # %% tidy data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 # all_feature_cond.drop(all_feature_cond[all_feature_cond['spd_peak']<7].index, inplace=True)
 
 # %% fit sigmoid - master
@@ -99,7 +99,7 @@ all_binned_average = pd.DataFrame()
 df_tofit = all_feature_cond.loc[all_feature_cond['spd_peak']>6,:]
 
 
-for (cond_abla,cond_dpf), for_fit in df_tofit.groupby(['condition','dpf']):
+for (cond_abla,cond_dpf), for_fit in df_tofit.groupby(['cond1','cond0']):
     expNum = for_fit['expNum'].max()
     jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
     for excluded_exp, idx_group in enumerate(jackknife_idx):
@@ -111,14 +111,14 @@ for (cond_abla,cond_dpf), for_fit in df_tofit.groupby(['condition','dpf']):
         fitted_y.columns = ['prep pitch','decel rotation']
         all_y = pd.concat([all_y, fitted_y.assign(
             dpf=cond_dpf,
-            condition=cond_abla,
+            cond1=cond_abla,
             excluded_exp = excluded_exp,
             ztime=which_zeitgeber,
             )])
         all_coef = pd.concat([all_coef, coef.assign(
             slope=slope,
             dpf=cond_dpf,
-            condition=cond_abla,
+            cond1=cond_abla,
             excluded_exp = excluded_exp,
             ztime=which_zeitgeber,
             )])
@@ -126,7 +126,7 @@ for (cond_abla,cond_dpf), for_fit in df_tofit.groupby(['condition','dpf']):
     binned_df.columns=['decel rotation','prep pitch']
     all_binned_average = pd.concat([all_binned_average,binned_df.assign(
         dpf=cond_dpf,
-        condition=cond_abla,
+        cond1=cond_abla,
         ztime=which_zeitgeber,
         )],ignore_index=True)
     
@@ -140,17 +140,17 @@ plt.close()
 
 g = sns.relplot(x='decel rotation',y='prep pitch', data=all_y, 
                 kind='line',
-                col='dpf', col_order=all_cond1,
+                col='cond0', col_order=all_cond0,
                 row = 'ztime', row_order=all_ztime,
-                hue='condition', hue_order = all_cond2,ci='sd',
+                hue='cond1', hue_order = all_cond0,ci='sd',
                 )
 for i , g_row in enumerate(g.axes):
     for j, ax in enumerate(g_row):
         sns.lineplot(data=all_binned_average.loc[
-            (all_binned_average['dpf']==all_cond1[j]) & (all_binned_average['ztime']==all_ztime[i]),:
+            (all_binned_average['cond0']==all_cond0[j]) & (all_binned_average['ztime']==all_ztime[i]),:
                 ], 
                     x='decel rotation', y='prep pitch', 
-                    hue='condition',alpha=0.5,
+                    hue='cond1',alpha=0.5,
                     ax=ax)
     
 filename = os.path.join(fig_dir,"pre pitch vs decel rotation.pdf")
@@ -159,7 +159,7 @@ plt.savefig(filename,format='PDF')
 # %%
 # plot coefs
 plt.close()
-all_coef.columns = ['a','b','c','d','slope','dpf','condition','excluded_exp','ztime']
+all_coef.columns = ['a','b','c','d','slope','cond0','cond1','excluded_exp','ztime']
 all_coef_comp = all_coef.assign(
     upper = all_coef['c'].values,
     lower = all_coef['c'].values + all_coef['d'].values,
@@ -170,15 +170,15 @@ all_coef_comp = all_coef.assign(
     
 for feature in ['upper','lower','x_off','growth','gain','slope']:
     p = sns.catplot(
-        data = all_coef_comp, y=feature,x='dpf',kind='point',join=False,
-        col_order=all_cond1,ci='sd',
+        data = all_coef_comp, y=feature,x='cond0',kind='point',join=False,
+        col_order=all_cond0,ci='sd',
         row = 'ztime', row_order=all_ztime,
-        hue='condition', dodge=True,
-        hue_order = all_cond2,
+        hue='cond1', dodge=True,
+        hue_order = all_cond0,
     )
-    p.map(sns.lineplot,'dpf',feature,estimator=None,
+    p.map(sns.lineplot,'cond0',feature,estimator=None,
         units='excluded_exp',
-        hue='condition',
+        hue='cond1',
         alpha=0.2,
         data=all_coef_comp)
     filename = os.path.join(fig_dir,f"coef vs age {feature}.pdf")
@@ -187,15 +187,15 @@ for feature in ['upper','lower','x_off','growth','gain','slope']:
 # %%
 for feature in ['upper','lower','x_off','growth','gain','slope']:
     p = sns.catplot(
-        data = all_coef_comp, y=feature,x='condition',kind='point',join=False,
-        col='dpf', col_order=all_cond1,ci='sd',
+        data = all_coef_comp, y=feature,x='cond1',kind='point',join=False,
+        col='cond0', col_order=all_cond0,ci='sd',
         row = 'ztime', row_order=all_ztime,
         # units=excluded_exp,
-        hue='condition', 
-        hue_order = all_cond2,
+        hue='cond1', 
+        hue_order = all_cond0,
         aspect=.4,
     )
-    p.map(sns.lineplot,'condition',feature,estimator=None,
+    p.map(sns.lineplot,'cond1',feature,estimator=None,
         units='excluded_exp',
         color='grey',
         alpha=0.2,

@@ -76,7 +76,7 @@ def day_night_split(df,time_col_name):
 #     df = df.sort_values(by='pre_posture_chg')
 #     bins = pd.cut(df['pre_posture_chg'], list(AVERAGE_BIN))
 #     grp = df.groupby(bins)
-#     df_out = grp[['pre_posture_chg','atk_ang']].mean().assign(dpf=condition[0],condition=condition[4:])
+#     df_out = grp[['pre_posture_chg','atk_ang']].mean().assign(dpf=condition[0],cond1=condition[4:])
 #     return df_out
 # %%
 # get data 
@@ -178,14 +178,14 @@ for condition_idx, folder in enumerate(folder_paths):
                 re_format_day = day_night_split(re_format,'propBoutAligned_time')
                 all_bouts_data = pd.concat([all_bouts_data, re_format_day])
                 
-            all_cond_feature = pd.concat([all_cond_feature,all_feature_data.assign(condition=all_conditions[condition_idx])])
-            all_cond_bouts = pd.concat([all_cond_bouts,all_bouts_data.assign(condition=all_conditions[condition_idx])])
+            all_cond_feature = pd.concat([all_cond_feature,all_feature_data.assign(cond1=all_conditions[condition_idx])])
+            all_cond_bouts = pd.concat([all_cond_bouts,all_bouts_data.assign(cond1=all_conditions[condition_idx])])
 all_cond_feature.reset_index(inplace=True,drop=True)
 all_cond_bouts.reset_index(inplace=True,drop=True)
-combined_all = pd.concat([all_cond_feature.drop(columns='condition'),all_cond_bouts],axis=1)
+combined_all = pd.concat([all_cond_feature.drop(columns='cond1'),all_cond_bouts],axis=1)
 combined_all = combined_all.dropna().reset_index(drop=True)    
                                   
-data_to_ana = all_cond_bouts.drop(['condition','propBoutAligned_time'],axis=1)
+data_to_ana = all_cond_bouts.drop(['cond1','propBoutAligned_time'],axis=1)
 df_std = StandardScaler().fit_transform(data_to_ana)
 
 # %%
@@ -240,7 +240,7 @@ print('Explained variation per principal component: {}'.format(pca.explained_var
 # plt.figure(figsize=(16,10))
 # sns.scatterplot(
 #     x="pca1", y="pca2",
-#     hue="condition",
+#     hue='cond1',
 #     # palette=sns.color_palette("hls", 2),
 #     data=all_cond_bouts,
 #     legend="full",
@@ -292,7 +292,7 @@ perp50_cluster = get_clusters
 low_perp_res = pd.DataFrame(data = tsne_pca_results,
                          columns=['TSNE1', 'TSNE2'])
 low_perp_res = low_perp_res.assign(clusters = perp50_cluster,
-                             condition = combined_all['condition'])
+                             cond1 = combined_all['cond1'])
 
 cluster_color = sns.color_palette("hls", len(set(get_clusters)))
 total_clusters = list(set(low_perp_res.clusters))
@@ -322,7 +322,7 @@ res_toplt = pd.DataFrame(data = tsne_pca_results,
                          columns=['TSNE1', 'TSNE2'])
 res_toplt = res_toplt.assign(clusters = get_clusters,
                              time = combined_all['propBoutAligned_time'],
-                             condition = combined_all['condition'])
+                             cond1 = combined_all['cond1'])
 
 #  mark day night 
 hours = res_toplt['time'].dt.strftime('%H').astype('int')
@@ -337,8 +337,8 @@ res_toplt = res_toplt.assign(rise_dive = lambda x: pd.cut(x['pitch'],
                                         bins=[-90,-20,0,20,90],
                                         labels=["1SD",'2D', '3R','4SR']))
 
-res_ctrl = res_toplt.loc[combined_all.loc[combined_all.condition==all_conditions[0]].index,:]
-res_cond = res_toplt.loc[combined_all.loc[combined_all.condition==all_conditions[1]].index,:]
+res_ctrl = res_toplt.loc[combined_all.loc[combined_all.cond1==all_conditions[0]].index,:]
+res_cond = res_toplt.loc[combined_all.loc[combined_all.cond1==all_conditions[1]].index,:]
 
 cluster_color = sns.color_palette("hls", len(set(get_clusters)))
 total_clusters = list(set(res_toplt.clusters))
@@ -390,11 +390,11 @@ figure.savefig(fig_dir+"/TSNE_newfig.pdf",format='PDF')
 all_size = pd.DataFrame()
 for cluster_num in set(get_clusters):
     current_cluster = combined_all.loc[res_toplt.clusters==cluster_num]
-    cluster_size = current_cluster.groupby('condition').size()
+    cluster_size = current_cluster.groupby('cond1').size()
     all_size = pd.concat([all_size, cluster_size],axis=1)
     all_size.columns.values[-1:]=[cluster_num]
     
-total = combined_all.groupby('condition').size()
+total = combined_all.groupby('cond1').size()
 all_size.iloc[0,:] = all_size.iloc[0,:] /total.values[0]
 all_size.iloc[1,:] = all_size.iloc[1,:] /total.values[1]
 

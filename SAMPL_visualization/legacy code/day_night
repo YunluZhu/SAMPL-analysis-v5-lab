@@ -83,7 +83,7 @@ def day_night_split(df,time_col_name):
 #     df = df.sort_values(by='pre_posture_chg')
 #     bins = pd.cut(df['pre_posture_chg'], list(AVERAGE_BIN))
 #     grp = df.groupby(bins)
-#     df_out = grp[['pre_posture_chg','atk_ang']].mean().assign(dpf=condition[0],condition=condition[4:])
+#     df_out = grp[['pre_posture_chg','atk_ang']].mean().assign(dpf=condition[0],cond1=condition[4:])
 #     return df_out
 # %%
 # get data 
@@ -188,14 +188,14 @@ for condition_idx, folder in enumerate(folder_paths):
                 re_format_day = day_night_split(re_format,'propBoutAligned_time')
                 all_bouts_data = pd.concat([all_bouts_data, re_format_day])
                 
-            all_cond_feature = pd.concat([all_cond_feature,all_feature_data.assign(condition=all_conditions[condition_idx])])
-            all_cond_bouts = pd.concat([all_cond_bouts,all_bouts_data.assign(condition=all_conditions[condition_idx])])
+            all_cond_feature = pd.concat([all_cond_feature,all_feature_data.assign(cond1=all_conditions[condition_idx])])
+            all_cond_bouts = pd.concat([all_cond_bouts,all_bouts_data.assign(cond1=all_conditions[condition_idx])])
 all_cond_feature.reset_index(inplace=True,drop=True)
 all_cond_bouts.reset_index(inplace=True,drop=True)
-combined_all = pd.concat([all_cond_feature.drop(columns='condition'),all_cond_bouts],axis=1)
+combined_all = pd.concat([all_cond_feature.drop(columns='cond1'),all_cond_bouts],axis=1)
 combined_all = combined_all.dropna().reset_index(drop=True)    
                                   
-data_to_ana = all_cond_bouts.drop(['condition','propBoutAligned_time'],axis=1)
+data_to_ana = all_cond_bouts.drop(['cond1','propBoutAligned_time'],axis=1)
 df_std = StandardScaler().fit_transform(data_to_ana)
 
 all_conditions.sort()
@@ -208,19 +208,19 @@ res_toplt.loc[hours[(hours>=9) & (hours<23)].index, 'day_night'] = 'day'
 res_toplt.loc[hours[(hours<9) | (hours>=23)].index, 'day_night'] = 'night'
 
 # %%
-daynight = res_toplt.groupby(['condition','date','day_night']).size().unstack()
+daynight = res_toplt.groupby(['cond1','date','day_night']).size().unstack()
 
 daynight = daynight.assign(day_ratio = daynight.loc[:,'day']/(daynight.loc[:,'day']+daynight.loc[:,'night']),
                            night_ratio = daynight.loc[:,'night']/(daynight.loc[:,'day']+daynight.loc[:,'night']))
 daynight.reset_index(inplace=True)
 
 # %%
-flatui = ["#D0D0D0"] * (daynight.groupby('condition').size()[0])
+flatui = ["#D0D0D0"] * (daynight.groupby('cond1').size()[0])
 
-g = sns.pointplot(x='condition',y='night_ratio', hue='date', data=daynight,
+g = sns.pointplot(x='cond1',y='night_ratio', hue='date', data=daynight,
                                         palette=sns.color_palette(flatui), scale=0.5,
                                         )
-g = sns.pointplot(x='condition', y='night_ratio',hue='condition',data=daynight, 
+g = sns.pointplot(x='cond1', y='night_ratio',hue='cond1',data=daynight, 
                 linewidth=0,
                 alpha=0.9,
                 ci=None,
@@ -232,8 +232,8 @@ fig = g.get_figure()
 fig.savefig(fig_dir+"/day_night_ratio_{}.pdf".format(pick_data),format='PDF')
 
 # %%
-ctrl_stat = daynight.loc[daynight['condition']==all_conditions[0],'night_ratio']
-cond_stat = daynight.loc[daynight['condition']==all_conditions[1],'night_ratio']
+ctrl_stat = daynight.loc[daynight['cond1']==all_conditions[0],'night_ratio']
+cond_stat = daynight.loc[daynight['cond1']==all_conditions[1],'night_ratio']
 ttest_res, ttest_p = stats.ttest_rel(ctrl_stat,cond_stat)
 print(f'{all_conditions[0]} v.s. {all_conditions[1]} paired t-test p-value = {ttest_p}')
 # %%

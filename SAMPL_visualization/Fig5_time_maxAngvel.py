@@ -88,8 +88,8 @@ idx_initial = round_half_up(peak_idx - 0.25 * FRAME_RATE)
 
 all_conditions = []
 folder_paths = []
-all_cond1 = []
-all_cond2 = []
+all_cond0 = []
+all_cond0 = []
 exp_data_all = pd.DataFrame()
 
 
@@ -186,14 +186,14 @@ for condition_idx, folder in enumerate(folder_paths):
                 this_cond_data = pd.concat([this_cond_data,exp_data.loc[rows,:]])
             
     cond1 = all_conditions[condition_idx].split("_")[0]
-    cond2 = all_conditions[condition_idx].split("_")[1]
-    all_cond1.append(cond1)
-    all_cond2.append(cond2)
+    cond1 = all_conditions[condition_idx].split("_")[1]
+    all_cond0.append(cond1)
+    all_cond0.append(cond1)
     
     this_cond_data = this_cond_data.reset_index(drop=True)
     this_cond_data = this_cond_data.assign(
         cond1 = cond1,
-        cond2 = cond2,
+        cond1 = cond1,
     )
     exp_data_all = pd.concat([exp_data_all,this_cond_data], ignore_index=True)
             
@@ -227,7 +227,7 @@ for feature_toplt in tqdm(list(all_features_toplt.values())):
             data = exp_data_all, x = 'time_ms', y = feature_toplt,
             kind = 'line',aspect=3, height=2, 
             ci='sd',
-            row = 'cond2', col='cond1',
+            row = 'cond1', col='cond1',
             # hue='direction',
             # ci=None
             )
@@ -245,19 +245,19 @@ idx_mean_max = df_tocalc.groupby(['bout_number'])['adj_angvel'].apply(
     lambda y: np.argmax(savgol_filter(y,7,3)[round_half_up((0.3+initial_bound)*FRAME_RATE):])
 )
 time_by_bout_max = ((idx_mean_max/166 + initial_bound)*1000).reset_index()
-condition_match = exp_data_all.groupby(['bout_number'])[['cond2','cond1']].head(1)
+condition_match = exp_data_all.groupby(['bout_number'])[['cond1','cond1']].head(1)
 
 time_by_bout_max.columns = ['bout_number','time_of_peak_adjAngVel (ms)']
 time_by_bout_max = time_by_bout_max.assign(
     cond1 = condition_match['cond1'].values,
-    cond2 = condition_match['cond2'].values,
+    cond1 = condition_match['cond1'].values,
 )
 time_of_peak__byBout_mean = time_by_bout_max['time_of_peak_adjAngVel (ms)'].values.mean()
 
 plt.figure(figsize=(3,2))
 g = sns.pointplot(
     data = time_by_bout_max,
-    y = 'cond2',
+    y = 'cond1',
     x = 'time_of_peak_adjAngVel (ms)',
     ci='sd', 
 )
@@ -290,25 +290,25 @@ plt.show()
 
 # %%
 # calculate time of max angaccel, mean of each exp, then average
-mean_angAccel = exp_data_all.groupby(['time_ms','expNum','cond1','cond2'])['adj_angvel'].mean().reset_index()
+mean_angAccel = exp_data_all.groupby(['time_ms','expNum','cond1','cond1'])['adj_angvel'].mean().reset_index()
 mean_angAccel = mean_angAccel.loc[mean_angAccel['time_ms']<0]
-idx_mean_max = mean_angAccel.groupby(['expNum','cond1','cond2'])['adj_angvel'].apply(
+idx_mean_max = mean_angAccel.groupby(['expNum','cond1','cond1'])['adj_angvel'].apply(
     lambda y: np.argmax(y)
 )
 time_by_bout_max = ((idx_mean_max/166 - 0.3)*1000).reset_index()
-# condition_match = exp_data_all.groupby(['expNum','cond2'])['cond2','cond1'].head(1)
+# condition_match = exp_data_all.groupby(['expNum','cond1'])['cond1','cond1'].head(1)
 
-time_by_bout_max.columns = ['expNum','cond1','cond2','time_adj_angvel (ms)']
+time_by_bout_max.columns = ['expNum','cond1','cond1','time_adj_angvel (ms)']
 # time_by_bout_max = time_by_bout_max.assign(
 #     cond1 = condition_match['cond1'].values,
-#     cond2 = condition_match['cond2'].values,
+#     cond1 = condition_match['cond1'].values,
 # )
 time_of_peak__byBout_mean = time_by_bout_max['time_adj_angvel (ms)'].values.mean()
 
 plt.figure(figsize=(3,2))
 g = sns.pointplot(
     data = time_by_bout_max,
-    y = 'cond2',
+    y = 'cond1',
     x = 'time_adj_angvel (ms)',
     ci='sd', 
 )

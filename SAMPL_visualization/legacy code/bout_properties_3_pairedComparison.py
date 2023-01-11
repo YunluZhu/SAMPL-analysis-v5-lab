@@ -90,7 +90,7 @@ def distribution_binned_average(df, bin_width, condition):
     df = df.assign(y_boutFreq = 1/df['propBoutIEI'])
     bins = pd.cut(df['propBoutIEI_pitch'], list(np.arange(-90,90,bin_width)))
     grp = df.groupby(bins)
-    df_out = grp[['propBoutIEI_pitch','y_boutFreq']].mean().assign(dpf=condition[0:2],condition=condition[4:])
+    df_out = grp[['propBoutIEI_pitch','y_boutFreq']].mean().assign(dpf=condition[0:2],cond1=condition[4:])
     return df_out
 
 # %%
@@ -174,16 +174,16 @@ for condition_idx, folder in enumerate(folder_paths):
                 # end of exp loop
             
             mean_data_cond = pd.concat([mean_data_cond, mean_data.assign(dpf=all_conditions[condition_idx][0],
-                                                                         condition=all_conditions[condition_idx][4:])])
+                                                                         cond1=all_conditions[condition_idx][4:])])
             all_data_cond = pd.concat([all_data_cond, all_bouts_data.assign(dpf=all_conditions[condition_idx][0],
-                                                                         condition=all_conditions[condition_idx][4:])])
+                                                                         cond1=all_conditions[condition_idx][4:])])
             hue_order.append(all_conditions[condition_idx][4:])
 # %%
 
 steep_data = all_data_cond.loc[all_data_cond['traj']>20,:]
 hue_order.sort()
-all_data_cond.sort_values(by=['condition','dpf'],inplace=True, ignore_index=True)            
-mean_data_cond.sort_values(by=['condition','dpf'],inplace=True, ignore_index=True)   
+all_data_cond.sort_values(by=['cond1','cond0'],inplace=True, ignore_index=True)            
+mean_data_cond.sort_values(by=['cond1','cond0'],inplace=True, ignore_index=True)   
 
 # %% ------------OTHER data -----------------
 
@@ -239,9 +239,9 @@ df2 = df_sel
 current_palette = sns.color_palette()
 
 # pre_pitch - decel rot 
-flatui = ["#D0D0D0"] * (df2.groupby('condition').size().max())
+flatui = ["#D0D0D0"] * (df2.groupby('cond1').size().max())
 df = df2
-plt_condition = hue_order
+plt_cond1 = hue_order
 fig_num = len(plt_condition)
 
 fig, axes = plt.subplots(fig_num,sharey=True,sharex=True)
@@ -251,7 +251,7 @@ fig2, axes2 = plt.subplots(1)
 fig2.set_figheight(4)
 
 for i, cur_cond in enumerate(plt_condition):
-    df_to_plot = df.loc[df['condition']==cur_cond,:]
+    df_to_plot = df.loc[df['cond1']==cur_cond,:]
     print(f'{plt_condition[i]}')
     sns.kdeplot(x = x_feature, y = y_feature,data=df_to_plot, ax=axes[i], shade=True)
     
@@ -272,10 +272,10 @@ fig2.savefig(fig_dir+f"/{pick_data}'s {pick_df} 2 feature {y_feature}_{x_feature
 
 #-----------------------
 
-# plt_dpf = ['7','7']
+# plt_cond0 = ['7','7']
 
 # for i in range(2):
-#     df_to_plot = df.loc[(df['dpf']==plt_dpf[i]) & (df['condition']==plt_condition[i]),:]
+#     df_to_plot = df.loc[(df['cond0']==plt_dpf[i]) & (df['cond1']==plt_condition[i]),:]
 #     print(f'* {plt_dpf[i]} dpf | {plt_condition[i]}')
 #     sns.jointplot(x=x_feature, y=y_feature,data=df_to_plot, kind="kde", height=5, space=0)
 #     # plt.show()

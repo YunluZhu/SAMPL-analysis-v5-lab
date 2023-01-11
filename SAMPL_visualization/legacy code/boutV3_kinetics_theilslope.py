@@ -188,16 +188,16 @@ for condition_idx, folder in enumerate(folder_paths):
             # combine data from different conditions
             all_feature_cond = pd.concat([all_feature_cond, bout_features.assign(
                 # dpf=all_conditions[condition_idx][0:2],
-                condition=all_conditions[condition_idx][4:]
+                cond1=all_conditions[condition_idx][4:]
                 )])
             all_kinetic_cond = pd.concat([all_kinetic_cond, bout_kinetics.assign(
                 # dpf=all_conditions[condition_idx][0:2],
-                condition=all_conditions[condition_idx][4:]
+                cond1=all_conditions[condition_idx][4:]
                 )])
   
 # %% tidy data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-all_kinetic_cond = all_kinetic_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
+all_kinetic_cond = all_kinetic_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 
 
 all_feature_cond = all_feature_cond.assign(
@@ -219,7 +219,7 @@ kinetics_jackknife = pd.DataFrame()
 exp_df = all_feature_cond.groupby('expNum').size()
 jackknife_exp_matrix = jackknife_list(list(exp_df.index))
 for i, condition in enumerate(set(all_feature_cond.condition)):
-    this_cond_data = all_feature_cond.loc[all_feature_cond['condition']==condition,:]
+    this_cond_data = all_feature_cond.loc[all_feature_cond['cond1']==condition,:]
     for j, exp_group in enumerate(jackknife_exp_matrix):
         this_group_data = this_cond_data.loc[this_cond_data['expNum'].isin(exp_group),:]
         righting_fit = np.polyfit(x=this_group_data['pitch_pre_bout'], y=this_group_data['rot_l_decel'], deg=1)
@@ -238,36 +238,36 @@ for i, condition in enumerate(set(all_feature_cond.condition)):
             'righting_gain_up': -1 * righting_fit_up[0],
             'steering_gain': steering_fit[0],
             'jackknife_group':j,
-            'condition':condition,
+            'cond1':condition,
         }, index=[i*j+j])
         
         kinetics_jackknife = pd.concat([kinetics_jackknife,this_group_kinetics])
 
-cat_cols = ['jackknife_group','condition']
+cat_cols = ['jackknife_group','cond1']
 kinetics_jackknife.rename(columns={c:c+'_jack' for c in kinetics_jackknife.columns if c not in cat_cols},inplace=True)
-kinetics_jackknife = kinetics_jackknife.sort_values(by=['condition','jackknife_group']).reset_index(drop=True)
+kinetics_jackknife = kinetics_jackknife.sort_values(by=['cond1','jackknife_group']).reset_index(drop=True)
 # %% mean
 # data to plot
 
 # %% Compare Sibs & Tau
-cat_cols = ['jackknife_group','condition']
+cat_cols = ['jackknife_group','cond1']
 
 toplt = kinetics_jackknife
 all_features = [c for c in toplt.columns if c not in cat_cols]
 
-flatui = ["#D0D0D0"] * (toplt.groupby('condition').size().max())
+flatui = ["#D0D0D0"] * (toplt.groupby('cond1').size().max())
 
 defaultPlotting()
 
 print('Point plot categorized by speed and pitch direction')
 for feature_toplt in tqdm(all_features):
-    g = sns.catplot(data = toplt, x = 'condition', y = feature_toplt,
+    g = sns.catplot(data = toplt, x = 'cond1', y = feature_toplt,
                     height=4, aspect=0.8, kind='point',
-                    hue='condition', markers='d',sharey=False,
+                    hue='cond1', markers='d',sharey=False,
                     ci=False, zorder=10
                     )
     g.map_dataframe(sns.pointplot, 
-                    x = "condition", y = feature_toplt,
+                    x = 'cond1', y = feature_toplt,
                     hue='jackknife_group', ci=None,
                     palette=sns.color_palette(flatui), scale=0.5,zorder=-1)
     
@@ -276,24 +276,24 @@ for feature_toplt in tqdm(all_features):
 # plt.close('all')
 
 # %%
-cat_cols = ['jackknife_group','condition']
+cat_cols = ['jackknife_group','cond1']
 
 toplt = all_kinetic_cond
 all_features = [c for c in toplt.columns if c not in cat_cols]
 
-flatui = ["#D0D0D0"] * (toplt.groupby('condition').size().max())
+flatui = ["#D0D0D0"] * (toplt.groupby('cond1').size().max())
 
 defaultPlotting()
 
 print('Point plot categorized by speed and pitch direction')
 for feature_toplt in tqdm(all_features):
-    g = sns.catplot(data = toplt, x = 'condition', y = feature_toplt,
+    g = sns.catplot(data = toplt, x = 'cond1', y = feature_toplt,
                     height=4, aspect=0.8, kind='point',
-                    hue='condition', markers='d',sharey=False,
+                    hue='cond1', markers='d',sharey=False,
                     ci=False, zorder=10
                     )
     g.map_dataframe(sns.pointplot, 
-                    x = "condition", y = feature_toplt,
+                    x = 'cond1', y = feature_toplt,
                     hue='expNum', ci=None,
                     palette=sns.color_palette(flatui), scale=0.5,zorder=-1)
     

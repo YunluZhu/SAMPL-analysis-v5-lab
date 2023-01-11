@@ -55,11 +55,11 @@ bin_by = 'tsp'
 
 # %%
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE)
   
 # %% tidy data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-# mean_data_cond = mean_data_cond.reset_index().sort_values(by='condition').reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
+# mean_data_cond = mean_data_cond.reset_index().sort_values(by='cond1').reset_index(drop=True)
 
 
 rolling_windows = pd.DataFrame(data=posture_bins).rolling(2, min_periods=1)
@@ -74,11 +74,11 @@ all_feature_cond = all_feature_cond.assign(
 )
 
 # %% Jackknife resampling
-cat_cols = ['condition','expNum','posture_bins','dpf']
+cat_cols = ['cond1','expNum','posture_bins','cond0']
 mean_data = all_feature_cond.groupby(cat_cols).mean().reset_index()
-mean_data_jackknife = mean_data.groupby(['condition','posture_bins','dpf']).apply(
+mean_data_jackknife = mean_data.groupby(['cond1','posture_bins','cond0']).apply(
     lambda x: jackknife_mean(x)
- ).drop(columns=['dpf']).reset_index()
+ ).drop(columns=['cond0']).reset_index()
 
 # calculate the excluded expNum for each jackknifed result
 max_exp = mean_data.expNum.max()
@@ -104,14 +104,14 @@ mean_data_jackknife.rename(columns={c:c+'_jack' for c in mean_data_jackknife.col
 
 # print('Point plot categorized by speed and pitch direction')
 # for feature_toplt in tqdm(all_features):
-#     g = sns.catplot(data = toplt, x = 'condition', y = feature_toplt,
+#     g = sns.catplot(data = toplt, x = 'cond1', y = feature_toplt,
 #                     col="posture_bins",
 #                     height=4, aspect=0.8, kind='point',
-#                     hue='condition', markers='d',sharey=False,
+#                     hue='cond1', markers='d',sharey=False,
 #                     ci=None, zorder=10
 #                     )
 #     g.map_dataframe(sns.pointplot, 
-#                     x = "condition", y = feature_toplt,
+#                     x = 'cond1', y = feature_toplt,
 #                     hue='expNum', ci=None,palette=sns.color_palette(flatui), scale=0.5,zorder=-1)
 #     plt.savefig(fig_dir+f"/{pick_data}'s {feature_toplt}.pdf",format='PDF')
 #     plt.clf()
@@ -132,9 +132,9 @@ for feature_toplt in tqdm(['pitch','traj','spd','rot','tsp']):
 
     df_toplt = long_data.reset_index()
     g = sns.FacetGrid(df_toplt,
-                      row = "dpf", 
+                      row = 'cond0', 
                       col='feature',
-                      hue = 'condition', 
+                      hue = 'cond1', 
                       height=5, aspect=.8, 
                       sharey=False,
                       )

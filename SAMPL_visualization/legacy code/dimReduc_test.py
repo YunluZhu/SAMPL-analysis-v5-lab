@@ -72,7 +72,7 @@ def day_night_split(df,time_col_name):
 #     df = df.sort_values(by='pre_posture_chg')
 #     bins = pd.cut(df['pre_posture_chg'], list(AVERAGE_BIN))
 #     grp = df.groupby(bins)
-#     df_out = grp[['pre_posture_chg','atk_ang']].mean().assign(dpf=condition[0],condition=condition[4:])
+#     df_out = grp[['pre_posture_chg','atk_ang']].mean().assign(dpf=condition[0],cond1=condition[4:])
 #     return df_out
 # %%
 # get data 
@@ -147,10 +147,10 @@ for condition_idx, folder in enumerate(folder_paths):
                 re_format_day = day_night_split(re_format,'propBoutAligned_time')
                 all_bouts_data = pd.concat([all_bouts_data, re_format_day])
                 
-            all_cond_bouts = pd.concat([all_cond_bouts,all_bouts_data.assign(condition=all_conditions[condition_idx])])
+            all_cond_bouts = pd.concat([all_cond_bouts,all_bouts_data.assign(cond1=all_conditions[condition_idx])])
                                        
 all_cond_bouts = all_cond_bouts.dropna().reset_index(drop=True)
-data_to_ana = all_cond_bouts.drop(['condition','propBoutAligned_time'],axis=1)
+data_to_ana = all_cond_bouts.drop(['cond1','propBoutAligned_time'],axis=1)
 df_std = StandardScaler().fit_transform(data_to_ana)
 
 # %%
@@ -205,7 +205,7 @@ print('Explained variation per principal component: {}'.format(pca.explained_var
 # plt.figure(figsize=(16,10))
 # sns.scatterplot(
 #     x="pca1", y="pca2",
-#     hue="condition",
+#     hue='cond1',
 #     # palette=sns.color_palette("hls", 2),
 #     data=all_cond_bouts,
 #     legend="full",
@@ -268,7 +268,7 @@ res_toplt = pd.DataFrame(data = tsne_pca_results,
                          columns=['TSNE1', 'TSNE2'])
 res_toplt = res_toplt.assign(clusters = get_clusters,
                              time = all_cond_bouts['propBoutAligned_time'],
-                             condition = all_cond_bouts['condition'])
+                             cond1 = all_cond_bouts['cond1'])
 
 #  mark day night 
 hours = res_toplt['time'].dt.strftime('%H').astype('int')
@@ -277,8 +277,8 @@ res_toplt = res_toplt.assign(hours = hours)
 res_toplt.loc[hours[(hours>=9) & (hours<23)].index, 'day_night'] = 'day'
 res_toplt.loc[hours[(hours<9) | (hours>=23)].index, 'day_night'] = 'night'
 
-res_ctrl = res_toplt.loc[all_cond_bouts.loc[all_cond_bouts.condition==all_conditions[0]].index,:]
-res_cond = res_toplt.loc[all_cond_bouts.loc[all_cond_bouts.condition==all_conditions[1]].index,:]
+res_ctrl = res_toplt.loc[all_cond_bouts.loc[all_cond_bouts.cond1==all_conditions[0]].index,:]
+res_cond = res_toplt.loc[all_cond_bouts.loc[all_cond_bouts.cond1==all_conditions[1]].index,:]
 
 cluster_color = sns.color_palette("hls", len(set(get_clusters)))
 total_clusters = list(set(res_toplt.clusters))
@@ -330,11 +330,11 @@ figure.savefig(fig_dir+"/TSNE_newfig.pdf",format='PDF')
 all_size = pd.DataFrame()
 for cluster_num in set(get_clusters):
     current_cluster = all_cond_bouts.loc[res_toplt.clusters==cluster_num]
-    cluster_size = current_cluster.groupby('condition').size()
+    cluster_size = current_cluster.groupby('cond1').size()
     all_size = pd.concat([all_size, cluster_size],axis=1)
     all_size.columns.values[-1:]=[cluster_num]
     
-total = all_cond_bouts.groupby('condition').size()
+total = all_cond_bouts.groupby('cond1').size()
 all_size.iloc[0,:] = all_size.iloc[0,:] /total.values[0]
 all_size.iloc[1,:] = all_size.iloc[1,:] /total.values[1]
 

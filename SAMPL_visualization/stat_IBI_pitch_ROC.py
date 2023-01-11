@@ -60,11 +60,11 @@ for folder in os.listdir(root):
 
 bins = list(range(-90,95,5))
 
-IBI_angles, cond1, cond2 = get_IBIangles(root, FRAME_RATE, ztime=which_zeitgeber)
-IBI_angles_cond = IBI_angles.loc[:,['propBoutIEI_pitch','ztime','expNum','dpf','condition','exp']]
-IBI_angles_cond.columns = ['IBI_pitch','ztime','expNum','dpf','condition','exp']
+IBI_angles, cond1, cond1 = get_IBIangles(root, FRAME_RATE, ztime=which_zeitgeber)
+IBI_angles_cond = IBI_angles.loc[:,['propBoutIEI_pitch','ztime','expNum','cond0','cond1','exp']]
+IBI_angles_cond.columns = ['IBI_pitch','ztime','expNum','cond0','cond1','exp']
 IBI_angles_cond.reset_index(drop=True,inplace=True)
-cond_cols = ['ztime','dpf','condition']
+cond_cols = ['ztime','cond0','cond1']
 all_ztime = list(set(IBI_angles_cond.ztime))
 all_ztime.sort()
 
@@ -76,10 +76,10 @@ all_ztime.sort()
     
 # %%
 # sanity check
-# cat_cols = ['dpf','condition','ztime','exp']
+# cat_cols = ['cond0','cond1','ztime','exp']
 # check_df = IBI_angles.groupby(cat_cols).size().reset_index()
-# check_df.columns = ['dpf','condition','ztime','exp','bout_num']
-# sns.catplot(data=check_df,x='exp',y='bout_num',col='ztime',row='dpf',hue='condition',kind='bar')
+# check_df.columns = ['cond0','cond1','ztime','exp','bout_num']
+# sns.catplot(data=check_df,x='exp',y='bout_num',col='ztime',row='cond0',hue='cond1',kind='bar')
 
 # %% jackknife for day bouts
 # not the best code - jackknife and resample to be wrapped into a function
@@ -93,19 +93,19 @@ if which_zeitgeber != 'night':
             ]
     if DAY_RESAMPLE != 0:  # if resampled
         IBI_angles_day_resampled = IBI_angles_day_resampled.groupby(
-                ['dpf','condition','exp']
+                ['cond0','cond1','exp']
                 ).sample(
                         n=DAY_RESAMPLE,
                         replace=True
                         )
-    cat_cols = ['condition','dpf','ztime']
+    cat_cols = ['cond1','cond0','ztime']
     for (this_cond, this_dpf, this_ztime), group in IBI_angles_day_resampled.groupby(cat_cols):
         jackknife_idx = jackknife_resampling(np.array(list(range(group['expNum'].max()+1))))
         for excluded_exp, idx_group in enumerate(jackknife_idx):
             this_std = group.loc[group['expNum'].isin(idx_group),['IBI_pitch']].std().to_frame(name='jackknifed_std')
             this_mean = group.loc[group['expNum'].isin(idx_group),['IBI_pitch']].mean()
             jackknifed_day_std = pd.concat([jackknifed_day_std, this_std.assign(dpf=this_dpf,
-                                                                    condition=this_cond,
+                                                                    cond1=this_cond,
                                                                     excluded_exp=excluded_exp,
                                                                     ztime=this_ztime,
                                                                     jackknifed_mean=this_mean)])
@@ -118,33 +118,33 @@ if which_zeitgeber != 'day':
             ]
     if NIGHT_RESAMPLE != 0:  # if resampled
         IBI_angles_night_resampled = IBI_angles_night_resampled.groupby(
-                ['dpf','condition','exp']
+                ['cond0','cond1','exp']
                 ).sample(
                         n=NIGHT_RESAMPLE,
                         replace=True
                         )
-    cat_cols = ['condition','dpf','ztime']
+    cat_cols = ['cond1','cond0','ztime']
     for (this_cond, this_dpf, this_ztime), group in IBI_angles_night_resampled.groupby(cat_cols):
         jackknife_idx = jackknife_resampling(np.array(list(range(group['expNum'].max()+1))))
         for excluded_exp, idx_group in enumerate(jackknife_idx):
             this_std = group.loc[group['expNum'].isin(idx_group),['IBI_pitch']].std().to_frame(name='jackknifed_std')
             this_mean = group.loc[group['expNum'].isin(idx_group),['IBI_pitch']].mean()
             jackknifed_night_std = pd.concat([jackknifed_night_std, this_std.assign(dpf=this_dpf,
-                                                                    condition=this_cond,
+                                                                    cond1=this_cond,
                                                                     excluded_exp=excluded_exp,
                                                                     ztime=this_ztime,
                                                                     jackknifed_mean=this_mean)])
     jackknifed_night_std = jackknifed_night_std.reset_index(drop=True)
 
 jackknifed_std = pd.concat([jackknifed_day_std,jackknifed_night_std]).reset_index(drop=True)
-IBI_std_cond = IBI_angles_cond.groupby(['ztime','dpf','condition','exp','expNum']).std().reset_index()
-IBI_std_day_resampled = IBI_angles_day_resampled.groupby(['ztime','dpf','condition','expNum']).std().reset_index()
+IBI_std_cond = IBI_angles_cond.groupby(['ztime','cond0','cond1','exp','expNum']).std().reset_index()
+IBI_std_day_resampled = IBI_angles_day_resampled.groupby(['ztime','cond0','cond1','expNum']).std().reset_index()
 
 # %%
 # ROC
 
 # %%
-FPR_list, TPR_list, auc = calc_ROC(jackknifed_std,'jackknifed_std',cond2[0],'increase')  # left = cond is expected to be smaller than ctrl
+FPR_list, TPR_list, auc = calc_ROC(jackknifed_std,'jackknifed_std',cond1[0],'increase')  # left = cond is expected to be smaller than ctrl
 # %%
 fig, ax = plt.subplots(1,1, figsize=(3,3))
 
@@ -164,9 +164,9 @@ plt.savefig(filename,format='PDF')
 # %%
 # paired ttest
 for condition in cond1:
-    df = jackknifed_std.loc[jackknifed_std.dpf == condition]
-    cond = df.loc[df.condition==cond2[0],'jackknifed_std'].values
-    ctrl = df.loc[df.condition==cond2[1],'jackknifed_std'].values
+    df = jackknifed_std.loc[jackknifed_std.cond0 == condition]
+    cond = df.loc[df.cond1==cond1[0],'jackknifed_std'].values
+    ctrl = df.loc[df.cond1==cond1[1],'jackknifed_std'].values
     print(f'{condition} jackknifed_std cond-ctrl paired ttest')
     print(stats.ttest_rel(cond,ctrl))
 # %%

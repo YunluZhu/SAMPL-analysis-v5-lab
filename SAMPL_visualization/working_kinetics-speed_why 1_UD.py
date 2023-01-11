@@ -44,17 +44,17 @@ except:
     print('Notes: re-writing old figures')
 
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
 all_ibi_cond, _, _  = get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
 # %% tidy data
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
-all_ibi_cond = all_ibi_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
+all_ibi_cond = all_ibi_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 
 all_ibi_cond = all_ibi_cond.assign(y_boutFreq=1/all_ibi_cond['propBoutIEI'],
                                     direction = pd.cut(all_ibi_cond['propBoutIEI_pitch'],[-90,7.5,90],labels=['dive','climb']))
 
 # get kinetics for separating up and down
-all_kinetics = all_feature_cond.groupby(['dpf']).apply(
+all_kinetics = all_feature_cond.groupby(['cond0']).apply(
                         lambda x: get_kinetics(x)
                         ).reset_index()
 # %%
@@ -72,8 +72,8 @@ all_feature_UD = all_feature_cond.assign(
 
 all_feature_UD = all_feature_UD.dropna().reset_index(drop=True)
 
-# for key, group in all_feature_cond.groupby(['dpf']):
-#     this_setvalue = all_kinetics.loc[all_kinetics['dpf']==key,'set_point'].to_list()[0]
+# for key, group in all_feature_cond.groupby(['cond0']):
+#     this_setvalue = all_kinetics.loc[all_kinetics['cond0']==key,'set_point'].to_list()[0]
 #     print(this_setvalue)
 #     group['direction'] = pd.cut(group['pitch_initial'],
 #                                 bins=[-91,this_setvalue,91],
@@ -84,7 +84,7 @@ all_feature_UD = all_feature_UD.dropna().reset_index(drop=True)
 
 # %%
 # get kinetics
-df_kinetics = all_feature_UD.groupby(['speed_bins','condition']).apply(
+df_kinetics = all_feature_UD.groupby(['speed_bins','cond1']).apply(
                         lambda x: get_kinetics(x)
                         ).reset_index()
 # %%
@@ -94,8 +94,8 @@ df_kinetics = all_feature_UD.groupby(['speed_bins','condition']).apply(
 toplt = all_feature_UD
 feature_to_plt = 'pitch_pre_bout'
 g = sns.FacetGrid(data=toplt,
-            col="dpf", row="condition",
-            col_order=all_cond1,
+            col='cond0', row='cond1',
+            col_order=all_cond0,
             hue='speed_bins',
             sharey =False,
             )
@@ -108,8 +108,8 @@ plt.savefig(fig_dir+f"/{feature_to_plt} distribution.pdf",format='PDF')
 toplt = all_feature_UD
 feature_to_plt = 'rot_l_decel'
 g = sns.FacetGrid(data=toplt,
-            col="dpf", row="condition",
-            col_order=all_cond1,
+            col='cond0', row='cond1',
+            col_order=all_cond0,
             hue='speed_bins',
             sharey =False,
             )
@@ -120,13 +120,13 @@ plt.savefig(fig_dir+f"/{feature_to_plt} distribution.pdf",format='PDF')
 #### wider distribution of rotation, especially towards the neg, as speed increases
 # %% 
 # joint
-toplt_07dpf  = all_feature_UD.loc[all_feature_UD['condition']=='07dpf']
+toplt_07dpf  = all_feature_UD.loc[all_feature_UD['cond1']=='07dpf']
 sns.jointplot(data=toplt, x="pitch_pre_bout", y="rot_l_decel", kind="kde",
               hue = 'speed_bins'
               )
 # %% 
 # reg separated
-toplt_07dpf = all_feature_UD.loc[all_feature_UD['condition']=='07dpf']
+toplt_07cond0 = all_feature_UD.loc[all_feature_UD['cond1']=='07dpf']
 sns.lmplot(data=toplt, x="pitch_pre_bout", y="rot_l_decel",
               col = 'speed_bins', markers='o'
               )
@@ -134,7 +134,7 @@ plt.savefig(fig_dir+f"/{feature_to_plt} 07dpf reg spd bins.pdf",format='PDF')
 
 # %% 
 # different ratio of pitch direction in fast vs slow?
-toplt_07dpf = all_feature_UD.loc[all_feature_UD['condition']=='07dpf']
+toplt_07cond0 = all_feature_UD.loc[all_feature_UD['cond1']=='07dpf']
 
 sns.lmplot(data=toplt_07dpf, x="pitch_pre_bout", y="rot_l_decel",
               col = 'direction', markers='o'
@@ -190,12 +190,12 @@ for i in ['try1','try2','try3']:
     artificial_kinetics = pd.concat([artificial_kinetics,this_kinetics])
 
 # %%
-ori_kinetics = df_kinetics.loc[df_kinetics['condition']=='07dpf'].assign(type='original')
+ori_kinetics = df_kinetics.loc[df_kinetics['cond1']=='07dpf'].assign(type='original')
 # %%
 kinetics_toplt = pd.concat([artificial_kinetics,ori_kinetics]).reset_index(drop=True)
 # %%
 toplt = kinetics_toplt
-cat_cols = ['type','condition','speed_bins']
+cat_cols = ['type','cond1','speed_bins']
 all_features = [c for c in toplt.columns if c not in cat_cols]
 
 for feature_toplt in (all_features):
@@ -224,7 +224,7 @@ for feature_toplt in (all_features):
 # while slower bouts start correction earlier than the righting rotation
 # should separate by pre_bout posture
 # different ratio of pitch direction in fast vs slow?
-toplt_07dpf = all_feature_UD.loc[all_feature_UD['condition']=='07dpf']
+toplt_07cond0 = all_feature_UD.loc[all_feature_UD['cond1']=='07dpf']
 
 # %%
 # what are the ratio of pre-pitch bins  in different speed bins?
@@ -284,7 +284,7 @@ for i in ['try1','try2','try3']:
 kinetics_toplt = pd.concat([artificial_kinetics_byPreBout,ori_kinetics]).reset_index(drop=True)
 
 toplt = kinetics_toplt
-cat_cols = ['type','condition','speed_bins']
+cat_cols = ['type','cond1','speed_bins']
 all_features = [c for c in toplt.columns if c not in cat_cols]
 
 for feature_toplt in (all_features):

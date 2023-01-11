@@ -74,7 +74,7 @@ def day_night_split(df,time_col_name):
 #     df = df.sort_values(by='pre_posture_chg')
 #     bins = pd.cut(df['pre_posture_chg'], list(AVERAGE_BIN))
 #     grp = df.groupby(bins)
-#     df_out = grp[['pre_posture_chg','atk_ang']].mean().assign(dpf=condition[0],condition=condition[4:])
+#     df_out = grp[['pre_posture_chg','atk_ang']].mean().assign(dpf=condition[0],cond1=condition[4:])
 #     return df_out
 # %%
 # get data 
@@ -151,7 +151,7 @@ for condition_idx, folder in enumerate(folder_paths):
                 all_bouts_data = pd.concat([all_bouts_data, output_forBout])
                 # all_bouts_IEI_data = pd.concat([all_bouts_data, re_format_IEI_day])
                 
-            all_cond_bouts = pd.concat([all_cond_bouts,all_bouts_data.assign(condition=all_conditions[condition_idx])])
+            all_cond_bouts = pd.concat([all_cond_bouts,all_bouts_data.assign(cond1=all_conditions[condition_idx])])
 
 data_to_ana = all_cond_bouts.dropna().reset_index(drop=True)
 df_std = StandardScaler().fit_transform(data_to_ana.iloc[:,0:-1])
@@ -209,7 +209,7 @@ print('Explained variation per principal component: {}'.format(pca.explained_var
 plt.figure(figsize=(16,10))
 sns.scatterplot(
     x="pca1", y="pca2",
-    hue="condition",
+    hue='cond1',
     # palette=sns.color_palette("hls", 2),
     data=data_to_ana,
     legend="full",
@@ -263,8 +263,8 @@ res_toplt = pd.DataFrame(data = tsne_pca_results,
                          columns=['TSNE1', 'TSNE2'])
 res_toplt = res_toplt.assign(clusters = get_clusters)
 
-res_ctrl = res_toplt.loc[data_to_ana.loc[data_to_ana.condition==all_conditions[is_ctrl]].index,:]
-res_cond = res_toplt.loc[data_to_ana.loc[data_to_ana.condition==all_conditions[is_cond]].index,:]
+res_ctrl = res_toplt.loc[data_to_ana.loc[data_to_ana.cond1==all_conditions[is_ctrl]].index,:]
+res_cond = res_toplt.loc[data_to_ana.loc[data_to_ana.cond1==all_conditions[is_cond]].index,:]
 
 cluster_color = sns.color_palette("hls", len(set(get_clusters)))
 total_clusters = list(set(res_toplt.clusters))
@@ -315,7 +315,7 @@ figure.savefig(fig_dir+"/TSNE_proc_newfig.pdf",format='PDF')
 # %% plot on condition
 
 res_toplt_cond = res_toplt.assign(
-    condition = data_to_ana.condition.values
+    cond1 = data_to_ana.condition.values
 )
 
 figure2 = plt.figure(figsize=(8,7))
@@ -324,7 +324,7 @@ sns.scatterplot(
     y='TSNE2', 
     # palette = sns.color_palette("hls", len(all_conditions)),
     data=res_toplt_cond,
-    hue = 'condition',
+    hue = 'cond1',
     legend='full',
     alpha=0.1,
 )

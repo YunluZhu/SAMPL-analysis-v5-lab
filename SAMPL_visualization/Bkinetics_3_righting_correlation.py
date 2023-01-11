@@ -44,8 +44,8 @@ peak_idx , total_aligned = get_index(FRAME_RATE)
 idxRANGE = [peak_idx-round_half_up(0.27*FRAME_RATE),peak_idx+round_half_up(0.22*FRAME_RATE)]
 
 # %% get features
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE, ztime = 'day')
-all_feature_cond = all_feature_cond.sort_values(by=['condition','expNum']).reset_index(drop=True)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime = 'day')
+all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
 # %%
 by_which_col = 'pitch_initial'
 binned_rotation = 'rot_l_decel'
@@ -65,7 +65,7 @@ for feature in feature_to_plt:
 
 BIN_WIDTH = 2
 AVERAGE_BIN = np.arange(round_half_up(lower),round_half_up(upper),BIN_WIDTH)
-binned_df_cond = toplt.groupby('condition').apply(
+binned_df_cond = toplt.groupby('cond1').apply(
     lambda g: distribution_binned_average(g,by_col=by_which_col,bin_col=binned_rotation,bin=AVERAGE_BIN)
 )
 binned_df = distribution_binned_average(toplt,by_col=by_which_col,bin_col=binned_rotation,bin=AVERAGE_BIN)

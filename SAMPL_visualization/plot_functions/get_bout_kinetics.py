@@ -121,12 +121,12 @@ def get_kinetics_sigmoid(df):
                                     y=df['rot_l_decel'])
     corr_rot_lateAccel_decel = pearsonr(x=df['rot_late_accel'],
                             y=df['rot_l_decel'])
-    corr_rot_preBout_decel = pearsonr(x=df['rot_pre_bout'],
-                            y=df['rot_l_decel'])
+    # corr_rot_preBout_decel = pearsonr(x=df['rot_pre_bout'],
+    #                         y=df['rot_l_decel'])
     y_posture_corr = pearsonr(x=df['pitch_peak'],
                                     y=df['depth_chg'])
-    x_posture_corr = pearsonr(x=df['pitch_peak'],
-                            y=df['x_chg'])
+    # x_posture_corr = pearsonr(x=df['pitch_peak'],
+    #                         y=df['x_chg'])
 
     y_posture_fit = np.polyfit(x=df['pitch_peak'], y=df['depth_chg'], deg=1)
     x_posture_fit = np.polyfit(x=df['pitch_peak'], y=df['x_chg'], deg=1)
@@ -138,7 +138,7 @@ def get_kinetics_sigmoid(df):
         'steering_gain': steering_fit[0],
         'corr_rot_accel_decel': corr_rot_accel_decel[0],
         'corr_rot_lateAccel_decel': corr_rot_lateAccel_decel[0],
-        'corr_rot_preBout_decel': corr_rot_preBout_decel[0],
+        # 'corr_rot_preBout_decel': corr_rot_preBout_decel[0],
         'set_point':set_point_ori[1],
         'y_efficacy': y_posture_fit[0],
         'x_efficacy': x_posture_fit[0],
@@ -191,8 +191,8 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
             
     all_feature_cond = pd.DataFrame()
     all_kinetic_cond = pd.DataFrame()
+    all_cond0 = []
     all_cond1 = []
-    all_cond2 = []
     # go through each condition folders under the root
     for condition_idx, folder in enumerate(folder_paths):
         # enter each condition folder (e.g. 7dd_ctrl)
@@ -253,24 +253,24 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
                     bout_kinetics = pd.concat([bout_kinetics,this_exp_kinetics], ignore_index=True)
                 
         # combine data from different conditions
-        cond1 = all_conditions[condition_idx].split("_")[0]
-        cond2 = all_conditions[condition_idx].split("_")[1]
+        cond0 = all_conditions[condition_idx].split("_")[0]
+        cond1 = all_conditions[condition_idx].split("_")[1]
+        all_cond0.append(cond0)
         all_cond1.append(cond1)
-        all_cond2.append(cond2)
         all_feature_cond = pd.concat([all_feature_cond, bout_features.assign(
-            dpf=cond1,
-            condition=cond2
+            cond0=cond0,
+            cond1=cond1
             )])
         all_kinetic_cond = pd.concat([all_kinetic_cond, bout_kinetics.assign(
-            dpf=cond1,
-            condition=cond2
+            cond0=cond0,
+            cond1=cond1
             )])
+    all_cond0 = list(set(all_cond0))
+    all_cond0.sort()
     all_cond1 = list(set(all_cond1))
     all_cond1.sort()
-    all_cond2 = list(set(all_cond2))
-    all_cond2.sort()
-    spd_upper = np.percentile(all_feature_cond['spd_peak'],98)
-    spd_lower = np.percentile(all_feature_cond['spd_peak'],2)
+    spd_upper = np.percentile(all_feature_cond['spd_peak'],99)
+    spd_lower = np.percentile(all_feature_cond['spd_peak'],1)
     spd_bins = np.arange(spd_lower,spd_upper,(spd_upper-spd_lower)/5) 
     all_feature_cond = all_feature_cond.assign(
         # direction = pd.cut(all_feature_cond['pitch_initial'],[-90,10,90],labels=['DN','UP']),
@@ -279,7 +279,7 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
     
     if sample_num != 0:
         all_feature_cond = all_feature_cond.groupby(
-                ['dpf','condition','expNum','ztime']
+                ['cond0','cond1','expNum','ztime']
                 ).sample(
                         n=sample_num,
                         replace=True
@@ -287,22 +287,22 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
             
     # calculate jackknifed kinetics
     kinetics_jackknife = pd.DataFrame()
-    for name, group in all_feature_cond.groupby(['condition','dpf','ztime']):
+    for name, group in all_feature_cond.groupby(['cond0','cond1','ztime']):
         this_group_kinetics = jackknife_kinetics(group,'expNum')
         this_group_kinetics = this_group_kinetics.assign(
-            condition = name[0],
-            dpf = name[1],
+            cond0 = name[0],
+            cond1 = name[1],
             ztime = name[2])
         kinetics_jackknife = pd.concat([kinetics_jackknife,this_group_kinetics],ignore_index=True)
     
-    cat_cols = ['jackknife_group','condition','dpf','ztime']
+    cat_cols = ['jackknife_group','cond1','cond0','ztime']
     kinetics_jackknife.rename(columns={c:c+'_jack' for c in kinetics_jackknife.columns if c not in cat_cols},inplace=True)
-    kinetics_jackknife = kinetics_jackknife.sort_values(by=['condition','jackknife_group','dpf']).reset_index(drop=True)
+    kinetics_jackknife = kinetics_jackknife.sort_values(by=['cond1','jackknife_group','cond0']).reset_index(drop=True)
 
     # calculate jackknifed kinetics by speed bins
     kinetics_bySpd_jackknife = pd.DataFrame()
     if if_calc_bySpeed == 1:
-        for name, group in all_feature_cond.groupby(['condition','dpf','ztime']):
+        for name, group in all_feature_cond.groupby(['cond0','cond1','ztime']):
             kinetics_all_speed = pd.DataFrame()
             for speed_bin in set(group.speed_bins):
                 if pd.notna(speed_bin):
@@ -315,13 +315,13 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
                         )
                     kinetics_all_speed = pd.concat([kinetics_all_speed,this_speed_kinetics],ignore_index=True)
             kinetics_all_speed = kinetics_all_speed.assign(
-                condition = name[0],
-                dpf = name[1],
+                cond0 = name[0],
+                cond1 = name[1],
                 ztime = name[2]
                 )   
             kinetics_bySpd_jackknife = pd.concat([kinetics_bySpd_jackknife, kinetics_all_speed],ignore_index=True)
-        kinetics_bySpd_jackknife = kinetics_bySpd_jackknife.sort_values(by=['condition','jackknife_group','dpf']).reset_index(drop=True)
+        kinetics_bySpd_jackknife = kinetics_bySpd_jackknife.sort_values(by=['cond1','jackknife_group','cond0']).reset_index(drop=True)
 
    
-    return all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond1, all_cond2
+    return all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond0, all_cond1
 

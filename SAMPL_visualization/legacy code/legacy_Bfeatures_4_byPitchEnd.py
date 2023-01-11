@@ -55,7 +55,7 @@ except:
     
 # %%
 # get data
-all_feature_cond, all_cond1, all_cond2 = get_bout_features(root, FRAME_RATE)
+all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE)
 
 # %% tidy data
 
@@ -77,12 +77,12 @@ print('--max')
 print(all_feature_cond.groupby('speed_bins')['spd_peak'].agg('max'))
 
 # %% Jackknife resampling
-cat_cols = ['condition','expNum','posture_bins','dpf']
+cat_cols = ['cond1','expNum','posture_bins','cond0']
 mean_data = all_feature_cond.groupby(cat_cols).mean().reset_index()
-mean_data_jackknife = mean_data.groupby(['condition','dpf','posture_bins']).apply(
+mean_data_jackknife = mean_data.groupby(['cond1','cond0','posture_bins']).apply(
     lambda x: jackknife_mean(x)
  )
-mean_data_jackknife = mean_data_jackknife.drop(columns=['dpf']).reset_index()
+mean_data_jackknife = mean_data_jackknife.drop(columns=['cond0']).reset_index()
 
 # calculate the excluded expNum for each jackknifed result
 max_exp = mean_data.expNum.max()
@@ -112,9 +112,9 @@ defaultPlotting()
 
 for feature_toplt in all_features:
     g = sns.FacetGrid(toplt,
-                      row = "dpf", 
+                      row = 'cond0', 
                     #   col='feature',
-                      hue = 'condition', 
+                      hue = 'cond1', 
                       height=5, aspect=.8, 
                       sharey=False,
                       )

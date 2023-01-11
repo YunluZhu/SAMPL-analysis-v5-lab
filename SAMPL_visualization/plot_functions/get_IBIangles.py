@@ -28,8 +28,8 @@ def get_IBIangles(root, FRAME_RATE,**kwargs):
             all_conditions.append(folder)
 
     all_feature_cond = pd.DataFrame()
-    all_cond1 = []
-    all_cond2 = []
+    all_cond0 = []
+    all_cond0 = []
     # go through each condition folders under the root
     for condition_idx, folder in enumerate(folder_paths):
         # enter each condition folder (e.g. 7dd_ctrl)
@@ -55,17 +55,17 @@ def get_IBIangles(root, FRAME_RATE,**kwargs):
                     ibi_features = pd.concat([ibi_features,exp_data_ztime])
         # combine data from different conditions
         cond1 = all_conditions[condition_idx].split("_")[0]
-        cond2 = all_conditions[condition_idx].split("_")[1]
-        all_cond1.append(cond1)
-        all_cond2.append(cond2)
+        cond1 = all_conditions[condition_idx].split("_")[1]
+        all_cond0.append(cond1)
+        all_cond0.append(cond1)
         all_feature_cond = pd.concat([all_feature_cond, ibi_features.assign(
             dpf=cond1,
-            condition=cond2
+            cond1=cond1
             )],ignore_index=True)
-    all_cond1 = list(set(all_cond1))
-    all_cond1.sort()
-    all_cond2 = list(set(all_cond2))
-    all_cond2.sort()
+    all_cond0 = list(set(all_cond0))
+    all_cond0.sort()
+    all_cond0 = list(set(all_cond0))
+    all_cond0.sort()
     
-    return all_feature_cond, all_cond1, all_cond2
+    return all_feature_cond, all_cond0, all_cond0
 
