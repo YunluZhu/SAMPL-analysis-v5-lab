@@ -13,6 +13,7 @@ Run `SAMPL_analysis/SAMPL_analysis_....py` to analyze .dlm files. Then, run indi
 1. Speed threshold changed to 5 mm/s
 2. Fixed a bug in analysis that randomly excluds ~half of the data
 3. Increased max angular velocity threshold from 100 to 250
+4. Saving all_data.h5 is now optional
 
 *Re-analyze your data is highly recommended*
 
