@@ -19,14 +19,14 @@ def plt_categorical_grid(
     sns_palette='colorblind', 
     markertype='d', 
     height=4, 
-    aspect=1,
+    aspect=0.8,
     ):
     
     """build upon sns.catplot(), plots mean y_name vs x_name with individual repeats. Repeats are plotted as stripplot if number of repeats are different among groups defined by x_name, otherwise, repeats are connected.
     the errorbar arg requires Seaborn v0.12 to work.
 
     Args:
-        data (pd.DataFrame): _description_
+        data (pd.DataFrame): Dataframe with one value per "unit". Can be achieved using: data.groupby([x_name, gridcol, gridrow, units]).mean().reset_index()
         x_name (str): Column to plot on the X axis.
         y_name (str): Column to plot on the Y axis. 
         gridrow (str): Categorical variables that will determine the faceting of the grid.
