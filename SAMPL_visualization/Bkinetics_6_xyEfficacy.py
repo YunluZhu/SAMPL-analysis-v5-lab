@@ -1,34 +1,37 @@
 '''
-
+Check speed distribution
+plot y efficacy: slope for depth change vs posture at peak 
+plot x posture correlation: corr of x change vs posture
+plot y posture correlation: corr of y changeg vs posture
+plot lift gain: slope for additional depth change vs depth change
 '''
 
 #%%
 # import sys
 import os,glob
 from statistics import mean
-# import time
-import pandas as pd # pandas library
-import numpy as np # numpy
+import pandas as pd 
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 import math
-# from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
 from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_split)
 from plot_functions.get_bout_kinetics import get_bout_kinetics
 from plot_functions.get_bout_features import get_bout_features
 from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
-from scipy.stats import ttest_rel
-from scipy.stats import ttest_ind
 from plot_functions.plt_tools import jackknife_list
+from plot_functions.plt_functions import plt_categorical_grid
 
-
-set_font_type()
-defaultPlotting()
+##### Parameters to change #####
+pick_data = 'wt_fin' # name of your dataset to plot as defined in function get_data_dir()
+which_ztime = 'day'
+DAY_RESAMPLE = 0
+NIGHT_RESAMPLE = 0
+# if_jackknife = True # only jackknife option for speed specific kinematics
+##### Parameters to change #####
 
 # %%
-pick_data = 'tau_bkg'
-which_zeitgeber = 'day'
 folder_name = f'BK6_xyEfficacy'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
@@ -41,21 +44,23 @@ except:
 spd_bins = np.arange(5,25,4)
 
 root, FRAME_RATE = get_data_dir(pick_data)
-all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond0, all_cond0 = get_bout_kinetics(root, FRAME_RATE, ztime=which_zeitgeber)
-all_feature_cond, _, _ = get_bout_features(root, FRAME_RATE, ztime=which_zeitgeber)
-all_cond0 = pick_data
+all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond0, all_cond1 = get_bout_kinetics(root, FRAME_RATE, ztime=which_ztime)
+all_feature_cond, _, _ = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
 all_cond0.sort()
-
 
 all_feature_cond = all_feature_cond.assign(
     speed_bins = pd.cut(all_feature_cond['spd_peak'],bins=spd_bins,labels=np.arange(len(spd_bins)-1))
 )
 
-
-
+set_font_type()
 sns.set_style("ticks")
     
 # %%
+
+####################################
+###### Plotting Starts Here ######
+####################################
+
 # check speed distribution
 toplt = all_feature_cond
 
@@ -80,35 +85,9 @@ g.map(sns.histplot,feature_to_plt,bins = 10,
 g.add_legend()
 sns.despine()
 plt.savefig(fig_dir+f"/{feature_to_plt} distribution.pdf",format='PDF')# %%
-
-# %%
-# jackknife std
-col = 'expNum'
-# jackknife_mean = pd.DataFrame()
-jackknife_std = pd.DataFrame()
-for (dpf, condition), group in all_feature_cond.groupby(['cond0','cond1']):
-    exp_df = group.groupby(col).size()
-    jackknife_exp_matrix = jackknife_list(list(exp_df.index))
-    output = pd.DataFrame()
-    for j, exp_group in enumerate(jackknife_exp_matrix):
-        this_group_data = group.loc[group[col].isin(exp_group),:]
-        # this_jackknife_mean = this_group_data.mean(numeric_only=True).to_frame().T
-        this_jackknife_std = this_group_data.std(numeric_only=True).to_frame().T
-        # jackknife_mean = pd.concat([jackknife_mean,
-        #                             this_jackknife_mean.assign(
-        #                                 cond0 = dpf,
-        #                                 cond1 = condition,
-        #                                 jakknife_group = j
-        #                             )],ignore_index=True)
-        jackknife_std = pd.concat([jackknife_std,
-                                    this_jackknife_std.assign(
-                                        cond0 = dpf,
-                                        cond1 = condition,
-                                        jakknife_group = j
-                                    )],ignore_index=True)
 # %%
 toplt = kinetics_bySpd_jackknife
-all_features = ['y_efficacy']
+all_features = ['y_efficacy','lift_gain']
 
 for feature_toplt in (all_features):
     g = sns.relplot(
@@ -124,18 +103,10 @@ for feature_toplt in (all_features):
     )
     g.figure.set_size_inches(4,2)
     # g.set(xlim=(6, 24))
-    g.set(ylabel="Depth/posture")
     sns.move_legend(g, "upper left", bbox_to_anchor=(1, 1))
     filename = os.path.join(fig_dir,f"depth per peak pitch_bySpeed.pdf")
     plt.savefig(filename,format='PDF')
-    
-# for sel_dpf in ['otog','tan']:
-#     df_toplt = toplt.query("cond0 == @sel_dpf")
-#     for feature_toplt in ['y_efficacy']:
-#         multi_comp = MultiComparison(df_toplt[feature_toplt], df_toplt['cond1']+"|"+df_toplt['speed_bins'].astype('str'))
-#         print(f'* {feature_toplt}')
-#         print(multi_comp.tukeyhsd().summary())
-        # print(multi_comp.tukeyhsd().pvalues)
+
 # %%
 # pitch has no correlation with x distance but correlated with y distance
 toplt = kinetics_bySpd_jackknife
@@ -159,12 +130,5 @@ for feature_toplt in (all_features):
     sns.move_legend(g, "upper left", bbox_to_anchor=(1, 1))
     filename = os.path.join(fig_dir,f"{feature_toplt} by spd.pdf")
     plt.savefig(filename,format='PDF')
-    
-# for sel_dpf in ['otog','tan']:
-#     df_toplt = toplt.query("cond0 == @sel_dpf")
-#     for feature_toplt in ['y_efficacy']:
-#         multi_comp = MultiComparison(df_toplt[feature_toplt], df_toplt['cond1']+"|"+df_toplt['speed_bins'].astype('str'))
-#         print(f'* {feature_toplt}')
-#         print(multi_comp.tukeyhsd().summary())
-#         # print(multi_comp.tukeyhsd().pvalues)
+
 # %%

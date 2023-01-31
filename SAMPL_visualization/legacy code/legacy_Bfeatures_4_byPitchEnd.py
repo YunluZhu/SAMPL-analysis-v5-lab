@@ -14,7 +14,7 @@ import os,glob
 # import time
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 # from astropy.stats import jackknife_resampling
@@ -55,7 +55,7 @@ except:
     
 # %%
 # get data
-all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE)
+all_feature_cond, all_cond0, all_cond1 = get_bout_features(root, FRAME_RATE)
 
 # %% tidy data
 

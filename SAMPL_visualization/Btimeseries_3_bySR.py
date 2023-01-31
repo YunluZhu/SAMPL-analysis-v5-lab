@@ -1,9 +1,6 @@
 '''
-Very useful new function!
-Plots histogram/kde of bout/IBI features. Plots 2D distribution of features.
-
-If there are specific features you're interested in, just change the x and y in the plot functions
-
+Plot bout features as a function of time separated by steering righting rotation (index range specified by idxRANGE)
+Bouts are categorized into 4 types by direction (positive negative) of steering and righting rotation
 '''
 
 #%%
@@ -11,7 +8,7 @@ If there are specific features you're interested in, just change the x and y in 
 import os
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
@@ -23,20 +20,19 @@ from tqdm import tqdm
 import math
 from plot_functions.get_index import get_index
 from scipy.signal import savgol_filter
-
-set_font_type()
 import matplotlib as mpl
 
-set_font_type()
-mpl.rc('figure', max_open_warning = 0)
+##### Parameters to change #####
+pick_data = 'wt_fin' # name of your dataset to plot as defined in function get_data_dir()
+which_ztime = 'day' # 'day' or 'night', does not support 'all'
+if_only_plot_mean = True  # whether to calculate mean first before plotting which greatly boosts plotting speed but omits error bars
+##### Parameters to change #####
 
 # %%
 # Select data and create figure folder
-pick_data = 'tmp'
-which_ztime = 'day'
 root, FRAME_RATE = get_data_dir(pick_data)
 
-folder_name = f'BFtest_righting_steering_cat'
+folder_name = f'BT3_features_SRcat'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -45,28 +41,11 @@ try:
     print(f'fig folder created: {folder_name}')
 except:
     print('Notes: re-writing old figures')
-
-# %%
-# g = sns.lineplot(
-#     data = all_feature_cond,
-#     y = 'traj_deviation',
-#     x = 'pitch_peak',
-#     hue = 'category',
-#     alpha = 0.01,
-# )
-
-# # g.set(ylim=(-10,20))
-# # %%
-# all_feature_cond.groupby('category').apply(
-#     lambda g: get_kinetics(g)
-# )
-
+set_font_type()
+mpl.rc('figure', max_open_warning = 0)
 
 # %%
 # Paste root directory here
-if_plot_by_speed = False
-
-BIN_NUM = 4
 peak_idx , total_aligned = get_index(FRAME_RATE)
 idxRANGE = [peak_idx-round_half_up(0.3*FRAME_RATE),peak_idx+round_half_up(0.2*FRAME_RATE)]
 
@@ -103,6 +82,7 @@ all_features = [
 
 # %%
 # CONSTANTS
+BIN_NUM = 4  # number of speed bins
 SMOOTH = 11
 all_conditions = []
 folder_paths = []
@@ -115,7 +95,7 @@ for folder in os.listdir(root):
 
 all_around_peak_data = pd.DataFrame()
 all_cond0 = []
-all_cond0 = []
+all_cond1 = []
 
 # go through each condition folders under the root
 for condition_idx, folder in enumerate(folder_paths):
@@ -146,7 +126,7 @@ for condition_idx, folder in enumerate(folder_paths):
                 bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,['aligned_time']]
                 # for i in bout_time.index:
                 # # if only need day or night bouts:
-                for i in day_night_split(bout_time,'aligned_time').index:
+                for i in day_night_split(bout_time,'aligned_time',ztime=which_ztime).index:
                     rows.extend(list(range(i*total_aligned+idxRANGE[0],i*total_aligned+idxRANGE[1])))
                 exp_data = raw.loc[rows,:]
                 exp_data = exp_data.assign(expNum = expNum,
@@ -162,18 +142,18 @@ for condition_idx, folder in enumerate(folder_paths):
                 )
                 around_peak_data = pd.concat([around_peak_data,exp_data])
     # combine data from different conditions
-    cond1 = all_conditions[condition_idx].split("_")[0]
-    all_cond0.append(cond1)
+    cond0 = all_conditions[condition_idx].split("_")[0]
+    all_cond0.append(cond0)
     cond1 = all_conditions[condition_idx].split("_")[1]
-    all_cond0.append(cond1)
-    all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=cond1,
+    all_cond1.append(cond1)
+    all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(cond0=cond0,
                                                                                             cond1=cond1)])
 all_around_peak_data = all_around_peak_data.assign(time_ms = (all_around_peak_data['idx']-peak_idx)/FRAME_RATE*1000)
 # %% tidy data
 all_cond0 = list(set(all_cond0))
 all_cond0.sort()
-all_cond0 = list(set(all_cond0))
-all_cond0.sort()
+all_cond1 = list(set(all_cond1))
+all_cond1.sort()
 
 all_around_peak_data = all_around_peak_data.reset_index(drop=True)
 peak_speed = all_around_peak_data.loc[all_around_peak_data.idx==peak_idx,'propBoutAligned_speed'],
@@ -259,8 +239,10 @@ all_around_peak_data.loc[all_around_peak_data['bout_number'].isin(SnRp.values),'
 all_around_peak_data.loc[all_around_peak_data['bout_number'].isin(SpRn.values),'SR_category'] = 'SpRn'
 all_around_peak_data.loc[all_around_peak_data['bout_number'].isin(SnRn.values),'SR_category'] = 'SnRn'
 
-
 # %%
+####################################
+###### Plotting Starts Here ######
+####################################
 
 toplt = all_around_peak_data
 if toplt['bout_number'].max() > 5000:
@@ -268,13 +250,17 @@ if toplt['bout_number'].max() > 5000:
 else:
     error_bar = 'sd'
 print('Plotting features binned by speed...')
+
+if if_only_plot_mean:
+    toplt = toplt.groupby(['cond0','SR_category','cond1','time_ms']).mean().reset_index()
+  
 for feature_toplt in tqdm(all_features):
     p = sns.relplot(
     data = toplt, x = 'time_ms', y = feature_toplt, 
     row = 'SR_category',
     col='cond0',
     hue = 'cond1',
-    hue_order=all_cond0,
+    hue_order=all_cond1,
     style = 'cond0',
     style_order=all_cond0,
     errorbar = error_bar,

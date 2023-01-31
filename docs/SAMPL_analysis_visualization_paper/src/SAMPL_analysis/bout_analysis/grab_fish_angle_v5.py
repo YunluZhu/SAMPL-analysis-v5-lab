@@ -30,8 +30,8 @@ import sys
 import os
 import glob
 import configparser
-import pandas as pd # pandas library
-import numpy as np # numpy
+import pandas as pd 
+import numpy as np 
 from collections import defaultdict
 import time
 from datetime import datetime

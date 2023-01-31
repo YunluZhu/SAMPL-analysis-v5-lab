@@ -1,7 +1,7 @@
 import os,glob
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 from plot_functions.plt_tools import day_night_split
 from plot_functions.get_index import get_index
 from plot_functions.plt_tools import jackknife_list
@@ -54,7 +54,7 @@ def jackknife_kinetics(df,col):
 
 def get_kinetics(df):
     righting_fit = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_l_decel'], deg=1)
-    steering_fit = np.polyfit(x=df['pitch_peak'], y=df['traj_peak'], deg=1)
+    steering_fit = np.polyfit(x=df['traj_peak'], y=df['pitch_peak'], deg=1)
     set_point_ori = np.polyfit(x=df['pitch_pre_bout'], y=df['rot_l_decel'], deg=1)
     corr_rot_accel_decel = pearsonr(x=df['rot_l_accel'],
                                     y=df['rot_l_decel'])
@@ -96,7 +96,7 @@ def get_kinetics(df):
         'x_posture_corr': x_posture_corr[0],
         'y_efficacy': y_posture_fit[0],
         'x_efficacy': x_posture_fit[0],
-        'depth_gain': depth_chg_fit[0],
+        'lift_gain': depth_chg_fit[0],
 
         'angvel_gain': angvel_fit[1],
     })
@@ -144,7 +144,7 @@ def get_kinetics_sigmoid(df):
         'x_efficacy': x_posture_fit[0],
         'y_posture_corr': y_posture_corr[0],
         # 'x_posture_corr': x_posture_corr[0],
-        'depth_gain': depth_chg_fit[0],
+        'lift_gain': depth_chg_fit[0],
     })
     if 'direction' in df.columns:
         direction_kinetics = pd.Series(data={

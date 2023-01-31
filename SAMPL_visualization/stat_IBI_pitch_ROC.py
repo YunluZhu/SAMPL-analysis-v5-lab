@@ -1,21 +1,8 @@
-'''
-plot mean IBI bout frequency vs. IBI pitch and fit with a parabola
-UP DN separated
-
-zeitgeber time? Yes
-Jackknife? Yes
-Sampled? Yes - ONE sample number for day and night
-- change the var RESAMPLE to select the number of bouts sampled per condition per repeat. 
-- to disable sampling, change it to 0 
-- If ztime == all, day and night count as 2 conditions
-- for the pd.sample function, replace = True
-'''
-
 #%%
 import os
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 from astropy.stats import jackknife_resampling
@@ -28,14 +15,15 @@ from plot_functions.plt_stats import calc_ROC
 from plot_functions.get_IBIangles import get_IBIangles
 from scipy import stats
 
+pick_data = 'tau_bkg'
+which_ztime = 'day'
+DAY_RESAMPLE = 1000  # how many bouts to take per  exp/ztime/condition
+RESAMPLE = DAY_RESAMPLE
+
 set_font_type()
 defaultPlotting(size=16)
 # %%
-pick_data = 'tau_bkg'
-which_ztime = 'day'
-which_zeitgeber = 'day'
-DAY_RESAMPLE = 1000  # how many bouts to take per  exp/ztime/condition
-RESAMPLE = DAY_RESAMPLE
+
 root, FRAME_RATE = get_data_dir(pick_data)
 
 folder_name = f'stat_ROC'
@@ -60,7 +48,7 @@ for folder in os.listdir(root):
 
 bins = list(range(-90,95,5))
 
-IBI_angles, cond1, cond1 = get_IBIangles(root, FRAME_RATE, ztime=which_zeitgeber)
+IBI_angles, cond0, cond1 = get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
 IBI_angles_cond = IBI_angles.loc[:,['propBoutIEI_pitch','ztime','expNum','cond0','cond1','exp']]
 IBI_angles_cond.columns = ['IBI_pitch','ztime','expNum','cond0','cond1','exp']
 IBI_angles_cond.reset_index(drop=True,inplace=True)
@@ -87,7 +75,7 @@ all_ztime.sort()
 jackknifed_night_std = pd.DataFrame()
 jackknifed_day_std = pd.DataFrame()
 
-if which_zeitgeber != 'night':
+if which_ztime != 'night':
     IBI_angles_day_resampled = IBI_angles_cond.loc[
         IBI_angles_cond['ztime']=='day',:
             ]
@@ -112,7 +100,7 @@ if which_zeitgeber != 'night':
     jackknifed_day_std = jackknifed_day_std.reset_index(drop=True)
 
 
-if which_zeitgeber != 'day':
+if which_ztime != 'day':
     IBI_angles_night_resampled = IBI_angles_cond.loc[
         IBI_angles_cond['ztime']=='night',:
             ]

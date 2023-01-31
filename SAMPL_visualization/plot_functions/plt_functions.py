@@ -76,5 +76,5 @@ def plt_categorical_grid(
             order=data[x_name].unique().sort(),
             )
     g.add_legend()
-    sns.despine(offset=10, trim=True)
+    sns.despine(offset=10, trim=False)
     return g

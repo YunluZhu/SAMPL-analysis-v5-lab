@@ -1,22 +1,43 @@
 '''
+Plot standard deviation of bout features
 
+variables to keep an eye on:
+
+pick_data = 'wt_fin' # name of your dataset to plot as defined in function get_data_dir()
+which_ztime = 'day' # 'day', 'night', or 'all'
+DAY_RESAMPLE = 0 # Bouts drew from each experimental repeat (int.) 0 for no resampling
+NIGHT_RESAMPLE = 0 # Bouts drew from each experimental repeat (int.) 0 for no resampling
+if_jackknnife = False # Whether to jackknife (bool)
+
+- change the var DAY_RESAMPLE to select the number of bouts sampled per condition per repeat. 
+- to disable sampling, change DAY_RESAMPLE to 0 
+- If ztime == all, day and night count as 2 conditions
+- for the pd.sample function, replace = True
 '''
 
 #%%
 import os
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 from astropy.stats import jackknife_resampling
 from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
 from plot_functions.plt_tools import (day_night_split,defaultPlotting, set_font_type, jackknife_mean, distribution_binned_average)
-from plot_functions.get_IBIangles import get_IBIangles
 from plot_functions.get_bout_features import get_bout_features
+from plot_functions.plt_functions import plt_categorical_grid
 
-defaultPlotting()
-set_font_type()
+
+##### Parameters to change #####
+
+pick_data = 'wt_fin' # name of your dataset to plot as defined in function get_data_dir()
+which_ztime = 'day' # 'day', 'night', or 'all'
+DAY_RESAMPLE = 0 # Bouts drew from each experimental repeat (int.) 0 for no resampling
+NIGHT_RESAMPLE = 0
+if_jackknnife = False # Whether to jackknife (bool)
+
+##### Parameters to change #####
 
 # %%
 def jackknife_std(df,all_features):
@@ -33,21 +54,13 @@ def jackknife_std(df,all_features):
                                                                     ztime=this_ztime)])
     jackknife_df_std = jackknife_df_std.reset_index(drop=True)
     return jackknife_df_std
-# %%
-# Paste root directory here
-pick_data = 'tau_bkg'
-which_zeitgeber = 'day'
-DAY_RESAMPLE = 1000
-NIGHT_RESAMPLE = 500
 
 # %%
-# ztime_dict = {}
-
 root, FRAME_RATE = get_data_dir(pick_data)
 if DAY_RESAMPLE+NIGHT_RESAMPLE > 0:
-    folder_name = f'BF2_std_z{which_zeitgeber}_resample_zD{DAY_RESAMPLE}_zN{NIGHT_RESAMPLE}'
+    folder_name = f'BF2_std_z{which_ztime}_zD{DAY_RESAMPLE}_zN{NIGHT_RESAMPLE}'
 else:
-    folder_name = f'B2_std_z{which_zeitgeber}'
+    folder_name = f'B2_std_z{which_ztime}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -57,6 +70,8 @@ try:
 except:
     print('fig folder already exist')
 
+defaultPlotting()
+set_font_type()
 # %%
 # main function
 all_conditions = []
@@ -69,14 +84,12 @@ for folder in os.listdir(root):
 
 bins = list(range(-90,95,5))
 
-all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime=which_zeitgeber)
+all_feature_cond, all_cond0, all_cond1 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
 all_feature_cond.reset_index(drop=True,inplace=True)
 cond_cols = ['ztime','cond0','cond1']
 all_ztime = list(set(all_feature_cond.ztime))
 all_ztime.sort()
 
-# %% jackknife for day bouts
-# not the best code - jackknife and resample to be wrapped into a function
 all_features = ['pitch_initial', 
                 'pitch_pre_bout', 
                 'pitch_peak', 
@@ -89,172 +102,115 @@ all_features = ['pitch_initial',
                 'traj_end', 
                 'spd_peak', 
                 'angvel_initial_phase',
-                'angvel_prep_phase', 
-                # 'pitch_prep_phase', 
+                'angvel_prep_phase',  
                 'angvel_post_phase',
                 'rot_total', 
                 'rot_bout', 
                 'rot_pre_bout', 
                 'rot_l_accel', 
                 'rot_l_decel',
-                # 'rot_early_accel', 
-                # 'rot_late_accel', 
-                # 'rot_early_decel',
-                # 'rot_late_decel', 
-                'bout_traj', 
                 'bout_displ', 
                 'atk_ang', 
-                # 'tsp_peak',
-                'angvel_chg']
+                'angvel_chg',
+                'depth_chg',
+                ]
 
-if which_zeitgeber != 'night':
-    all_feature_day = all_feature_cond.loc[
-        all_feature_cond['ztime']=='day',:
-            ]
-    if DAY_RESAMPLE != 0:  # if resampled
-        all_feature_day = all_feature_day.groupby(
-                ['cond0','cond1','expNum']
-                ).sample(
-                        n=DAY_RESAMPLE,
-                        replace=True
-                        )
-    jackknifed_day_std = jackknife_std(all_feature_day,all_features)
-
-jackknifed_night_std = pd.DataFrame()
-
-if which_zeitgeber != 'day':
-    all_feature_night = all_feature_cond.loc[
-        all_feature_cond['ztime']=='night',:
-            ]
-    if NIGHT_RESAMPLE != 0:  # if resampled
-        all_feature_night = all_feature_night.groupby(
-                ['cond0','cond1','expNum']
-                ).sample(
-                        n=NIGHT_RESAMPLE,
-                        replace=True
-                        )
-    jackknifed_night_std = jackknife_std(all_feature_night,all_features)
-
-jackknifed_std = pd.concat([jackknifed_day_std,jackknifed_night_std]).reset_index(drop=True)
+# %% calculate std
 std_by_exp = all_feature_cond.groupby(cond_cols+['expNum'])[all_features].std().reset_index()
-# %% ignore this
 
-# # %%
-# # plot kde of all
-# g = sns.FacetGrid(IBI_angles_cond, 
-#                   row="ztime", row_order=all_ztime,
-#                   col='cond0', col_order=cond1,
-#                   hue='cond1', hue_order=cond1,
-#                   )
-# g.map(sns.kdeplot, "IBI_pitch",alpha=0.5,)
-# g.add_legend()
-# filename = os.path.join(fig_dir,"IBI pitch kde.pdf")
-# plt.savefig(filename,format='PDF')
+# %% jackknife 
+if if_jackknnife:
+    if which_ztime != 'night':
+        all_feature_day = all_feature_cond.loc[
+            all_feature_cond['ztime']=='day',:
+                ]
+        if DAY_RESAMPLE != 0:  # if resampled
+            all_feature_day = all_feature_day.groupby(
+                    ['cond0','cond1','expNum']
+                    ).sample(
+                            n=DAY_RESAMPLE,
+                            replace=True
+                            )
+        jackknifed_day_std = jackknife_std(all_feature_day,all_features)
 
-# %% 
-# raw pitch by exp day vs night
+    jackknifed_night_std = pd.DataFrame()
 
-if which_zeitgeber == 'all':
+    if which_ztime != 'day':
+        all_feature_night = all_feature_cond.loc[
+            all_feature_cond['ztime']=='night',:
+                ]
+        if NIGHT_RESAMPLE != 0:  # if resampled
+            all_feature_night = all_feature_night.groupby(
+                    ['cond0','cond1','expNum']
+                    ).sample(
+                            n=NIGHT_RESAMPLE,
+                            replace=True
+                            )
+        jackknifed_night_std = jackknife_std(all_feature_night,all_features)
+
+    jackknifed_std = pd.concat([jackknifed_day_std,jackknifed_night_std]).reset_index(drop=True)
+
+# %%  
+
+####################################
+###### Plotting Starts Here ######
+####################################
+
+x_name = 'cond1'
+gridrow = 'ztime'
+gridcol = 'cond0'
+
+if if_jackknnife:
+    toplt = jackknifed_std
+    units = 'excluded_exp'
+    prename = 'jackknifed__'
+else: 
+    toplt = std_by_exp
+    units = 'expNum'
+    prename = ''
+
+for feature in all_features:
+    g = plt_categorical_grid(
+        data = toplt,
+        x_name = x_name,
+        y_name = feature,
+        gridrow = gridrow,
+        gridcol = gridcol,
+        units = units,
+        sharey=False,
+        height = 3,
+        aspect = 1,
+        )
+    filename = os.path.join(fig_dir,f"{prename}{feature}__by{x_name}__{gridcol}X{gridrow}.pdf")
+    plt.savefig(filename,format='PDF')
+    plt.show()
+
+if which_ztime == 'all':
+    x_name = 'ztime'
+    gridrow = 'cond1'
+    gridcol = 'cond0'
+    
+    if if_jackknnife:
+        toplt = jackknifed_std
+        units = 'excluded_exp'
+        prename = 'jackknifed__'
+    else: 
+        toplt = std_by_exp
+        units = 'expNum'
+        prename = ''
+
     for feature in all_features:
-        g = sns.catplot(data=std_by_exp,
-                        col='cond0',row='cond1',
-                        x='ztime', y=feature,
-                        hue='cond0',
-                        ci='sd',
-                        kind='point',
-                        aspect=0.6)
-        g.map(sns.lineplot,'ztime',feature,estimator=None,
-        units='expNum',
-        data = std_by_exp,
-        alpha=0.2,)
-        filename = os.path.join(fig_dir,f"by_exp {feature} std day-night.pdf")
+        g = plt_categorical_grid(
+            data = toplt,
+            x_name = x_name,
+            y_name = feature,
+            gridrow = gridrow,
+            gridcol = gridcol,
+            units = units,
+            sharey=False,
+            height = 3,
+            aspect = 1,
+            )
+        filename = os.path.join(fig_dir,f"{prename}{feature}__by{x_name}__{gridcol}X{gridrow}.pdf")
         plt.savefig(filename,format='PDF')
-        plt.close()
-
-# pitch cond vs ctrl
-for feature in all_features:
-    g = sns.catplot(data=std_by_exp,
-                    col='cond0',
-                    row='ztime',
-                    x='cond1', y=feature,
-                    hue='expNum',
-                    ci=None,
-                    # markers=['d','d'],
-                    sharey=False,
-                    kind='point',
-                    aspect=.6
-                    )
-    g.map(sns.lineplot,'cond1',feature,estimator=None,
-        units='expNum',
-        data = std_by_exp,
-        alpha=0.2,)
-    filename = os.path.join(fig_dir,f"by_exp {feature} std cond individual.pdf")
-    plt.savefig(filename,format='PDF')
-    plt.close()
-
-    g = sns.catplot(data=std_by_exp,
-                    col='cond0',row='ztime',
-                    x='cond1', y=feature,
-                    hue='cond0',
-                    ci='sd',
-                    kind='point',
-                    aspect=.6)
-    g.map(sns.lineplot,'cond1',feature,estimator=None,
-        units='expNum',
-        data = std_by_exp,
-        alpha=0.2,)
-    filename = os.path.join(fig_dir,f"by_exp {feature} std cond mean.pdf")
-    plt.savefig(filename,format='PDF')
-    plt.close()
-
-# %%
-# jackknifed resampled  std
-for feature in all_features:
-    g = sns.catplot(data=jackknifed_std,
-                    col='cond0',
-                    row='ztime',
-                    x='cond1', y=feature,
-                    hue='cond1',
-                    ci='sd', 
-                    # markers=['d','d'],
-                    sharey=False,
-                    kind='point',
-                    aspect=.8
-                    )
-    g.map(sns.lineplot,'cond1',feature,estimator=None,
-        units='excluded_exp',
-        data = jackknifed_std,
-        color='grey',
-        alpha=0.2,)
-    g.add_legend()
-    sns.despine(offset=10)
-    filename = os.path.join(fig_dir,f"jackknifed {feature} std.pdf")
-    plt.savefig(filename,format='PDF')
-    plt.close()
-
-# jackknifed resampled per repeat
-# mean cond vs ctrl
-# plot on same scale
-    g = sns.catplot(data=jackknifed_std,
-                    col='cond0',
-                    row='ztime',
-                    x='cond1', y=feature,
-                    hue='cond1',
-                    ci='sd', 
-                    # markers=['d','d'],
-                    sharey='row',
-                    kind='point',
-                    aspect=.8
-                    )
-    g.map(sns.lineplot,'cond1',feature,estimator=None,
-        units='excluded_exp',
-        data = jackknifed_std,
-        color='grey',
-        alpha=0.2,)
-    g.add_legend()
-    sns.despine(offset=10)
-    filename = os.path.join(fig_dir,f"jackknifed {feature} std sharey.pdf")
-    plt.savefig(filename,format='PDF')
-
-
-# %%
+        plt.show()

@@ -134,7 +134,7 @@ def Fig5_time_of_maxAngvel(root):
                         expNum = expNum)
                     this_cond_data = pd.concat([this_cond_data,this_exp_data])
                 
-        cond1 = all_conditions[condition_idx].split("_")[0]
+        cond0 = all_conditions[condition_idx].split("_")[0]
         cond2 = all_conditions[condition_idx].split("_")[1]
         all_cond1.append(cond1)
         all_cond2.append(cond2)

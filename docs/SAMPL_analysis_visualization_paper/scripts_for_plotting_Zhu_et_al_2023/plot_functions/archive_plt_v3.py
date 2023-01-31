@@ -1,6 +1,6 @@
 from lib2to3.pgen2.pgen import DFAState
-import pandas as pd # pandas library
-import numpy as np # numpy
+import pandas as pd 
+import numpy as np 
 from plot_functions.plt_tools import jackknife_list
 from scipy.stats import pearsonr 
 from plot_functions.plt_tools import round_half_up

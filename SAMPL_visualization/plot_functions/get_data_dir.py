@@ -27,7 +27,8 @@ def get_data_dir(pick_data):
 
         "ab_age":   ["/Volumes/LabData/manuscript data/2022-09 VF method v2/behavior data/DD_4_7_14_dpf",166],
         "wt_bkg":   ["/Volumes/LabData/manuscript data/2022-09 VF method v2/behavior data/DD_7dpf_bkg",166],
- 
+
+
     }
     if pick_data == 'tmp':
         root = input("directory: ")

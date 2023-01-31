@@ -1,6 +1,6 @@
 import os,glob
-import pandas as pd # pandas library
-import numpy as np # numpy
+import pandas as pd 
+import numpy as np 
 from plot_functions.plt_tools import (day_night_split)
 from plot_functions.get_index import get_index
 from plot_functions.plt_tools import round_half_up
@@ -54,7 +54,7 @@ def get_IBIangles(root, FRAME_RATE,**kwargs):
                     )                 
                     ibi_features = pd.concat([ibi_features,exp_data_ztime])
         # combine data from different conditions
-        cond1 = all_conditions[condition_idx].split("_")[0]
+        cond0 = all_conditions[condition_idx].split("_")[0]
         cond2 = all_conditions[condition_idx].split("_")[1]
         all_cond1.append(cond1)
         all_cond2.append(cond2)

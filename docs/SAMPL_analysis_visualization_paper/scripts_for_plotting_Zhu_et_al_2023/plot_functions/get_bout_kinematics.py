@@ -1,6 +1,6 @@
 import os,glob
-import pandas as pd # pandas library
-import numpy as np # numpy
+import pandas as pd 
+import numpy as np 
 from plot_functions.plt_tools import day_night_split
 from plot_functions.get_index import get_index
 from plot_functions.plt_tools import jackknife_list
@@ -180,7 +180,7 @@ def get_bout_kinematics(root, FRAME_RATE,**kwargs):
                     bout_kinematics = pd.concat([bout_kinematics,this_exp_kinematics], ignore_index=True)
                 
         # combine data from different conditions
-        cond1 = all_conditions[condition_idx].split("_")[0]
+        cond0 = all_conditions[condition_idx].split("_")[0]
         cond2 = all_conditions[condition_idx].split("_")[1]
         all_cond1.append(cond1)
         all_cond2.append(cond2)

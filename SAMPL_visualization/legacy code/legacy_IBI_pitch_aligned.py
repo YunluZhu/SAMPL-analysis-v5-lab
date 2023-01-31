@@ -24,7 +24,7 @@ import os,glob
 import time
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 from astropy.stats import jackknife_resampling
@@ -92,7 +92,7 @@ for condition_idx, folder in enumerate(folder_paths):
                 all_angles = pd.concat([all_angles, body_angles])
                 exp_date_match = pd.concat([exp_date_match, pd.DataFrame( data= {'expNum':expNum,'date':[exp[0:6]]} )],ignore_index=True)
 
-            cond1 = all_conditions[condition_idx].split("_")[0]
+            cond0 = all_conditions[condition_idx].split("_")[0]
             cond1 = all_conditions[condition_idx].split("_")[1]
             # jackknife for the index
             jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))

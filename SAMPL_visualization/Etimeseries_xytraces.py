@@ -1,9 +1,15 @@
+'''
+Plots single epoch x y position in mm
+Require analyzed epoch containing one or more bouts. Requires all_data.h5
+Input directory needs to be a folder containing analyzed dlm data.
+'''
+
 # %%
 from cmath import exp
 import os
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
@@ -12,26 +18,25 @@ from plot_functions.get_bout_kinetics import get_kinetics
 from plot_functions.get_IBIangles import get_IBIangles
 from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlotting,distribution_binned_average)
 from plot_functions.get_bout_kinetics import get_bout_kinetics
-from tqdm import tqdm
 
-'''
-Plots single epoch that contains one or more bouts
-Input directory needs to be a folder containing analyzed dlm data.
-'''
+##### Parameters to change #####
+pick_data = 'tmp' # name of your dataset to plot as defined in function get_data_dir()
+which_ztime = 'day' # 'day' or 'night', does not support 'all'
+##### Parameters to change #####
+
 # %%
-FRAME_RATE = 166
-
-which_ztime = 'day'
+root, FRAME_RATE = get_data_dir(pick_data)
 spd_bins = np.arange(5,30,5)
 
-folder_dir = get_figure_dir('Fig_1')
-fig_dir = os.path.join(folder_dir, folder_dir)
+folder_name = f'ET_xyTraces'
+folder_dir = get_figure_dir(pick_data)
+fig_dir = os.path.join(folder_dir, folder_name)
+
 try:
     os.makedirs(fig_dir)
     print(f'fig folder created: {fig_dir}')
 except:
     print('Notes: re-writing old figures')
-
 
 def extract_epochs(root):
     # below are all the properties can be plotted. 
@@ -93,35 +98,30 @@ def extract_epochs(root):
     epoch_info_all = epoch_info_all.reset_index(drop=True)
     print(f'{len(epoch_info_all)} epochs detected. Sorted from long to short.')
     return epoch_data_all, epoch_info_all
-# %%
 
-data_dir = {
-    "1":"/Volumes/LabData/manuscript data/2022-11 depths exploration/behavior data/DD_07dpf/7dd_AB/ab_r1",
-    "2":"/Volumes/LabData/manuscript data/2022-11 depths exploration/behavior data/DD_07dpf/7dd_AB/ab_r2",
-    "3":"/Volumes/LabData/manuscript data/2022-11 depths exploration/behavior data/DD_07dpf/7dd_AB/ab_r3",
-}
-
-# %%
-pick_data = '1'
-root = data_dir[pick_data]
 epoch_data_all, epoch_info_all = extract_epochs(root)
 
-yupper = epoch_data_all['y'].max()
-ylower = epoch_data_all['y'].min()
-xupper = epoch_data_all['x'].max()
-xlower = epoch_data_all['x'].min()
+# %%
 
-epochs_list = np.arange(50,80)
+####################################
+###### Plotting Starts Here ######
+####################################
 
-for epoch_num in epochs_list:
-    which_toplt = epoch_num
-    toplt = epoch_info_all.loc[which_toplt-1,:]
+epoch_number = input(f"which epoch to plot? 0-{len(epoch_info_all)-1}, 'n' to stop: ")
+while epoch_number != 'n':
+    which_toplt = int(epoch_number)
+    toplt = epoch_info_all.loc[which_toplt,:]
     data_toplt = epoch_data_all.loc[(epoch_data_all['exp_num']==toplt['exp_num']) & (epoch_data_all['epochNum']==round_half_up(toplt['epoch_num'])), :]
 
     data_toplt = data_toplt.assign(
         time_s = np.cumsum(data_toplt['deltaT'])
     )
-
+    yupper = data_toplt['y'].max()
+    ylower = data_toplt['y'].min()
+    xupper = data_toplt['x'].max()
+    xlower = data_toplt['x'].min()
+    lower = min(xlower, ylower)
+    upper = max(xupper, yupper)
     set_font_type()
     plt.figure(figsize=(4,4))
 
@@ -132,103 +132,7 @@ for epoch_num in epochs_list:
     plt.vlines(data_toplt['x'].values[0],data_toplt['y'].values[0]+1,data_toplt['y'].values[0]-1)
     plt.hlines(data_toplt['y'].values[0],data_toplt['x'].values[0]+1,data_toplt['x'].values[0]-1)
 
-    # p.set(xlim=(xlower,xupper),
-    #       ylim=(ylower,yupper))
+    p.set(xlim=(lower,upper),
+          ylim=(lower,upper))
     plt.savefig(os.path.join(fig_dir, f"{pick_data}_xy_{which_toplt}_raw.pdf"),format='PDF')
-    plt.close()
-# %%
-pick_data = '1'
-root = data_dir[pick_data]
-epoch_data_all, epoch_info_all = extract_epochs(root)
-
-downsampled_df = epoch_data_all.iloc[::10, :]
-
-epochs_list = [4,29,40,52, 55, 69, 72]
-for epoch_num in epochs_list:
-    toplt = epoch_info_all.loc[epoch_num-1,:]
-    data_toplt = downsampled_df.loc[(downsampled_df['exp_num']==toplt['exp_num']) & (downsampled_df['epochNum']==round_half_up(toplt['epoch_num'])), :]
-
-    data_toplt = data_toplt.assign(
-        time_s = np.cumsum(data_toplt['deltaT'])
-    )
-    if epoch_num == 4:
-        data_toplt = data_toplt.iloc[np.argmin(data_toplt['y']):,:]
-        data_toplt[['x','y']] = data_toplt[['x','y']] - data_toplt[['x','y']].values[0]
-    set_font_type()
-    # plt.figure(figsize=(4,4))
-    if data_toplt['x'].mean() < 0:
-        data_toplt['x'] = data_toplt['x'] * -1
-    p = sns.scatterplot(
-        data = data_toplt, x = 'x', y = 'y', alpha = 0.2, size=2, linewidths=0,
-        )
-    plt.vlines(data_toplt['x'].values[0],data_toplt['y'].values[0]+1,data_toplt['y'].values[0]-1)
-    plt.hlines(data_toplt['y'].values[0],data_toplt['x'].values[0]+1,data_toplt['x'].values[0]-1)
-    plt.legend(labels=epoch_num)
-    p.set(xlim=(xlower,xupper),
-          ylim=(ylower,yupper))
-plt.savefig(os.path.join(fig_dir, f"xy_combined1.pdf"),format='PDF')
-
-# %%
-pick_data = '2'
-root = data_dir[pick_data]
-epoch_data_all, epoch_info_all = extract_epochs(root)
-
-downsampled_df = epoch_data_all.iloc[::10, :]
-
-epochs_list = [7,8,10,14]
-for epoch_num in epochs_list:
-    toplt = epoch_info_all.loc[epoch_num-1,:]
-    data_toplt = downsampled_df.loc[(downsampled_df['exp_num']==toplt['exp_num']) & (downsampled_df['epochNum']==round_half_up(toplt['epoch_num'])), :]
-
-    data_toplt = data_toplt.assign(
-        time_s = np.cumsum(data_toplt['deltaT'])
-    )
-    # if epoch_num == 4:
-    #     data_toplt = data_toplt.iloc[np.argmin(data_toplt['y']):,:]
-    #     data_toplt[['x','y']] = data_toplt[['x','y']] - data_toplt[['x','y']].values[0]
-    set_font_type()
-    # plt.figure(figsize=(4,4))
-    if data_toplt['x'].mean() < 0:
-        data_toplt['x'] = data_toplt['x'] * -1
-    p = sns.scatterplot(
-        data = data_toplt, x = 'x', y = 'y', alpha = 0.2, size=2, linewidths=0,
-        )
-    plt.vlines(data_toplt['x'].values[0],data_toplt['y'].values[0]+1,data_toplt['y'].values[0]-1)
-    plt.hlines(data_toplt['y'].values[0],data_toplt['x'].values[0]+1,data_toplt['x'].values[0]-1)
-
-    p.set(xlim=(xlower,xupper),
-          ylim=(ylower,yupper))
-plt.savefig(os.path.join(fig_dir, f"xy_combined2.pdf"),format='PDF')
-
-# %%
-pick_data = '1'
-root = data_dir[pick_data]
-epoch_data_all, epoch_info_all = extract_epochs(root)
-
-downsampled_df = epoch_data_all.iloc[::10, :]
-
-epochs_list = [40]
-for epoch_num in epochs_list:
-    toplt = epoch_info_all.loc[epoch_num-1,:]
-    data_toplt = downsampled_df.loc[(downsampled_df['exp_num']==toplt['exp_num']) & (downsampled_df['epochNum']==round_half_up(toplt['epoch_num'])), :]
-
-    data_toplt = data_toplt.assign(
-        time_s = np.cumsum(data_toplt['deltaT'])
-    )
-    # if epoch_num == 4:
-    #     data_toplt = data_toplt.iloc[np.argmin(data_toplt['y']):,:]
-    #     data_toplt[['x','y']] = data_toplt[['x','y']] - data_toplt[['x','y']].values[0]
-    set_font_type()
-    # plt.figure(figsize=(4,4))
-    if data_toplt['x'].mean() < 0:
-        data_toplt['x'] = data_toplt['x'] * -1
-    p = sns.scatterplot(
-        data = data_toplt, x = 'x', y = 'y', alpha = 0.2, size=2, linewidths=0,
-        )
-    plt.vlines(data_toplt['x'].values[0],data_toplt['y'].values[0]+1,data_toplt['y'].values[0]-1)
-    plt.hlines(data_toplt['y'].values[0],data_toplt['x'].values[0]+1,data_toplt['x'].values[0]-1)
-
-    p.set(xlim=(xlower,xupper),
-          ylim=(ylower,yupper))
-plt.savefig(os.path.join(fig_dir, f"xy_combined2.pdf"),format='PDF')
-# %%
+    epoch_number = input(f"which epoch to plot? 0-{len(epoch_info_all)-1}, 'n' to stop: ")

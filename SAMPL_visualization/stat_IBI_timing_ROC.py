@@ -1,21 +1,8 @@
-'''
-plot mean IBI bout frequency vs. IBI pitch and fit with a parabola
-UP DN separated
-
-zeitgeber time? Yes
-Jackknife? Yes
-Sampled? Yes - ONE sample number for day and night
-- change the var RESAMPLE to select the number of bouts sampled per condition per repeat. 
-- to disable sampling, change it to 0 
-- If ztime == all, day and night count as 2 conditions
-- for the pd.sample function, replace = True
-'''
-
 #%%
 import os
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 from astropy.stats import jackknife_resampling
@@ -28,13 +15,14 @@ from plot_functions.plt_stats import calc_ROC
 from plot_functions.get_IBIangles import get_IBIangles
 from scipy import stats
 
-set_font_type()
-defaultPlotting(size=16)
-# %%
 pick_data = 'tau_bkg'
 which_ztime = 'day'
+RESAMPLE = 1000  
 
-RESAMPLE = 1000  # how many bouts to take per  exp/ztime/condition
+# %%
+
+set_font_type()
+defaultPlotting(size=16)
 
 root, FRAME_RATE = get_data_dir(pick_data)
 

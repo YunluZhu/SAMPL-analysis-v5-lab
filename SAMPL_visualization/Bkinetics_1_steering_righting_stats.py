@@ -1,10 +1,17 @@
+'''
+Statistics on righting and steering gain
+Righting and Steering by speed
+
+ONLY Jackknifed
+'''
+
 #%%
 # import sys
 import os,glob
 from statistics import mean
 # import time
-import pandas as pd # pandas library
-import numpy as np # numpy
+import pandas as pd 
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 import math
@@ -17,15 +24,18 @@ from statsmodels.stats.multicomp import (pairwise_tukeyhsd, MultiComparison)
 from scipy.stats import ttest_rel
 from scipy.stats import ttest_ind
 from plot_functions.plt_tools import jackknife_list
+from plot_functions.plt_functions import plt_categorical_grid
 
 
-set_font_type()
-defaultPlotting()
+##### Parameters to change #####
 
+pick_data = 'wt_fin' # name of your dataset to plot as defined in function get_data_dir()
+which_ztime = 'day' # 'day', 'night', or 'all'
+SAMPLE_NUM = 0 # Bouts drew from each experimental repeat (int.) 0 for no resampling
+
+##### Parameters to change #####
 # %%
-pick_data = 'tau_bkg'
-which_zeitgeber = 'day'
-folder_name = f'BK6_xyEfficacy'
+folder_name = f'BK1_steering_righting'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 try:
@@ -37,25 +47,25 @@ except:
 spd_bins = np.arange(5,25,4)
 
 root, FRAME_RATE = get_data_dir(pick_data)
-all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond0, all_cond0 = get_bout_kinetics(root, FRAME_RATE, ztime=which_zeitgeber)
-all_feature_cond, _, _ = get_bout_features(root, FRAME_RATE, ztime=which_zeitgeber)
-all_cond0 = pick_data
-all_cond0.sort()
 
+all_kinetic_cond, kinetics_jackknife, kinetics_bySpd_jackknife, all_cond0, all_cond1 = get_bout_kinetics(root, FRAME_RATE, ztime=which_ztime)
+all_feature_cond, _, _ = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
 
 all_feature_cond = all_feature_cond.assign(
     speed_bins = pd.cut(all_feature_cond['spd_peak'],bins=spd_bins,labels=np.arange(len(spd_bins)-1))
 )
 
-
-
-sns.set_style("ticks")
-
+set_font_type()
+defaultPlotting()
 # %%
+
+####################################
+###### Plotting Starts Here ######
+####################################
+
 # kinetics by speed bins
 toplt = kinetics_bySpd_jackknife
 cat_cols = ['jackknife_group','cond1','expNum','dataset','ztime']
-# all_features = [c for c in toplt.columns if c not in cat_cols]
 all_features = ['steering_gain','righting_gain']
 
 for feature_toplt in (all_features):
@@ -75,46 +85,29 @@ for feature_toplt in (all_features):
     filename = os.path.join(fig_dir,f"{feature_toplt}_bySpd.pdf")
     plt.savefig(filename,format='PDF')
     
-# %% Compare by condition
-toplt = kinetics_jackknife.reset_index(drop=True)
-cat_cols = ['jackknife_group','cond1','expNum','dataset','ztime']
-# all_features = [c for c in toplt.columns if c not in cat_cols]
-all_features = ['steering_gain_jack','righting_gain_jack']
-
-for feature_toplt in (all_features):
-    g = sns.catplot(
-        data = toplt,
-        col = 'cond0',
-        hue = 'cond1',
-        x = 'cond1',
-        y = feature_toplt,
-        linestyles = '',
-        kind = 'point',
-        # marker = True,
-        aspect=.6,
-        height=3,
-    )
-    g.map(sns.lineplot,'cond1',feature_toplt,estimator=None,
-      units='jackknife_group',
-      data = toplt,
-      sort=False,
-      color='grey',
-      alpha=0.2,)
-    g.add_legend()
-    # if 'righting' in feature_toplt:
-    #     g.set(ylim=(0.04,0.14)) 
-    # else:
-    #     g.set(ylim=(0.65,0.90)) 
-
-    sns.despine(offset=10, trim=False)
-    filename = os.path.join(fig_dir,f"{feature_toplt}_compare.pdf")
-    plt.savefig(filename,format='PDF')
-
-
 df_toplt = kinetics_jackknife
 for feature_toplt in ['righting_gain_jack','steering_gain_jack']:
     multi_comp = MultiComparison(df_toplt[feature_toplt], df_toplt['cond0']+"|"+df_toplt['cond1'])
     print(f'* {feature_toplt}')
     print(multi_comp.tukeyhsd().summary())
     # print(multi_comp.tukeyhsd().pvalues)
+# %% Compare by condition
+toplt = kinetics_jackknife.reset_index(drop=True)
+cat_cols = ['jackknife_group','cond1','expNum','dataset','ztime']
+all_features = ['steering_gain_jack','righting_gain_jack']
+
+for feature_toplt in (all_features):
+    g = plt_categorical_grid(
+        data = toplt,
+        x_name = 'cond1',
+        y_name = feature_toplt,
+        gridcol = 'cond0',
+        gridrow = 'ztime',
+        units = 'jackknife_group',
+        aspect=.8,
+        height=3,
+        )
+    filename = os.path.join(fig_dir,f"{feature_toplt}_compare.pdf")
+    plt.savefig(filename,format='PDF')
+
     

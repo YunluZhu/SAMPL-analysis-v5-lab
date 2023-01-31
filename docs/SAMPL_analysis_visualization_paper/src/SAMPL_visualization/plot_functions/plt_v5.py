@@ -1,5 +1,5 @@
-import pandas as pd # pandas library
-import numpy as np # numpy
+import pandas as pd 
+import numpy as np 
 from plot_functions.plt_tools import jackknife_list
 from plot_functions.plt_tools import round_half_up
 

@@ -7,7 +7,7 @@
 import os,glob
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy import stats
@@ -103,7 +103,7 @@ for folder in os.listdir(root):
 
 all_around_peak_data = pd.DataFrame()
 all_cond0 = []
-all_cond0 = []
+all_cond1 = []
 
 # go through each condition folders under the root
 for condition_idx, folder in enumerate(folder_paths):
@@ -140,11 +140,11 @@ for condition_idx, folder in enumerate(folder_paths):
                                            exp_id = condition_idx*100+expNum)
                 around_peak_data = pd.concat([around_peak_data,exp_data.loc[rows,:]])
             # combine data from different conditions
-            cond1 = all_conditions[condition_idx].split("_")[0]
+            cond0 = all_conditions[condition_idx].split("_")[0]
             all_cond0.append(cond1)
             cond1 = all_conditions[condition_idx].split("_")[1]
             all_cond0.append(cond1)
-            all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=cond1,
+            all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(cond0=cond0,
                                                                                             cond1=cond1)])
 all_around_peak_data = all_around_peak_data.assign(time_ms = (all_around_peak_data['idx']-peak_idx)/FRAME_RATE*1000)
 # %% tidy data

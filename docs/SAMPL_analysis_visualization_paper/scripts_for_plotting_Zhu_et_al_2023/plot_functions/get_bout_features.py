@@ -1,6 +1,6 @@
 import os,glob
-import pandas as pd # pandas library
-import numpy as np # numpy
+import pandas as pd 
+import numpy as np 
 from plot_functions.plt_tools import (day_night_split)
 from plot_functions.get_index import get_index
 from scipy.signal import savgol_filter
@@ -115,7 +115,7 @@ def get_bout_features(root, FRAME_RATE,**kwargs):
     all_cond2 = []
     # go through each condition folders under the root
     for condition_idx, folder in enumerate(folder_paths):
-        cond1 = all_conditions[condition_idx].split("_")[0]
+        cond0 = all_conditions[condition_idx].split("_")[0]
         cond2 = all_conditions[condition_idx].split("_")[1]
         # enter each condition folder (e.g. 7dd_ctrl)
         for subpath, subdir_list, subfile_list in os.walk(folder):
@@ -266,7 +266,7 @@ def get_max_angvel_rot(root, FRAME_RATE,**kwargs):
                     
                     this_cond_data = pd.concat([this_cond_data,this_exp_data])
                 
-        cond1 = all_conditions[condition_idx].split("_")[0]
+        cond0 = all_conditions[condition_idx].split("_")[0]
         cond2 = all_conditions[condition_idx].split("_")[1]
         all_cond1.append(cond1)
         all_cond2.append(cond2)

@@ -13,7 +13,7 @@ import os,glob
 # import time
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 # from astropy.stats import jackknife_resampling
@@ -52,7 +52,7 @@ except:
     print('Notes: re-writing old figures')
 
 # %% get features
-all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE)
+all_feature_cond, all_cond0, all_cond1 = get_bout_features(root, FRAME_RATE)
 
 # %% tidy data
 all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
@@ -117,7 +117,7 @@ for feature_toplt in tqdm(all_features):
                     row="direction",col='speed_bins', 
                     height=4, aspect=0.8, kind='point',
                     hue='cond0', 
-                    hue_order=all_cond0,
+                    hue_order=all_cond1,
                     markers='d',sharey='row',
                     ci=ci_dic[len(all_cond0)],
                     zorder=10

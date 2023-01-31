@@ -1,19 +1,15 @@
 '''
 plot fin-body ratio with rotation calculated using max adjusted angvel from each condition
 
-
 Fin-body ratio with new definitions slightly different from eLife 2019. Works well.
-
-plot attack angle vs. early body change (-250 to -50 ms), fit with a sigmoid w/ 4-free parameters
-
-zeitgeber time? Yes
+plot attack angle vs. early body change (-250 to -40 ms, or to time of max angular velocity), fit with a sigmoid w/ 4-free parameters
 '''
 
 #%%
 import os
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 from astropy.stats import jackknife_resampling
@@ -21,17 +17,18 @@ from scipy.optimize import curve_fit
 from plot_functions.get_data_dir import (get_data_dir,get_figure_dir)
 from plot_functions.get_bout_features import get_max_angvel_rot, get_bout_features
 from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlotting,distribution_binned_average)
+from plot_functions.plt_functions import plt_categorical_grid
 
-set_font_type()
-defaultPlotting(size=16)
-# %%
-pick_data = 'wt_fin'
-which_zeitgeber = 'day' # day / night / all
+##### Parameters to change #####
+pick_data = 'wt_fin' # name of your dataset to plot as defined in function get_data_dir()
+which_ztime = 'day' # 'day', 'night', or 'all'
 DAY_RESAMPLE = 0
-NIGHT_RESAMPLE = 0
-if_use_maxAngvelTime_perCond1 = 0 # if to calculate max adjusted angvel time for each condition and selectt range for body rotation differently
-                                        # or to use -250ms to -40ms for all conditions
+NIGHT_RESAMPLE = 0 # Bouts drew from each experimental repeat (int.) 0 for no resampling
 if_jackknife = False
+if_use_maxAngvelTime_perCond1 = False # if to calculate max adjusted angvel time for each condition and selectt range for body rotation differently
+                                        # or to use -250ms to -40ms for all conditions
+##### Parameters to change #####
+
 # %%
 def sigmoid_fit(df, x_range_to_fit,func,**kwargs):
     lower_bounds = [0.1,0,-100,1]
@@ -79,7 +76,7 @@ X_RANGE = np.arange(-5,20.05,0.05)
 BIN_WIDTH = 0.5
 AVERAGE_BIN = np.arange(min(X_RANGE),max(X_RANGE),BIN_WIDTH)
 
-folder_name = f'BK2_fin_body_maxAngvel_z{which_zeitgeber}'
+folder_name = f'BK2_fin_body_maxAngvel_z{which_ztime}'
 folder_dir = get_figure_dir(pick_data)
 fig_dir = os.path.join(folder_dir, folder_name)
 
@@ -89,16 +86,18 @@ try:
 except:
     print('Notes: re-writing old figures')
 
-
+set_font_type()
+defaultPlotting(size=16)
 # %% get max_angvel_time per condition
 which_rotation = 'rot_to_max_angvel'
 which_atk_ang = 'atk_ang' 
+
 # get features
 if if_use_maxAngvelTime_perCond1:
-    max_angvel_time, all_cond0, all_cond1 = get_max_angvel_rot(root, FRAME_RATE, ztime = which_zeitgeber)
-    all_feature_cond, all_cond0, all_cond1 = get_bout_features(root, FRAME_RATE, ztime = which_zeitgeber, max_angvel_time = max_angvel_time)
+    max_angvel_time, all_cond0, all_cond1 = get_max_angvel_rot(root, FRAME_RATE, ztime = which_ztime)
+    all_feature_cond, all_cond0, all_cond1 = get_bout_features(root, FRAME_RATE, ztime = which_ztime, max_angvel_time = max_angvel_time)
 else:
-    all_feature_cond, all_cond0, all_cond1 = get_bout_features(root, FRAME_RATE, ztime = which_zeitgeber )
+    all_feature_cond, all_cond0, all_cond1 = get_bout_features(root, FRAME_RATE, ztime = which_ztime )
 
 # %% tidy data
 all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
@@ -113,7 +112,7 @@ elif FRAME_RATE == 40:
 angles_day_resampled = pd.DataFrame()
 angles_night_resampled = pd.DataFrame()
 
-if which_zeitgeber != 'night':
+if which_ztime != 'night':
     angles_day_resampled = df_toplt.loc[
         df_toplt['ztime']=='day',:
             ]
@@ -125,7 +124,7 @@ if which_zeitgeber != 'night':
                         replace=True,
                         # random_state=2
                         )
-if which_zeitgeber != 'day':
+if which_ztime != 'day':
     angles_night_resampled = df_toplt.loc[
         df_toplt['ztime']=='night',:
             ]
@@ -248,6 +247,10 @@ all_ztime.sort()
 
 # %%
 
+####################################
+###### Plotting Starts Here ######
+####################################
+
 # plot bout frequency vs IBI pitch and fit with parabola
 defaultPlotting(size=12)
 
@@ -277,49 +280,29 @@ plt.savefig(filename,format='PDF')
 # plt.show()
 
 # %%
-# plot 
-# plt.close()
+# plot coefs
 defaultPlotting(size=12)
-plt.figure()
-p = sns.catplot(
-    data = all_coef, y='slope',x='cond0',kind='point',join=False,
-    col_order=all_cond0,errorbar='sd',
-    row = 'ztime', row_order=all_ztime,
-    # units=repNum,
-    hue='cond1', dodge=True,
-    hue_order = all_cond1,
-)
-p.map(sns.lineplot,'cond0','slope',estimator=None,
-      units='repNum',
-      hue='cond1',
-      alpha=0.2,
-      data=all_coef)
-filename = os.path.join(fig_dir,"slope_together.pdf")
-plt.savefig(filename,format='PDF')
 
-# plt.show()
 # %%
-defaultPlotting(size=12)
-for coef_name in ['k','xval','min','height','slope']:
-    plt.figure()
-    p = sns.catplot(
-        data = all_coef, y=coef_name,x='cond1',kind='point',join=False,
-        col='cond0',col_order=all_cond0,
-        errorbar='sd',
-        row = 'ztime', row_order=all_ztime,
-        # units=repNum,
-        hue='cond1', dodge=True,
-        hue_order = all_cond1,
-        sharey=False,
-        aspect=.6,
-    )
-    p.map(sns.lineplot,'cond1',coef_name,estimator=None,
-        units='repNum',
-        color='grey',
-        alpha=0.2,
-        data=all_coef)
-    sns.despine(offset=10)
-    filename = os.path.join(fig_dir,f"{coef_name} by cond1.pdf")
-    
+toplt = all_coef
+columns_toplt = ['slope','k','xval','min','height','slope']
+
+x_name = 'cond1'
+gridrow = 'ztime'
+gridcol = 'cond0'
+units = 'repNum'
+
+for feature in columns_toplt:
+    g = plt_categorical_grid(
+        data = toplt,
+        x_name = x_name,
+        y_name = feature,
+        gridrow = gridrow,
+        gridcol = gridcol,
+        units = units,
+        aspect = 0.6,
+        )
+    filename = os.path.join(fig_dir,f"{feature}__{gridcol}X{gridrow}.pdf")
     plt.savefig(filename,format='PDF')
-# %%
+    plt.show()
+    

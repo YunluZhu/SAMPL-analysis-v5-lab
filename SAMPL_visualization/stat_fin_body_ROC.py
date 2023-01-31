@@ -1,22 +1,8 @@
-'''
-plot mean IBI bout frequency vs. IBI pitch and fit with a parabola
-UP DN separated
-
-zeitgeber time? Yes
-Jackknife? Yes
-Sampled? Yes - ONE sample number for day and night
-- change the var RESAMPLE to select the number of bouts sampled per condition per repeat. 
-- to disable sampling, change it to 0 
-- If ztime == all, day and night count as 2 conditions
-- for the pd.sample function, replace = True
-'''
-
-#%%
 #%%
 import os
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 from astropy.stats import jackknife_resampling
@@ -26,6 +12,11 @@ from plot_functions.get_bout_features import get_bout_features
 from plot_functions.plt_tools import (jackknife_mean,set_font_type, defaultPlotting,distribution_binned_average)
 from plot_functions.plt_stats import calc_ROC
 from scipy import stats
+
+pick_data = 'tau_bkg'
+which_ztime = 'day'
+DAY_RESAMPLE = 1000  # how many bouts to take per  exp/ztime/condition
+RESAMPLE = DAY_RESAMPLE
 
 set_font_type()
 defaultPlotting(size=16)
@@ -69,12 +60,6 @@ def sigfunc_4free(x, a, b, c, d):
     y = c + (d)/(1 + np.exp(-(a*(x + b))))
     return y
 # %%
-pick_data = 'tau_bkg'
-which_ztime = 'day'
-which_zeitgeber = 'day'
-DAY_RESAMPLE = 1000  # how many bouts to take per  exp/ztime/condition
-RESAMPLE = DAY_RESAMPLE
-
 
 X_RANGE = np.arange(-5,10.01,0.01)
 BIN_WIDTH = 0.3
@@ -94,7 +79,7 @@ except:
 
 # %%
 # %% get features
-all_feature_cond, all_cond0, all_cond0 = get_bout_features(root, FRAME_RATE, ztime = which_zeitgeber)
+all_feature_cond, all_cond0, all_cond1 = get_bout_features(root, FRAME_RATE, ztime = which_ztime)
 
 # %% tidy data
 all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)

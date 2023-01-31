@@ -2,8 +2,8 @@
 # import sys
 import os
 from plot_functions.plt_tools import round_half_up
-import pandas as pd # pandas library
-import numpy as np # numpy
+import pandas as pd 
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 from plot_functions.get_data_dir import ( get_figure_dir)

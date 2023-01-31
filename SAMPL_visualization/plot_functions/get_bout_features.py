@@ -2,7 +2,7 @@ import os,glob
 from pickle import FRAME
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 from plot_functions.plt_tools import (day_night_split)
 from plot_functions.get_index import get_index
 from scipy.signal import savgol_filter
@@ -448,7 +448,7 @@ def get_max_angvel_rot(root, FRAME_RATE,**kwargs):
 #                         expNum = expNum)
 #                     this_cond_data = pd.concat([this_cond_data,exp_data.loc[rows,:]])
                 
-#         cond1 = all_conditions[condition_idx].split("_")[0]
+#         cond0 = all_conditions[condition_idx].split("_")[0]
 #         cond2 = all_conditions[condition_idx].split("_")[1]
 #         all_cond0.append(cond1)
 #         all_cond1.append(cond2)
@@ -576,7 +576,7 @@ def get_max_angvel_rot(root, FRAME_RATE,**kwargs):
 #                         expNum = expNum)
 #                     this_cond_data = pd.concat([this_cond_data,exp_data.loc[rows,:]])
                 
-#         cond1 = all_conditions[condition_idx].split("_")[0]
+#         cond0 = all_conditions[condition_idx].split("_")[0]
 #         cond2 = all_conditions[condition_idx].split("_")[1]
 #         all_cond0.append(cond1)
 #         all_cond1.append(cond2)

@@ -11,7 +11,7 @@ import os,glob
 import time
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 import seaborn as sns
 import matplotlib
 import matplotlib.pyplot as plt

@@ -30,7 +30,7 @@ Default is off (sample_bout = -1)
 
 #%%
 import os
-import pandas as pd # pandas library
+import pandas as pd 
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt

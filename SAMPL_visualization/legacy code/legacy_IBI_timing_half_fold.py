@@ -26,7 +26,7 @@ import os,glob
 import time
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy import stats
@@ -174,7 +174,7 @@ for condition_idx, folder in enumerate(folder_paths):
                 day_angles.dropna(inplace=True)
                 all_day_angles = pd.concat([all_day_angles, day_angles[['propBoutIEI', 'propBoutIEI_pitch','expNum','date']]],ignore_index=True)
                 # Enter next folder under this condition
-            cond1 = all_conditions[condition_idx].split("_")[0]
+            cond0 = all_conditions[condition_idx].split("_")[0]
             cond1 = all_conditions[condition_idx].split("_")[1]     
             all_day_angles = all_day_angles.assign(y_boutFreq=1/all_day_angles['propBoutIEI'])
             # get all angles at all conditions, for validation. not needed for plotting
@@ -185,7 +185,7 @@ for condition_idx, folder in enumerate(folder_paths):
             all_day_angles['propBoutIEI_pitch'] = (all_day_angles['propBoutIEI_pitch'] - MEAN_X_INTERSECT).abs()
             this_binned_angles = distribution_binned_average(all_day_angles, BIN_WIDTH)
             this_binned_angles = this_binned_angles.assign(
-                cond0 = cond1,
+                cond0 = cond0,
                 cond1 = cond1
             )
             # get binned mean of angles for plotting "raw" data 

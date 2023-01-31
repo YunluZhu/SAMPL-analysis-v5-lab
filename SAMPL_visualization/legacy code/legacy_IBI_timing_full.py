@@ -25,7 +25,7 @@ NOTE: bounds in parabola_fit1() confines the upper and lower limites of the para
 import os
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 from astropy.stats import jackknife_resampling
@@ -142,7 +142,7 @@ for condition_idx, folder in enumerate(folder_paths):
                 all_day_angles = pd.concat([all_day_angles, day_angles[['propBoutIEI', 'propBoutIEI_pitch','expNum','date']]],ignore_index=True)
                 # enter next folder under the current condition
             
-            cond1 = all_conditions[condition_idx].split("_")[0]
+            cond0 = all_conditions[condition_idx].split("_")[0]
             cond1 = all_conditions[condition_idx].split("_")[1]    
             all_day_angles = all_day_angles.assign(y_boutFreq=1/all_day_angles['propBoutIEI'])
             # get all angles at all conditions, for validation. not needed for plotting
@@ -150,7 +150,7 @@ for condition_idx, folder in enumerate(folder_paths):
             # get binned mean of angles for plotting "raw" data 
             this_binned_angles = distribution_binned_average(all_day_angles, BIN_WIDTH)
             this_binned_angles = this_binned_angles.assign(
-                cond0 = cond1,
+                cond0 = cond0,
                 cond1 = cond1
             )
             binned_angles = pd.concat([binned_angles, this_binned_angles],ignore_index=True)
@@ -164,10 +164,10 @@ for condition_idx, folder in enumerate(folder_paths):
             jackknife_idx = jackknife_resampling(np.array(list(range(expNum+1))))
             for excluded_exp, idx_group in enumerate(jackknife_idx):
                 coef, fitted_y = parabola_fit1(all_day_angles.loc[all_day_angles['expNum'].isin(idx_group)], X_RANGE_FULL)
-                jackknifed_coef = pd.concat([jackknifed_coef, coef.assign(dpf=cond1,
+                jackknifed_coef = pd.concat([jackknifed_coef, coef.assign(cond0=cond0,
                                                                         cond1=cond1,
                                                                         excluded_exp=all_day_angles.loc[all_day_angles['expNum']==excluded_exp,'date'].iloc[0])])
-                jackknifed_y = pd.concat([jackknifed_y, fitted_y.assign(dpf=cond1,
+                jackknifed_y = pd.concat([jackknifed_y, fitted_y.assign(cond0=cond0,
                                                                         cond1=cond1,
                                                                         excluded_exp=all_day_angles.loc[all_day_angles['expNum']==excluded_exp,'date'].iloc[0])])
             # Finish the current condition, enter next condition

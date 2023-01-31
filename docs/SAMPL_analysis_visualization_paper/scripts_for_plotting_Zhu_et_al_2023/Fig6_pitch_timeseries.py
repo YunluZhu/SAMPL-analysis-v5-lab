@@ -1,8 +1,8 @@
 #%%
 import os
 from plot_functions.plt_tools import round_half_up
-import pandas as pd # pandas library
-import numpy as np # numpy
+import pandas as pd 
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 from plot_functions.get_data_dir import ( get_figure_dir)
@@ -91,7 +91,7 @@ def Fig6_pitch_timeseries(root):
                                             exp_id = condition_idx*100+expNum)
                     around_peak_data = pd.concat([around_peak_data,exp_data.loc[rows,:]])
                 # combine data from different conditions
-                cond1 = all_conditions[condition_idx].split("_")[0]
+                cond0 = all_conditions[condition_idx].split("_")[0]
                 all_cond1.append(cond1)
                 cond2 = all_conditions[condition_idx].split("_")[1]
                 all_cond2.append(cond2)

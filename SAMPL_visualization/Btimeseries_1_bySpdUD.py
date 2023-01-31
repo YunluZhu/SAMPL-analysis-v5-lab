@@ -2,7 +2,6 @@
 Plot bout features at different peak speeds (use BIN_NUM to specify bin numbers) as a function of time (index range specified by idxRANGE)
 with posture neg and posture pos bouts separated
 Change all_features for the features to plot
-zeitgeber time? No
 '''
 
 #%%
@@ -10,7 +9,7 @@ zeitgeber time? No
 import os,glob
 import pandas as pd
 from plot_functions.plt_tools import round_half_up 
-import numpy as np # numpy
+import numpy as np 
 import seaborn as sns
 import matplotlib.pyplot as plt
 import math
@@ -19,12 +18,17 @@ from plot_functions.get_index import get_index
 from scipy.signal import savgol_filter
 from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_split)
 from tqdm import tqdm
-set_font_type()
+
+##### Parameters to change #####
+pick_data = 'wt_fin' # name of your dataset to plot as defined in function get_data_dir()
+which_ztime = 'day' # 'day' or 'night', does not support 'all'
+if_plot_by_speed = False  # whether to plot by speed bins
+BIN_NUM = 4  # number of speed bins
+if_only_plot_mean = True  # whether to calculate mean first before plotting which greatly boosts plotting speed but omits error bars
+##### Parameters to change #####
 
 # %%
 # Paste root directory here
-if_plot_by_speed = False
-pick_data = 'tmp'
 root, FRAME_RATE= get_data_dir(pick_data)
 
 folder_name = f'BT1_features_Tseries'
@@ -37,10 +41,10 @@ try:
 except:
     print('Notes: re-writing old figures')
     
-BIN_NUM = 4
+
 peak_idx , total_aligned = get_index(FRAME_RATE)
 idxRANGE = [peak_idx-round_half_up(0.3*FRAME_RATE),peak_idx+round_half_up(0.2*FRAME_RATE)]
-
+set_font_type()
 # %% features for plotting
 all_features = [
     'propBoutAligned_speed', 
@@ -67,7 +71,6 @@ all_features = [
     'ang_speed',
     'ang_accel_of_SMangVel',    # angular accel calculated using smoothed angVel
     # 'xvel', 'yvel',
-    'traj_cur',
 
 ]
 
@@ -85,7 +88,7 @@ for folder in os.listdir(root):
 
 all_around_peak_data = pd.DataFrame()
 all_cond0 = []
-all_cond0 = []
+all_cond1 = []
 
 # go through each condition folders under the root
 for condition_idx, folder in enumerate(folder_paths):
@@ -116,7 +119,7 @@ for condition_idx, folder in enumerate(folder_paths):
                 bout_time = pd.read_hdf(f"{exp_path}/bout_data.h5", key='prop_bout2').loc[:,['aligned_time']]
                 # for i in bout_time.index:
                 # # if only need day or night bouts:
-                for i in day_night_split(bout_time,'aligned_time').index:
+                for i in day_night_split(bout_time,'aligned_time',ztime=which_ztime).index:
                     rows.extend(list(range(i*total_aligned+idxRANGE[0],i*total_aligned+idxRANGE[1])))
                 exp_data = raw.loc[rows,:]
                 exp_data = exp_data.assign(expNum = expNum,
@@ -131,18 +134,18 @@ for condition_idx, folder in enumerate(folder_paths):
                 )
                 around_peak_data = pd.concat([around_peak_data,exp_data])
     # combine data from different conditions
-    cond1 = all_conditions[condition_idx].split("_")[0]
-    all_cond0.append(cond1)
+    cond0 = all_conditions[condition_idx].split("_")[0]
+    all_cond0.append(cond0)
     cond1 = all_conditions[condition_idx].split("_")[1]
-    all_cond0.append(cond1)
-    all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(dpf=cond1,
+    all_cond1.append(cond1)
+    all_around_peak_data = pd.concat([all_around_peak_data, around_peak_data.assign(cond0=cond0,
                                                                                             cond1=cond1)])
 all_around_peak_data = all_around_peak_data.assign(time_ms = (all_around_peak_data['idx']-peak_idx)/FRAME_RATE*1000)
 # %% tidy data
 all_cond0 = list(set(all_cond0))
 all_cond0.sort()
-all_cond0 = list(set(all_cond0))
-all_cond0.sort()
+all_cond1 = list(set(all_cond1))
+all_cond1.sort()
 
 all_around_peak_data = all_around_peak_data.reset_index(drop=True)
 peak_speed = all_around_peak_data.loc[all_around_peak_data.idx==peak_idx,'propBoutAligned_speed'],
@@ -213,11 +216,18 @@ all_around_peak_data = all_around_peak_data.assign(
 )
 all_around_peak_data.loc[all_around_peak_data['bout_number'].isin(pos_trajDev_bout_num.values),'traj_deviation_dir'] = 'pos_traj_deviation'
 
-# %% speed binned plots
+# %%
+####################################
+###### Plotting Starts Here ######
+####################################
+ 
+# speed binned plots
 # leave out the fastest bin
-toplt = all_around_peak_data.loc[all_around_peak_data['speed_bin']<BIN_NUM-1,:]
+toplt = all_around_peak_data
 # toplt = all_around_peak_data
-
+if if_only_plot_mean:
+    toplt = toplt.groupby(['cond0','speed_bin','cond1','time_ms']).mean().reset_index()
+    toplt = toplt.loc[toplt['speed_bin']<BIN_NUM-1,:]
 if if_plot_by_speed:
     print('Plotting features binned by speed...')
     for feature_toplt in tqdm(all_features):
@@ -225,7 +235,7 @@ if if_plot_by_speed:
         data = toplt, x = 'time_ms', y = feature_toplt, row = 'speed_bin',
         col='cond0',
         hue = 'cond1',
-        hue_order=all_cond0,
+        hue_order=all_cond1,
         style = 'cond0',
         style_order=all_cond0,
         # ci='sd',
@@ -237,25 +247,31 @@ if if_plot_by_speed:
 # %% pitch neg and pos only
 toplt = all_around_peak_data
 
+if if_only_plot_mean:
+    toplt = toplt.groupby(['cond0','pitch_dir','cond1','time_ms']).mean().reset_index()
+
 print('Plotting features binned by pitch dir...')
 for feature_toplt in tqdm(all_features):
     p = sns.relplot(
-        data = toplt, x = 'time_ms', y = feature_toplt, row = 'pitch_dir',
+        data = toplt, x = 'time_ms', y = feature_toplt, 
+        row = 'pitch_dir',
         col='cond0',
         hue = 'cond1',
-        hue_order=all_cond0,
+        hue_order=all_cond1,
         style = 'cond0',
         style_order=all_cond0,
-        # ci='sd',
         kind = 'line',aspect=3, height=2
     )
     p.map(plt.axvline, x=0, linewidth=1, color=".5", zorder=0)
     plt.savefig(fig_dir+f"/{pick_data}_byPitch_{feature_toplt}.pdf",format='PDF')
-    plt.close()
+    # plt.close()
     
-# %% pitch neg and pos longitudinally separate by condition
+# %% pitch neg and pos cond0 separate by cond1
 toplt = all_around_peak_data
 
+if if_only_plot_mean:
+    toplt = toplt.groupby(['cond0','pitch_dir','cond1','time_ms']).mean().reset_index()
+    
 print('Plotting features binned by pitch dir...')
 for feature_toplt in tqdm(all_features):
     p = sns.relplot(
@@ -264,52 +280,36 @@ for feature_toplt in tqdm(all_features):
         col='cond1', 
         hue = 'cond0',
         hue_order=all_cond0,
-        style = 'cond0',
-        style_order=all_cond0,
-        # ci='sd',
+        style = 'cond1',
+        style_order=all_cond1,
         kind = 'line',aspect=3, height=2,
         facet_kws={'sharey': False, 'sharex': True}
     )
-    
     p.map(plt.axvline, x=0, linewidth=1, color=".5", zorder=0)
-    plt.savefig(fig_dir+f"/{pick_data}_lgtdn_byPitch_{feature_toplt}.pdf",format='PDF')
-    plt.close()
-# %% traj neg and pos only
-# toplt = all_around_peak_data
-
-# print('Plotting features binned by traj deviation dir...')
-# for feature_toplt in tqdm(all_features):
-#     p = sns.relplot(
-#     data = toplt, x = 'time_ms', y = feature_toplt, row = 'traj_deviation_dir',
-#     col='cond0',
-#     hue = 'cond1',
-#     hue_order=all_cond0,
-#     style = 'cond0',
-#     style_order=all_cond0,
-#     ci=None,
-#     kind = 'line',aspect=3, height=2
-#     )
-#     p.map(plt.axvline, x=0, linewidth=1, color=".5", zorder=0)
-#     plt.savefig(fig_dir+f"/{pick_data}_byTrajDeviation_{feature_toplt}.pdf",format='PDF')
-#     plt.close()
-
+    plt.savefig(fig_dir+f"/{pick_data}_cond1dir_byPitch_{feature_toplt}.pdf",format='PDF')
+    # plt.close()
+    
 # %% pitch neg and pos and Speed
 if if_plot_by_speed:
     # # leave out the fastest bin
-    toplt = all_around_peak_data.loc[all_around_peak_data['speed_bin']<BIN_NUM-1,:]
-
+    toplt = all_around_peak_data
+    if if_only_plot_mean:
+        toplt = toplt.groupby(['cond0','pitch_dir','cond1','time_ms','speed_bin']).mean().reset_index()
+        toplt = toplt.loc[toplt['speed_bin']<BIN_NUM-1,:]
     print('Plotting features binned by speed with neg and pos pitch separated...')
     for feature_toplt in tqdm(all_features):
         g = sns.relplot(
-        data = toplt, x = 'time_ms', y = feature_toplt, 
-        row = 'speed_bin', col = 'pitch_dir',
-        
-        hue = 'cond1',
-        hue_order=all_cond0,
-        style = 'cond0',
-        style_order=all_cond0,
-        kind = 'line',aspect=3, height=2
+            data = toplt, 
+            x = 'time_ms', 
+            y = feature_toplt, 
+            row = 'speed_bin', 
+            col = 'pitch_dir',
+            hue = 'cond1',
+            hue_order=all_cond1,
+            style = 'cond0',
+            style_order=all_cond0,
+            kind = 'line',aspect=3, height=2
         )
         g.map(plt.axvline, x=0, linewidth=1, color=".5", zorder=0)
-        plt.savefig(fig_dir+f"/{pick_data}_bySpdPitch   _{feature_toplt}.pdf",format='PDF')
-        plt.close()
+        plt.savefig(fig_dir+f"/{pick_data}_bySpdPitch_{feature_toplt}.pdf",format='PDF')
+        # plt.close()
