@@ -26,7 +26,7 @@ from plot_functions.plt_functions import plt_categorical_grid
 # %%
 ##### Parameters to change #####
 
-pick_data = 'wt_fin' # name of your dataset to plot as defined in function get_data_dir()
+pick_data = 'tmp' # name of your dataset to plot as defined in function get_data_dir()
 which_ztime = 'day' # 'day', 'night', or 'all'
 SAMPLE_NUM = 0 # Bouts drew from each experimental repeat (int.) 0 for no resampling
 

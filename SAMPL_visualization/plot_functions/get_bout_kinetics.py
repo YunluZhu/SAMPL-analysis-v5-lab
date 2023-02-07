@@ -265,6 +265,8 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
             cond0=cond0,
             cond1=cond1
             )])
+    all_kinetic_cond = all_kinetic_cond.reset_index(drop=True)
+    
     all_cond0 = list(set(all_cond0))
     all_cond0.sort()
     all_cond1 = list(set(all_cond1))

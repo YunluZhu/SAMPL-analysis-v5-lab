@@ -30,7 +30,7 @@ import matplotlib as mpl
 
 ##### Parameters to change #####
 
-pick_data = 'wt_fin' # name of your dataset to plot as defined in function get_data_dir()
+pick_data = 'tmp' # name of your dataset to plot as defined in function get_data_dir()
 which_ztime = 'day' # 'day', 'night', or 'all'
 
 ##### Parameters to change #####

@@ -23,7 +23,7 @@ from plot_functions.get_IBIangles import get_IBIangles
 from plot_functions.plt_functions import plt_categorical_grid
 
 ##### Parameters to change #####
-pick_data = 'wt_fin' # name of your dataset to plot as defined in function get_data_dir()
+pick_data = 'tmp' # name of your dataset to plot as defined in function get_data_dir()
 which_ztime = 'day' # 'day' 'night', or 'all'
 if_jackknife = True # whether to calculate std of IBI pitch on jackknife dataset or for individual repeats
 DAY_RESAMPLE = 0
