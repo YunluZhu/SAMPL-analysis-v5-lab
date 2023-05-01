@@ -5,6 +5,7 @@ def get_figure_dir(pick_data):
 def get_data_dir(pick_data):
     data_dic = {
         "<your data name>":      ["<yout data location>",166],
+        "hc": ["/Volumes/LabDataPro/SAMPL_data_v5/HairCell/HC_highFR_V5", 166],
         # see example below:
         # "7dall":    ["/Volumes/LabData/manuscript data/2022-11 depths exploration/behavior data/DD_7dall",166],
         # "tan":      ["/Volumes/LabData/manuscript data/2022-11 depths exploration/behavior data/TAN_lesion",40],

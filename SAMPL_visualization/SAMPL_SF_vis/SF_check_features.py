@@ -20,7 +20,7 @@ sys.path.append(parent)
 
 from plot_functions.get_data_dir import (get_data_dir,get_figure_dir)
 from plot_functions.get_index import get_index
-from plot_functions.get_bout_features import extract_bout_features_v4
+from plot_functions.get_bout_features import extract_bout_features_v5
 from plot_functions.get_bout_kinetics import get_kinetics
 from plot_functions.plt_tools import (set_font_type, defaultPlotting, day_night_split)
 
@@ -117,7 +117,7 @@ for fish_idx, folder in enumerate(folder_paths):
             idx=round_half_up(len(angles)/total_aligned)*list(range(0,total_aligned)),
             bout_num = list(np.arange(len(angles))//total_aligned),
             )
-        this_exp_features = extract_bout_features_v4(angles, peak_idx,FRAME_RATE)
+        this_exp_features = extract_bout_features_v5(angles, peak_idx,FRAME_RATE)
 
 
         peak_angles = angles.loc[angles['idx']==peak_idx]

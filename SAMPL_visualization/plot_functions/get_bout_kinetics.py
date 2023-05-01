@@ -5,7 +5,7 @@ import numpy as np
 from plot_functions.plt_tools import day_night_split
 from plot_functions.get_index import get_index
 from plot_functions.plt_tools import jackknife_list
-from plot_functions.get_bout_features import (get_bout_features,extract_bout_features_v4)
+from plot_functions.get_bout_features import (get_bout_features,extract_bout_features_v5)
 from numpy.polynomial.polynomial import Polynomial
 from scipy.stats import pearsonr 
 from scipy.optimize import curve_fit
@@ -228,7 +228,7 @@ def get_bout_kinetics(root, FRAME_RATE,**kwargs):
                     trunc_exp_data = trunc_exp_data.assign(
                         bout_num = trunc_exp_data.groupby(np.arange(len(trunc_exp_data))//(idxRANGE[1]-idxRANGE[0])).ngroup()
                     )
-                    this_exp_features = extract_bout_features_v4(trunc_exp_data,peak_idx,FRAME_RATE)
+                    this_exp_features = extract_bout_features_v5(trunc_exp_data,peak_idx,FRAME_RATE)
                     this_exp_features = this_exp_features.assign(
                         bout_time = bout_time.values,
                         expNum = expNum,
