@@ -1,3 +1,19 @@
+'''
+Selected a feature
+Plot feature values of bout N+1 vs bout N in scatter, and fit with line
+Plot Aurocorrelation coefficient of determination (R2) of bout(0) vs bout(0+lag)
+Plot slope of bout(0) vs bout(0+lag)
+
+NOTE variables to keep an eye on:
+
+pick_data # name of your cond0 to plot as defined in function get_data_dir()
+which_ztime # 'day', 'night', or 'all'
+consecutive_bout_num = 8 # number of consecutive bouts to extract. bout series with fewer consecutive bouts will be excluded. determined according to Navigation_1 
+if_jackknife = True # or False
+feature_AutoCorrelation = 'traj_peak'  # select a feature here
+
+'''
+
 # %%
 from cmath import exp
 import os
@@ -19,9 +35,9 @@ from plot_functions.plt_tools import jackknife_list
 pick_data = 'hc' # name of your cond0 to plot as defined in function get_data_dir()
 which_ztime = 'day' # 'day', 'night', or 'all'
 consecutive_bout_num = 8 # number of consecutive bouts to extract. bout series with fewer consecutive bouts will be excluded. determined according to Navigation_1 
-if_jackknife = True
+if_jackknife = True # True or False
 
-feature_AutoCorrelation = 'traj_peak'
+feature_AutoCorrelation = 'traj_peak' # select a feature here
 ##### Parameters to change #####
 
 # %%

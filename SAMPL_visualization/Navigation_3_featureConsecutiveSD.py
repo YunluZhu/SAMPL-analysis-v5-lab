@@ -1,3 +1,17 @@
+'''
+Selected a list of features
+Plot standard deviation of each feature during series of bouts given by consecutive_bout_num
+
+NOTE variables to keep an eye on:
+
+pick_data # name of your cond0 to plot as defined in function get_data_dir()
+which_ztime # 'day', 'night', or 'all'
+consecutive_bout_num = 6 # number of consecutive bouts to extract. bout series with fewer consecutive bouts will be excluded. determined according to Navigation_1 
+if_jackknife = True # or False
+list_of_features_StandardDeviation = ['traj_peak']  # select a list of features here
+
+'''
+
 # %%
 from cmath import exp
 import os
@@ -21,7 +35,7 @@ which_ztime = 'day' # 'day', 'night', or 'all'
 consecutive_bout_num = 6 # number of consecutive bouts to extract. bout series with fewer consecutive bouts will be excluded. determined according to Navigation_1 
 if_jackknife = True
 
-list_of_features_StandardDeviation = ['traj_peak']
+list_of_features_StandardDeviation = ['traj_peak']  # select a list of features here
 ##### Parameters to change #####
 
 # %%
