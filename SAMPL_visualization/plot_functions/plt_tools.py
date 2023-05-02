@@ -7,6 +7,12 @@ import matplotlib.pyplot as plt
 from decimal import Decimal
 import decimal
 
+def get_2sd(var:list):
+    n=2
+    sdval = np.nanstd(var) 
+    meanval = np.nanmean(var)
+    return(meanval-sdval*n, meanval+sdval*n)
+    
 def round_half_up(var):
     """round half up
 

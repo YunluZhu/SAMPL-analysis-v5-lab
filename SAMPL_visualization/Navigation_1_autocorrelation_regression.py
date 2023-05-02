@@ -7,8 +7,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
 from plot_functions.get_bout_features import (get_bout_features, get_connected_bouts)
-from plot_functions.get_bout_consecutive_features import cal_autocorrelation_feature
-from plot_functions.plt_functions import plt_categorical_grid
+from plot_functions.get_bout_consecutive_features import (cal_autocorrelation_feature, extract_consecutive_bout_features)
+
 import scipy.stats as st
 from plot_functions.plt_tools import (set_font_type)
 from plot_functions.plt_tools import jackknife_list
@@ -52,6 +52,57 @@ all_features = all_features.assign(
     exp_uid = all_features['cond1'] + all_features['expNum'].astype(str),
 )
     
+# %% get feature bout n+1 vs bout n
+max_lag = 1
+consecutive_bout_features, _ = extract_consecutive_bout_features(all_features, [feature_AutoCorrelation], max_lag)
+df_toplt = consecutive_bout_features.query("lag == 1").sort_values(by=['id']).reset_index(drop=True)
+df_toplt.columns = [f'{feature_AutoCorrelation}_N' if x==f'{feature_AutoCorrelation}_first' else x for x in df_toplt.columns]
+df_toplt.columns = [f'{feature_AutoCorrelation}_N+1' if x==f'{feature_AutoCorrelation}' else x for x in df_toplt.columns]
+
+# %% plot scatter
+
+xmin = np.percentile(df_toplt[f'{feature_AutoCorrelation}_N'].values,0.5)
+xmax = np.percentile(df_toplt[f'{feature_AutoCorrelation}_N'].values,99.5)
+
+g = sns.FacetGrid(
+    data=df_toplt, 
+    # x=f'{feature_AutoCorrelation}_N', 
+    # y=f'{feature_AutoCorrelation}_N+1', 
+    col='cond1',
+    row='cond0',
+    # kind="scatter", 
+    # alpha=0.05, 
+    aspect = 1, 
+    height = 3,
+    # linewidths=0
+    ylim = (xmin, xmax),
+    xlim = (xmin, xmax),
+    )
+
+for (row_val, col_val), ax in g.axes_dict.items():
+    this_cond_data = df_toplt.query("cond0 == @row_val & cond1 == @col_val")
+    xval = this_cond_data[f'{feature_AutoCorrelation}_N'].values
+    yval = this_cond_data[f'{feature_AutoCorrelation}_N+1'].values
+    this_slope, this_intercept, this_r, this_p, this_se = st.linregress(xval, yval)
+    X_plot = np.linspace(xmin, xmax, 1000)
+    Y_plot = this_slope * X_plot + this_intercept
+    if len(this_cond_data) > 4000:
+        this_cond_data = this_cond_data.sample(4000) 
+    sns.scatterplot(
+        data=this_cond_data, 
+        x=f'{feature_AutoCorrelation}_N', 
+        y=f'{feature_AutoCorrelation}_N+1', 
+        alpha=0.05,
+        linewidths=0,
+        ax=ax
+    )
+    sns.lineplot(x=X_plot, y=Y_plot, color='r', ax=ax)
+    ax.text(0, xmin+8,f'slope = {this_slope:.3f}', fontsize=9) #add text
+    ax.text(0, xmin+2,f'r = {this_r:.3f}', fontsize=9) #add text
+
+plt.savefig(fig_dir+f"/{feature_AutoCorrelation} N+1 vs N scatter.pdf",format='PDF')
+# print(f"{feature_toplt} Pearson correlation coeff: {this_r}")
+
 # %%  autocorrelation-----------------
 max_lag = consecutive_bout_num-1
 col = 'expNum'
@@ -69,7 +120,7 @@ for (cond0, cond1), group in all_features.groupby(['cond0', 'cond1']):
     output = pd.DataFrame()
     for j, exp_group in enumerate(jackknife_exp_matrix):
         this_group_data = group.loc[group[col].isin(exp_group),:]
-        this_corr_res, this_shifted_df, this_df_tocorr = cal_autocorrelation_feature(this_group_data, feature_AutoCorrelation, 'epoch_uid', max_lag)
+        this_corr_res, _, _ = cal_autocorrelation_feature(this_group_data, feature_AutoCorrelation, 'epoch_uid', max_lag)
         this_corr_res = this_corr_res.assign(
             cond1 = cond1,
             cond0 = cond0,
@@ -111,3 +162,5 @@ g = sns.relplot(
     height=3
 )
 plt.savefig(fig_dir+f"/R_square {feature_AutoCorrelation}.pdf",format='PDF')
+
+# %%
