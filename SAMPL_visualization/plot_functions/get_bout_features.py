@@ -425,6 +425,7 @@ def get_connected_bouts(root:str, FRAME_RATE:int, **kwargs):
         for subpath, subdir_list, subfile_list in os.walk(folder):
             # if folder is not empty
             if subdir_list:
+                subdir_list.sort()
                 # reset for each condition
                 around_peak_data = pd.DataFrame()
                 bout_features = pd.DataFrame()

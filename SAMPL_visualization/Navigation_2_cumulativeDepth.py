@@ -75,7 +75,7 @@ pitch_bins = [-90,0,20, 60]
 
 sel_consecutive_bouts = consecutive_bout_features.sort_values(by=['cond1','cond0','id','lag']).reset_index(drop=True)
 sel_consecutive_bouts = sel_consecutive_bouts.assign(
-    cumu_swim_ydispl = sel_consecutive_bouts.groupby(['cond1','cond0','id'])['ydispl_swim'].apply(np.cumsum),
+    cumu_swim_ydispl = sel_consecutive_bouts.groupby(['cond1','cond0','expNum','id'])['ydispl_swim'].apply(np.cumsum),
     pitch_peak_bins = pd.cut(sel_consecutive_bouts['pitch_peak_first'], bins=pitch_bins, labels=['dive','flat','climb']),
     bouts = sel_consecutive_bouts['lag'] + 1
 )
@@ -87,8 +87,8 @@ sel_consecutive_bouts = sel_consecutive_bouts.assign(
 last_bout_num = sel_consecutive_bouts['lag'].unique().max()
 remove_last_bout = sel_consecutive_bouts.query("lag<@last_bout_num")
 remove_last_bout = remove_last_bout.assign(
-    cumu_ISIydispl = remove_last_bout.groupby(['cond1','cond0','id'])['IBI_swim_ydispl'].apply(np.cumsum),
-    cumu_IBIydispl = remove_last_bout.groupby(['cond1','cond0','id'])['IBI_bout_ydispl'].apply(np.cumsum),
+    cumu_ISIydispl = remove_last_bout.groupby(['cond1','cond0','expNum','id'])['IBI_swim_ydispl'].apply(np.cumsum),
+    cumu_IBIydispl = remove_last_bout.groupby(['cond1','cond0','expNum','id'])['IBI_bout_ydispl'].apply(np.cumsum),
 )
 
 sns.relplot(
@@ -136,10 +136,10 @@ plt.savefig(os.path.join(fig_dir, f"IBI cumu ydispl.pdf"),format='PDF')
 cat_col = ['id',	'lag',	'cond1', 'cond0']
 which_plot_x = 'pitch_peak'
 name_of_x = 'first_pitch'
-df_sum = sel_consecutive_bouts.groupby(['cond1','cond0','id','exp_uid'])['ydispl_swim'].sum().reset_index()
+df_sum = sel_consecutive_bouts.groupby(['cond1','cond0','id','exp_conduid'])['ydispl_swim'].sum().reset_index()
 df_sum = df_sum.assign(
-    first_pitch = sel_consecutive_bouts.groupby(['cond1','cond0','id','exp_uid'])[which_plot_x].head(1).values,
-    swim_speed = sel_consecutive_bouts.groupby(['cond1','cond0','id','exp_uid'])['spd_peak'].mean().values,
+    first_pitch = sel_consecutive_bouts.groupby(['cond1','cond0','id','exp_conduid'])[which_plot_x].head(1).values,
+    swim_speed = sel_consecutive_bouts.groupby(['cond1','cond0','id','exp_conduid'])['spd_peak'].mean().values,
 )
 
 # plot scatter
@@ -162,13 +162,13 @@ df_toplt = df_sum.assign(
 
 res = pd.DataFrame()
 for (cond0, cond1, spd), group in df_toplt.groupby(['cond0','cond1','spd_bins']):
-    exp_df = group.groupby('exp_uid').size()
+    exp_df = group.groupby('exp_conduid').size()
     if if_jackknife:
         jackknife_exp_matrix = jackknife_list(list(exp_df.index))
     else:
         jackknife_exp_matrix = [[item] for item in exp_df.index]
     for j, exp_group in enumerate(jackknife_exp_matrix):
-        this_group_data = group.loc[group['exp_uid'].isin(exp_group),:]    
+        this_group_data = group.loc[group['exp_conduid'].isin(exp_group),:]    
         this_x = this_group_data[name_of_x].values
         this_y = this_group_data['ydispl_swim'].values
         this_slope, this_intercept, this_r, this_p, this_se = st.linregress(this_x, this_y)
@@ -177,7 +177,7 @@ for (cond0, cond1, spd), group in df_toplt.groupby(['cond0','cond1','spd_bins'])
                 'slope':this_slope,
                 'intercept':this_intercept,
                 'r':this_r,
-                'exp_uid':j,
+                'exp_conduid':j,
                 'spd_bin':spd,
                 'cond0':cond0,
                 'cond1':cond1,
@@ -214,3 +214,5 @@ g = sns.relplot(
 )
 plt.savefig(os.path.join(fig_dir, f"cumudispl-{name_of_x}_slope.pdf"),format='PDF')
 
+
+# %%

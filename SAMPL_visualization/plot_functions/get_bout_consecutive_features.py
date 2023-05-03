@@ -16,15 +16,15 @@ def extract_consecutive_bout_features(connected_bout_df:pd.DataFrame, list_of_fe
 
     Returns:
         pd.DataFrame: Long format of consecutive bouts numbered by "lag" and id'd by "id"
-        pd.DataFrame: a copy of the input bout features dataframe, with 2 new columns: epoch_uid and exp_uid
+        pd.DataFrame: a copy of the input bout features dataframe, with 2 new columns: epoch_conduid and exp_conduid
 
     """
 
     connected_bout_df = connected_bout_df.assign(
-        epoch_uid = connected_bout_df['cond1'] + connected_bout_df['expNum'].astype(str) + connected_bout_df['epoch_uid'],
-        exp_uid = connected_bout_df['cond1'] + connected_bout_df['expNum'].astype(str),
+        epoch_conduid = connected_bout_df['cond0'] + connected_bout_df['cond1'] + connected_bout_df['expNum'].astype(str) + connected_bout_df['epoch_uid'],
+        exp_conduid = connected_bout_df['cond0'] + connected_bout_df['cond1'] + connected_bout_df['expNum'].astype(str),
     )
-    connected_bout_df = connected_bout_df.groupby(['epoch_uid']).filter(lambda g: len(g)>1)
+    connected_bout_df = connected_bout_df.groupby(['epoch_conduid']).filter(lambda g: len(g)>1)
 
     consecutive_bout_features = pd.DataFrame()
 
@@ -33,17 +33,18 @@ def extract_consecutive_bout_features(connected_bout_df:pd.DataFrame, list_of_fe
         autoCorr_res = pd.DataFrame()
         df_tocorr = pd.DataFrame()
 
-        grouped = connected_bout_df.groupby(['cond1','cond0'])
+        grouped = connected_bout_df.groupby(['cond1','cond0','expNum'])
         col_selected = feature_toplt
-        for (cond1, cond0), group in grouped:
+        for (cond1, cond0, expNum), group in grouped:
             shift_df = pd.concat([group[col_selected].shift(-i).rename(f'{col_selected}_{i}') for i in range(max_lag+1)], axis=1)
-            this_df_tocorr = shift_df.groupby(group['epoch_uid']).apply(
+            this_df_tocorr = shift_df.groupby(group['epoch_conduid']).apply(
                 lambda g: g.where(np.concatenate((np.flip(np.tri(len(g)), axis=0).astype(bool)[:,:min(1+max_lag, len(g))], np.zeros((len(g), max(1+max_lag-len(g),0))).astype(bool)), axis=1))
             )
             this_df_tocorr = this_df_tocorr.assign(
                 cond1=cond1, 
                 cond0=cond0,
-                exp_uid=group['exp_uid']
+                expNum=expNum,
+                exp_conduid=group['exp_conduid']
                 )
             df_tocorr = pd.concat([df_tocorr, this_df_tocorr], ignore_index=True)
 
@@ -61,7 +62,7 @@ def extract_consecutive_bout_features(connected_bout_df:pd.DataFrame, list_of_fe
         if consecutive_bout_features.empty:
             consecutive_bout_features = long_df
         else:
-            consecutive_bout_features = consecutive_bout_features.merge(long_df, on=['id', 'lag','cond1','cond0','exp_uid'], how='left')
+            consecutive_bout_features = consecutive_bout_features.merge(long_df, on=['id', 'lag','cond1','cond0','expNum','exp_conduid'], how='left')
     return consecutive_bout_features, connected_bout_df
 
 def cal_autocorrelation_feature(this_cond_df:pd.DataFrame, col_selected:str, col_groupby:str, max_lag:int):
@@ -80,10 +81,10 @@ def cal_autocorrelation_feature(this_cond_df:pd.DataFrame, col_selected:str, col
         pd.DataFrame: Wide format of shifted consecutive bout feature dataframe for correlation calculation
     """
     
-    if ("epoch_uid" not in this_cond_df.columns) | ("exp_uid" not in this_cond_df.columns):
+    if ("epoch_conduid" not in this_cond_df.columns) | ("exp_conduid" not in this_cond_df.columns):
         this_cond_df = this_cond_df.assign(
-            epoch_uid = this_cond_df['cond1'] + this_cond_df['expNum'].astype(str) + this_cond_df['epoch_uid'],
-            exp_uid = this_cond_df['cond1'] + this_cond_df['expNum'].astype(str),
+            epoch_conduid = this_cond_df['cond0'] + this_cond_df['cond1'] + this_cond_df['expNum'].astype(str) + this_cond_df['epoch_conduid'],
+            exp_conduid = this_cond_df['cond0'] + this_cond_df['cond1'] + this_cond_df['expNum'].astype(str),
         )
     
     slope = []

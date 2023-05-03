@@ -64,8 +64,8 @@ all_features, all_cond0, all_cond1 = get_connected_bouts(root, FRAME_RATE)
 
 
 all_features = all_features.assign(
-    epoch_uid = all_features['cond1'] + all_features['expNum'].astype(str) + all_features['epoch_uid'],
-    exp_uid = all_features['cond1'] + all_features['expNum'].astype(str),
+    epoch_conduid = all_features['cond0'] + all_features['cond1'] + all_features['expNum'].astype(str) + all_features['epoch_uid'],
+    exp_conduid = all_features['cond0'] + all_features['cond1'] + all_features['expNum'].astype(str),
 )
     
 # %% get feature bout n+1 vs bout n
@@ -136,7 +136,7 @@ for (cond0, cond1), group in all_features.groupby(['cond0', 'cond1']):
     output = pd.DataFrame()
     for j, exp_group in enumerate(jackknife_exp_matrix):
         this_group_data = group.loc[group[col].isin(exp_group),:]
-        this_corr_res, _, _ = cal_autocorrelation_feature(this_group_data, feature_AutoCorrelation, 'epoch_uid', max_lag)
+        this_corr_res, _, _ = cal_autocorrelation_feature(this_group_data, feature_AutoCorrelation, 'epoch_conduid', max_lag)
         this_corr_res = this_corr_res.assign(
             cond1 = cond1,
             cond0 = cond0,

@@ -62,8 +62,8 @@ all_features, all_cond0, all_cond1 = get_connected_bouts(root, FRAME_RATE)
 
 
 all_features = all_features.assign(
-    epoch_uid = all_features['cond1'] + all_features['expNum'].astype(str) + all_features['epoch_uid'],
-    exp_uid = all_features['cond1'] + all_features['expNum'].astype(str),
+    epoch_conduid = all_features['cond0'] + all_features['cond1'] + all_features['expNum'].astype(str) + all_features['epoch_uid'],
+    exp_conduid = all_features['cond0'] + all_features['cond1'] + all_features['expNum'].astype(str),
 )
     
 # %% jackknife std of consecutive bout
