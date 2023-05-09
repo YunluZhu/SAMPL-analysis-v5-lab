@@ -171,7 +171,7 @@ All the extracted swim bouts under `bout_data.h5` are aligned at the time of the
 | Early rotation            | deg  | Change of pitch angle from initial to -40 ms (or time of maxAngvel)                       |
 | Attack angle              | deg  | Deviation of bout trajectory from pitch at time of the peak speed                         |
 | Fin-body ratio            |      | Maximal slope of best fitted sigmoid of attack angle vs early rotation                    |
-| Righting rotation         | deg  | Change of pitch angle from time of the peak speed to post bout (100 ms after peak speed)  |
+| Righting rotation         | deg  | Change of pitch angle from time of the peak speed to post bout (100ms) or to end bout (200 ms) |
 | Righting gain             |      | Numeric inversion of the slope of best fitted line of righting rotation vs initial pitch  |
 | Set point                 | deg  | x intersect of best fitted line of righting rotation vs initial pitch                     |
 | x/y efficacy              |      | Slope of best fitted line of x/y displ from preBout to postBout (-100 to 100 ms) VS peak pitch    |
@@ -200,3 +200,7 @@ All the extracted swim bouts under `bout_data.h5` are aligned at the time of the
 4. `Inter-bout interval pitch` shows posture/stability of fish. The timing parabola fit tells you their "preferred" posture, baseline bout rate (which can also be seen in IEI distribution plots), and sensitivity to posture changes.
 5. Kinetics tells you how fish coordinate propulsion and rotation in general. `fin_body` and `steering gain` demonstrate fin engagement.
 6. Lastly, check bout features (`Bfeatures_features` and `Bfeatures_4_by...`). Any subtle differences in the way fish swims can be picked up here. However, Jackknife resampling may "exaggerate" differences across fish with different backgrounds, so pay attention to the y-axis range.
+
+### What to analyze if bout number is limited
+
+See `Feeling Overwhelmed?.md` for more tips on data analysis.
