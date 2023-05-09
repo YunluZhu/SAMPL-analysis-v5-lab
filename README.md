@@ -201,6 +201,6 @@ All the extracted swim bouts under `bout_data.h5` are aligned at the time of the
 5. Kinetics tells you how fish coordinate propulsion and rotation in general. `fin_body` and `steering gain` demonstrate fin engagement.
 6. Lastly, check bout features (`Bfeatures_features` and `Bfeatures_4_by...`). Any subtle differences in the way fish swims can be picked up here. However, Jackknife resampling may "exaggerate" differences across fish with different backgrounds, so pay attention to the y-axis range.
 
-### What to analyze if bout number is limited
+### Feeling Overwhelmed?
 
-See `Feeling Overwhelmed?.md` for more tips on data analysis.
+See `Feeling Overwhelmed?.md` for more tips on navigating SAMPL data analysis.
