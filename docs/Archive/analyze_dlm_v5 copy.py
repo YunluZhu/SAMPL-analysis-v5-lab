@@ -8,7 +8,7 @@ import math
 
 # %%
 # Constants
-analyze_dlm_ver = 'v5.1.20230621'
+
 # MAX_FISH = 1         # all epochs that have more than one fish
 MAX_INST_DISPL = 35  # in mm epochs where fish# > 1 but appear as 1 fish will have improbably large instantaneous displacement.
 MAX_ANG_VEL = 250  # initial angular velocity filter
@@ -163,7 +163,7 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
     # Initialize dataframe for analyzed epochs
     ana = pd.DataFrame()
     # Transfer original index, epochNum, and time info
-    ana = raw_truncate[['oriIndex','epochNum','absx','absy','absHeadx','absHeady','ang']].copy()
+    ana = raw_truncate[['oriIndex','epochNum','ang','absy']].copy()
     # Calculate time difference
     # use .assign() for assigning new columns, avoid df[['newCol]] or df.loc[:,'newCol']
     ana = ana.assign(
@@ -184,11 +184,11 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
     #   Use .values to convert into arrays to further speed up
     #   v4.5 update, use body x y to centralize head x y
     centered_coordinates = pd.DataFrame((
-        ana[['absx','absy','absHeadx','absHeady','ang']].values
-        - grp_by_epoch(ana[['absx','absy','absx','absy','ang','epochNum']]).transform('first').values
+        raw_truncate[['absx','absy','absHeadx','absHeady','ang']].values
+        - grp_by_epoch(raw_truncate)[['absx','absy','absx','absy','ang']].transform('first').values
     ), columns = ['x','y','headx','heady','centeredAng'])
 
-    ana = ana.reset_index(drop=True).join(centered_coordinates)
+    ana = ana.join(centered_coordinates)
     
     # Apply filters
     ana_f = dur_y_x_filter(ana,MAX_DELTA_T)
@@ -250,5 +250,5 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
     # fish_length.to_pickle(f'{folder}/{file_i+1}_fish_length.pkl')
     print(f" {len(grp_by_epoch(res).size())} epochs extracted", end=' ')
 
-    return res, fish_length, analyze_dlm_ver
+    return res, fish_length
 

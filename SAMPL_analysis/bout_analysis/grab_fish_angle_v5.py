@@ -41,8 +41,8 @@ from preprocessing.read_dlm import read_dlm
 from preprocessing.analyze_dlm_v5 import analyze_dlm_resliced
 from bout_analysis.logger import log_SAMPL_ana
 
-global program_version
-program_version = 'v5.0.221212'
+global grab_fish_angle_ver
+grab_fish_angle_ver = 'v5.1.20230621'
 
 # %%
 # Define functions
@@ -943,7 +943,6 @@ def run(filenames, folder, frame_rate:int, if_epoch_data:bool):
     
     logger = log_SAMPL_ana('SAMPL_ana_log')
     logger.info(f'Folder analyzed: {folder}')
-    logger.info(f"Program ver: {program_version}")
 
     # initialize output vars
     grabbed_all = pd.DataFrame()
@@ -982,11 +981,12 @@ def run(filenames, folder, frame_rate:int, if_epoch_data:bool):
         exp_parameters = exp_parameters.sort_values(by=['filename']).reset_index(drop=True)
         exp_parameters.to_csv(f"{folder}/dlm metadata.csv")
 
+
     # analyze dlm
     for i, file in enumerate(filenames):
         logger.info(f"File {i}: {file[-19:]}")
         raw = read_dlm(i, file)
-        analyzed, fish_length = analyze_dlm_resliced(raw, i, file, folder, frame_rate)
+        analyzed, fish_length, analyze_dlm_ver = analyze_dlm_resliced(raw, i, file, folder, frame_rate)
         if type(analyzed) == str:
             print(analyzed)
             logger.warning(analyzed)
@@ -1019,10 +1019,11 @@ def run(filenames, folder, frame_rate:int, if_epoch_data:bool):
         epoch_attributes = pd.concat([epoch_attributes, res['epoch_attributes']], ignore_index=True)
         heading_matched = pd.concat([heading_matched, res['heading_matched']], ignore_index=True)
         epoch_pitch_heading_RMS = pd.concat([epoch_pitch_heading_RMS, res['epoch_pitch_heading_RMS']], ignore_index=True)
-        
         logger.info(f"Bouts aligned: {this_metadata.loc[0,'aligned_bout']}")
-        
 
+
+    logger.info(f"dlm analysis program ver: {analyze_dlm_ver}")
+    logger.info(f"grab fish angle program ver: {grab_fish_angle_ver}")
     # %%
     # concat metadata from bouts and metadata from ini. save in parent folder (condition folder)
     metadata_from_bouts.reset_index(drop=True, inplace=True)
@@ -1048,6 +1049,7 @@ def run(filenames, folder, frame_rate:int, if_epoch_data:bool):
     metadata_merged.to_csv(os.path.join(condition_folder,f"{exp_name} metadata.csv"))
 
     total_bouts_aligned = metadata_from_bouts['aligned_bout'].sum()
+    logger.info(f"Total bout number: {total_bouts_aligned}")
     # %%
     output_dir = folder
     if if_epoch_data:
@@ -1150,7 +1152,9 @@ def run(filenames, folder, frame_rate:int, if_epoch_data:bool):
         'fish_length':fish_length.mean()[1],
         'fish_length_std':fish_length.std()[1],
         'total_bouts_aligned':total_bouts_aligned,
-        'ver':program_version
+        'grab_fish_angle_ver':grab_fish_angle_ver,
+        'analyze_dlm_ver':analyze_dlm_ver,
+
     }
     analysis_info = pd.Series(info_dict)
     analysis_info.to_csv(os.path.join(output_dir,'analysis info.csv'))

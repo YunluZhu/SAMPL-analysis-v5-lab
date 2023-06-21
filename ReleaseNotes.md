@@ -1,5 +1,12 @@
 ## Release notes
 
+**v5.1.20230621**
+
+1. Calculation of x, y, headx, heady improved. Solve the "Column not found" issue that may appear when calling columns repeatedly after groupby.
+2. Compatibility checked. Analysis code should work with Pandas 1.5 and Python 3.10
+3. Version control improved. analyze_dlm() and grab_fish_angle() gets their own version number which are saved in the analysis info file
+4. Log total aligned bouts per folder
+
 **v5.1.230131**
 
 1. Visualization scripts cleaned up
