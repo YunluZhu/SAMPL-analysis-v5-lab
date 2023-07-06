@@ -176,7 +176,7 @@ for feature in feature_to_plt:
     
     p = sns.displot(data=remove_last_bout, 
                      x=feature, 
-                     bins = 18, 
+                     bins = 25, 
                      element="poly",
                      #  kde=True, 
                      stat="probability",
