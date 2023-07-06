@@ -488,7 +488,7 @@ def get_connected_bouts(root:str, FRAME_RATE:int, **kwargs):
                     )
                     this_exp_features = extract_bout_features_v5(trunc_exp_data,peak_idx,FRAME_RATE)
                     this_exp_features = this_exp_features.assign(
-                        bout_time = bout_time.values,
+                        bout_time = bout_time['aligned_time'].values,
                         expNum = expNum,
                         bout_uid = attributes['bout_uid'].values,
                         epoch_uid = attributes['epoch_uid'].values,
