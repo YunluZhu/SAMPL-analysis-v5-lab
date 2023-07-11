@@ -1,6 +1,11 @@
 ## Release notes
 
-**v5.1.20230621**
+**v5.1.230711**
+
+1. Bug fix in get_bout_features.py
+2. New visualization scripts added.
+
+**v5.1.230621**
 
 1. Calculation of x, y, headx, heady improved. Solve the "Column not found" issue that may appear when calling columns repeatedly after groupby.
 2. Compatibility checked. Analysis code should work with Pandas 1.5 and Python 3.10
