@@ -102,10 +102,11 @@ for feature_toplt in list_of_features:
 # %% IBI Cumulative y displ. on Y axis after X bouts hue by bin of first bout traj
 sel_consecutive_bouts = consecutive_bout_features.sort_values(by=['cond0', 'cond1','id']).reset_index(drop=True)
 sel_consecutive_bouts = sel_consecutive_bouts.assign(
-    B2B_posture = np.append((sel_consecutive_bouts.iloc[1:,:]['pitch_initial'].values+sel_consecutive_bouts.iloc[:-1,:]['pitch_end'].values)/2, np.nan),
+    B2B_bout_posture = np.append((sel_consecutive_bouts.iloc[1:,:]['pitch_initial'].values+sel_consecutive_bouts.iloc[:-1,:]['pitch_end'].values)/2, np.nan),
     B2B_swim_ydispl = np.append(sel_consecutive_bouts.iloc[1:,:]['y_pre_swim'].values - sel_consecutive_bouts.iloc[:-1,:]['y_post_swim'].values, np.nan),
     B2B_swim_xdispl = np.append(sel_consecutive_bouts.iloc[1:,:]['x_pre_swim'].values - sel_consecutive_bouts.iloc[:-1,:]['x_post_swim'].values, np.nan),
     B2B_bout_ydispl = np.append(sel_consecutive_bouts.iloc[1:,:]['y_initial'].values - sel_consecutive_bouts.iloc[:-1,:]['y_end'].values, np.nan),
+    B2B_bout_rotation = np.append(sel_consecutive_bouts.iloc[1:,:]['pitch_initial'].values - sel_consecutive_bouts.iloc[:-1,:]['pitch_end'].values, np.nan),
     bouts = sel_consecutive_bouts['lag'] + 1
 )
 last_bout_num = sel_consecutive_bouts['lag'].unique().max()
@@ -124,8 +125,9 @@ remove_last_bout = remove_last_bout.assign(
 # B2B_bout_xxx is calculated using the position of the fish at the end of the current bout vs the initial of the next bout
 # B2B_swim_xxx is calculated using the position of the fish from the time when its speed is lower than swim threshold post current bout to when it swims faster than the threshold during the next bout
 
-feature_to_plt = ['B2B_posture', 'B2B_swim_ydispl', 'B2B_swim_xdispl', 'B2B_bout_ydispl']
+feature_to_plt = ['B2B_posture', 'B2B_swim_ydispl', 'B2B_swim_xdispl', 'B2B_bout_ydispl', 'B2B_rotation']
 
+# feature_to_plt = ['B2B_rotation']
 x_name = 'cond1'
 gridrow = 'pitch_peak_bins'
 gridcol = 'cond0'

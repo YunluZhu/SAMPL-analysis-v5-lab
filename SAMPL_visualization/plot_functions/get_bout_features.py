@@ -476,6 +476,8 @@ def get_connected_bouts(root:str, FRAME_RATE:int, **kwargs):
                     IBI_after = (attributes.loc[1:,'swim_start_idx'].values - attributes.loc[:attributes.index.max()-1,'swim_end_idx'].values)/FRAME_RATE
                     IBI_after = np.append(IBI_after, np.nan)
                     IBI_after[if_between_epochs] = None
+                    IBI_before = np.append(np.nan, IBI_after)[:-1]
+
                     ###################### get bout features
                     rows_features = []
                     for i in bout_time.index:
@@ -493,6 +495,7 @@ def get_connected_bouts(root:str, FRAME_RATE:int, **kwargs):
                         bout_uid = attributes['bout_uid'].values,
                         epoch_uid = attributes['epoch_uid'].values,
                         to_bout = to_bout_list,
+                        pre_IBI_time = IBI_before,
                         post_IBI_time = IBI_after,
                     )
                     # day night split. also assign ztime column
