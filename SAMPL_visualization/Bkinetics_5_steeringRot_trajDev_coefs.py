@@ -112,7 +112,7 @@ for (cond1,cond0,this_ztime), for_fit in df_tofit.groupby(['cond1','cond0','ztim
     if if_jackknife:
         index_matrix = jackknife_resampling(np.array(list(range(expNum+1))))
     else:
-        index_matrix = [[i] * expNum for i in range(expNum+1)]
+        index_matrix = [[i] for i in range(expNum+1)]
     for excluded_exp, idx_group in enumerate(index_matrix):
         this_for_fit = for_fit.loc[for_fit['expNum'].isin(idx_group)]
         k, y_intersect = np.polyfit(x = this_for_fit[xcol], 

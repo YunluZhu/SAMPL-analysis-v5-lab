@@ -116,7 +116,7 @@ for (this_cond1, this_cond0, this_ztime), group in IBI_sampled.groupby(cat_cols)
     if if_jackknife:
         index_matrix = jackknife_resampling(np.array(list(range(expNum+1))))
     else:
-        index_matrix = [[i] * expNum for i in range(expNum+1)]
+        index_matrix = [[i] for i in range(expNum+1)]
     for excluded_exp, idx_group in enumerate(index_matrix):
         this_df_toFit = group.loc[group['expNum'].isin(idx_group),['propBoutIEI_pitch','y_boutFreq','propBoutIEI']].reset_index(drop=True)
         this_df_toFit.dropna(inplace=True)
