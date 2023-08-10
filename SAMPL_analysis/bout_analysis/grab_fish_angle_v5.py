@@ -22,7 +22,7 @@ NOTE
 221110: fish length included in aligned parameters
 221212: bug fixed in matching fish heading to trajectory on x. Changed angular velocity filter from 100 to 250
 221215: speed threshold changed back to 5
-
+230810: bug fixed in assigning adjusted swim/bout windows
 '''
 # %%
 # Import Modules and functions
@@ -42,7 +42,7 @@ from preprocessing.analyze_dlm_v5 import analyze_dlm_resliced
 from bout_analysis.logger import log_SAMPL_ana
 
 global grab_fish_angle_ver
-grab_fish_angle_ver = 'v5.1.20230621'
+grab_fish_angle_ver = 'v5.2.20230810'
 
 # %%
 # Define functions
@@ -298,12 +298,14 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     # loop through bout_window, unpack start, end and peak for convenience
     for i, (start, end, peak) in bout_window.iterrows():
         # for each bout check if it is within the current epoch
-        if peak > current_epoch.index[-1]:
+        while peak > current_epoch.index[-1]:
             # if the peak of the bout is out of the current epoch, move to the next epoch
             current_epoch = pd.DataFrame(next(grouped_epoch)[1])
+        if peak <= current_epoch.index[-1]:
+            spd_bout_window = pd.concat([spd_bout_window,current_epoch.loc[start:end].assign(boutIDX = i)])
         # assign a bout index to the new bout window. index = i. start from 0
         # bout indices are only assigned to rows within the current epoch
-        spd_bout_window = pd.concat([spd_bout_window,current_epoch.loc[start:end].assign(boutIDX = i)])
+        
     spd_bout_window = spd_bout_window.reset_index(drop=False)
 
     # Note, at this point, spd_bout_window has duplicated rows assigned to adjacent bouts because the MIN_SWIM_INTERVAL is 100 ms but bout windows are 625 ms.
@@ -311,6 +313,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     if len(spd_bout_window.groupby('boutIDX').size()) == len(grp_by_swim(spd_window_adj,'locoIDXadj').size()):
         pass
     else:
+        # delete bouts in adjusted idx that are not in the boutIDX
         raise ValueError("The number of bouts windows doesn't match the number of speed windows.")
 
     # %%
