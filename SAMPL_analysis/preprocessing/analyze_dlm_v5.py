@@ -8,7 +8,7 @@ import math
 
 # %%
 # Constants
-analyze_dlm_ver = 'v5.1.20230621'
+analyze_dlm_ver = 'v5.2.20230918'
 # MAX_FISH = 1         # all epochs that have more than one fish
 MAX_INST_DISPL = 35  # in mm epochs where fish# > 1 but appear as 1 fish will have improbably large instantaneous displacement.
 MAX_ANG_VEL = 250  # initial angular velocity filter
@@ -193,7 +193,7 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
     # Apply filters
     ana_f = dur_y_x_filter(ana,MAX_DELTA_T)
     if ana_f.empty:
-        return "> no usable epoch detected > dlm file skipped", 0
+        return "> no usable epoch detected > dlm file skipped", 0, 0
     # %%
     # Calculate displacement, distance traveled, angular velocity, angular acceleration and filter epochs
 
