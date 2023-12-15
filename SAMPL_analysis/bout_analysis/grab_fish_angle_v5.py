@@ -23,6 +23,8 @@ NOTE
 221212: bug fixed in matching fish heading to trajectory on x. Changed angular velocity filter from 100 to 250
 221215: speed threshold changed back to 5
 230810: bug fixed in assigning adjusted swim/bout windows
+230918: analyze dlm bug fix. changed MAX_ANG_VEL to 1000, added options for analyzing data from oil-filled sb fish
+230928: include boxNum in saved hdf5 data
 '''
 # %%
 # Import Modules and functions
@@ -135,7 +137,7 @@ def smooth_ML(a,WSZ):
 # analyzed = pd.read_pickle(filenames[file_i])
 # fish_length = pd.read_pickle(f"./data/{file_i+1}_fish_length.pkl")
 
-def grab_fish_angle(analyzed, fish_length,sample_rate):
+def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
     """    Function to analyze epochs, find bouts, and calculate things we care
 
     Args:
@@ -172,6 +174,12 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
     IEI_tail = math.ceil(SAMPLE_RATE * 0.5)
     IEI_2_swim_buf = math.ceil(0.1 * SAMPLE_RATE)
 
+    if if_oil_fill_sb:
+        PROPULSION_THRESHOLD = 5  # mm/s, speed threshold above which samples are considered propulsion
+        BASELINE_THRESHOLD = 5  # mm/s, speed threshold below which samples are considered at baseline (not propelling)
+        PRE_PEAK_FRAMES = math.ceil(SAMPLE_RATE * 0.3)  # s, Only align bouts with extra frames before peak speed
+        POST_PEAK_FRAMES = math.ceil(SAMPLE_RATE * 0.3)  # s, Only align bouts with extra frames after peak speed
+        All_Aligned_FRAMES = PRE_PEAK_FRAMES+POST_PEAK_FRAMES+1
 
 
     # bout index for aligned bouts
@@ -934,7 +942,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate):
 
     return output
 
-def run(filenames, folder, frame_rate:int, if_epoch_data:bool):
+def run(filenames, folder, frame_rate:int, if_epoch_data:bool, if_oil_fill_sb=False):
     """    Loop through all .dlm, run analyze_dlm() and grab_fish_angle() functions. Concatinate results from different .dlm files
 
     Args:
@@ -946,7 +954,7 @@ def run(filenames, folder, frame_rate:int, if_epoch_data:bool):
     
     logger = log_SAMPL_ana('SAMPL_ana_log')
     logger.info(f'Folder analyzed: {folder}')
-
+    filenames.sort()
     # initialize output vars
     grabbed_all = pd.DataFrame()
     baseline_angVel = pd.DataFrame()
@@ -984,44 +992,55 @@ def run(filenames, folder, frame_rate:int, if_epoch_data:bool):
         exp_parameters = exp_parameters.sort_values(by=['filename']).reset_index(drop=True)
         exp_parameters.to_csv(f"{folder}/dlm metadata.csv")
 
-
+    fish_length = pd.DataFrame()
     # analyze dlm
     for i, file in enumerate(filenames):
         logger.info(f"File {i}: {file[-19:]}")
         raw = read_dlm(i, file)
-        analyzed, fish_length, analyze_dlm_ver = analyze_dlm_resliced(raw, i, file, folder, frame_rate)
+        if ini_files_to_read:
+            try:
+                boxNum = exp_parameters.loc[exp_parameters['dlm_loc']==file, 'box_number'].values[0]
+            except:
+                boxNum = 0
+        else:
+            boxNum = 0
+        analyzed, this_fish_length, analyze_dlm_ver = analyze_dlm_resliced(raw, i, file, folder, frame_rate, if_oil_fill_sb)
         if type(analyzed) == str:
             print(analyzed)
             logger.warning(analyzed)
             continue
-        res = grab_fish_angle(analyzed, fish_length,frame_rate)
+        res = grab_fish_angle(analyzed, this_fish_length,frame_rate, if_oil_fill_sb=if_oil_fill_sb)
         if type(res) == str:
             print(res)
             logger.warning(res)
             continue 
+        fish_length = pd.concat([fish_length, this_fish_length], ignore_index=True)
         this_metadata = {
             'filename':os.path.basename(file)[0:15],
             'aligned_bout':len(res['prop_bout2']),
-            'mean_fish_len':fish_length['fishLenEst'].mean(),
+            'mean_fish_len':this_fish_length['fishLenEst'].mean(),
         }
         this_metadata = pd.DataFrame(data=this_metadata,index=[0])
         metadata_from_bouts = pd.concat([metadata_from_bouts,this_metadata])
         # transfer values to final var
-        grabbed_all = pd.concat([grabbed_all, res['grabbed_all']], ignore_index=True)
-        baseline_angVel = pd.concat([baseline_angVel, res['baseline_angVel']], ignore_index=True)
-        bout_attributes = pd.concat([bout_attributes, res['bout_attributes']], ignore_index=True)
-        prop_bout_aligned = pd.concat([prop_bout_aligned, res['prop_bout_aligned']], ignore_index=True)
-        prop_bout2 = pd.concat([prop_bout2, res['prop_bout2']], ignore_index=True)
-        prop_bout_aligned_long = pd.concat([prop_bout_aligned_long, res['prop_bout_aligned_long']], ignore_index=True)
-        prop_bout_aligned_long2 = pd.concat([prop_bout_aligned_long2, res['prop_bout_aligned_long2']], ignore_index=True)
-        IEI_attributes = pd.concat([IEI_attributes, res['IEI_attributes']], ignore_index=True)
-        prop_bout_IEI_aligned = pd.concat([prop_bout_IEI_aligned, res['prop_bout_IEI_aligned']], ignore_index=True)
-        prop_bout_IEI2 = pd.concat([prop_bout_IEI2, res['prop_bout_IEI2']], ignore_index=True)
-        prop_bout_IEI_timed = pd.concat([prop_bout_IEI_timed, res['prop_bout_IEI_timed']], ignore_index=True)
-        wolpert_IEI = pd.concat([wolpert_IEI, res['wolpert_IEI']], ignore_index=True)
-        epoch_attributes = pd.concat([epoch_attributes, res['epoch_attributes']], ignore_index=True)
-        heading_matched = pd.concat([heading_matched, res['heading_matched']], ignore_index=True)
-        epoch_pitch_heading_RMS = pd.concat([epoch_pitch_heading_RMS, res['epoch_pitch_heading_RMS']], ignore_index=True)
+        grabbed_all = pd.concat([grabbed_all, res['grabbed_all'].assign(boxNum=boxNum)], ignore_index=True)
+        baseline_angVel = pd.concat([baseline_angVel, res['baseline_angVel'].assign(boxNum=boxNum)], ignore_index=True)
+        bout_attributes = pd.concat([bout_attributes, res['bout_attributes'].assign(boxNum=boxNum)], ignore_index=True)
+        prop_bout_aligned = pd.concat([prop_bout_aligned, res['prop_bout_aligned'].assign(boxNum=boxNum)], ignore_index=True)
+        prop_bout2 = pd.concat([prop_bout2, res['prop_bout2'].assign(boxNum=boxNum)], ignore_index=True)
+        prop_bout_aligned_long = pd.concat([prop_bout_aligned_long, res['prop_bout_aligned_long'].assign(boxNum=boxNum)], ignore_index=True)
+        prop_bout_aligned_long2 = pd.concat([prop_bout_aligned_long2, res['prop_bout_aligned_long2'].assign(boxNum=boxNum)], ignore_index=True)
+        IEI_attributes = pd.concat([IEI_attributes, res['IEI_attributes'].assign(boxNum=boxNum)], ignore_index=True)
+        prop_bout_IEI_aligned = pd.concat([prop_bout_IEI_aligned, res['prop_bout_IEI_aligned'].assign(boxNum=boxNum)], ignore_index=True)
+        prop_bout_IEI2 = pd.concat([prop_bout_IEI2, res['prop_bout_IEI2'].assign(boxNum=boxNum)], ignore_index=True)
+        prop_bout_IEI_timed = pd.concat([prop_bout_IEI_timed, res['prop_bout_IEI_timed'].assign(boxNum=boxNum)], ignore_index=True)
+        wolpert_IEI = pd.concat([wolpert_IEI, res['wolpert_IEI'].assign(boxNum=boxNum)], ignore_index=True)
+        epoch_attributes = pd.concat([epoch_attributes, res['epoch_attributes'].assign(boxNum=boxNum)], ignore_index=True)
+        heading_matched = pd.concat([heading_matched, res['heading_matched'].assign(boxNum=boxNum)], ignore_index=True)
+        epoch_pitch_heading_RMS = pd.concat([epoch_pitch_heading_RMS, res['epoch_pitch_heading_RMS'].assign(boxNum=boxNum)], ignore_index=True)
+        
+        
+        
         logger.info(f"Bouts aligned: {this_metadata.loc[0,'aligned_bout']}")
 
 
