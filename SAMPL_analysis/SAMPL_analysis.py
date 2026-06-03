@@ -15,36 +15,47 @@
 '''
 
 import sys
-import os,glob
+import os
+import glob
 from bout_analysis import grab_fish_angle_v5
 from bout_analysis.logger import log_SAMPL_ana
 
 from tqdm import tqdm
 
-def SAMPL_analysis(root,frame_rate, if_epoch_data=False):
+def SAMPL_analysis(root:str,frame_rate:int, if_epoch_data:bool=False, if_oil_fill_sb:bool=False, if_reana:bool=False):
     """Analyze behavior data. Extract bouts. Align bouts.
-
     Args:
         root (string): directory of behavior data to be analyzed. Data in all subfolders of the root directory will be analyzed. .dlm files in the same folder will be combined for bout extraction.
         frame_rate (int): Frame rate 
     """
+    # PROPULSION_THRESHOLD = 5
     logger = log_SAMPL_ana('SAMPL_ana_log')
-    logger.info(f"Analysis Started!")
+    logger.info("Analysis Started!")
     logger.info(f"Root dir: {root}")
     logger.info(f"Frame Rate: {frame_rate}")
+    if_ana = if_reana
+    if if_oil_fill_sb:
+        logger.info("Using thresholds for oil-filled swim bladder fish")
+        print("> Thresholding for oil-filled swim bladder fish! If not intended, set if_oil_fill_sb to False")
     # for progress bar and time estimation (2022.0126 update)
     dlm_files_count = 0
     for _, _, files in os.walk(root):
         dlm_files_count = dlm_files_count + len([dlm_files for dlm_files in files if ".dlm" in dlm_files])
 
     all_folders = os.walk(root)
-    with tqdm(total=dlm_files_count) as pbar:  # Do tqdm
+    with tqdm(total=dlm_files_count) as pbar: 
 
         # determine if dlm is under root folder
         filenames = glob.glob(os.path.join(root,"*.dlm"))
         if filenames:  # if dlm under root, process them
             print(f"\n\n- In {root}")
-            grab_fish_angle_v5.run(filenames, root, frame_rate, if_epoch_data)
+            assert_ana = glob.glob(os.path.join(root, "analysis info.csv"))
+            if len(assert_ana) == 0:
+                if_ana = True
+            if if_ana:
+                grab_fish_angle_v5.run(filenames, root, frame_rate, if_epoch_data, if_oil_fill_sb)
+            else:
+                print("already analyzed, skipped folder")
             pbar.update(len(filenames)) # update progress bar after processing dlm in the current folder
 
         for path, dir_list, file_list in all_folders: # look for dlm in all subfolders
@@ -56,24 +67,44 @@ def SAMPL_analysis(root,frame_rate, if_epoch_data=False):
                 filenames = glob.glob(os.path.join(folder,"*.dlm"))
                 if filenames:
                     print(f"\n\n- In {folder}")
-                    grab_fish_angle_v5.run(filenames, folder, frame_rate, if_epoch_data)
+                    assert_ana = glob.glob(os.path.join(folder, "analysis info.csv"))
+                    if len(assert_ana) == 0:
+                        if_ana = True
+                    if if_ana:
+                        grab_fish_angle_v5.run(filenames, folder, frame_rate, if_epoch_data, if_oil_fill_sb)
+                    else:
+                        print("already analyzed, skipped folder")
                     pbar.update(len(filenames)) # update progress bar after processing dlm in the current folder
 
-
-if __name__ == "__main__":
-    # if want to use Command Line Inputs
-    root_dir = input("- Where's the root folder? \n")
-    frame_rate = input("- What's the frame rate in int.? \n")
-    try:
-        frame_rate = int(frame_rate)
-    except ValueError:
-        print("^ Not a valid number for frame rate!")
-        sys.exit(1)
+def main():
+        # if want to use Command Line Inputs
+    root_dir = input("- Where's the root folder? \n").strip("'")
+    frame_rate = input("- What's the frame rate in int.? (if not 166...): ")
+    if frame_rate:
+        try:
+            frame_rate = int(frame_rate)
+        except ValueError:
+            print("  Not a valid number for frame rate!")
+            sys.exit(1)
+    else:
+        print("  166")
+        frame_rate = 166
     confirm = input("- Do you want to save epoch data? (y/n): ")
     if confirm == 'y':
-        SAMPL_analysis(root_dir, frame_rate, if_epoch_data=True)
-    elif confirm == 'n':
-        SAMPL_analysis(root_dir, frame_rate, if_epoch_data=False)
+        if_epoch_data = True
     else:
-        pass
+        print("  Not saving epoch data")
+        if_epoch_data = False
+    reana_flag = input("- Do you want to replace old analyzed results? (y/n): ")
+    if reana_flag == 'y':
+        print("  Reanalyze")
+        if_reana = True
+    else:
+        if_reana = False
+        print("  Skip analyzed folders")
+    SAMPL_analysis(root_dir, frame_rate, if_epoch_data=if_epoch_data, if_reana=if_reana)
+    
     print("--- Analysis ended ---")
+    
+if __name__ == "__main__":
+    main()

@@ -25,7 +25,7 @@ def read_dlm(i, filename):
     col_names = ['time','fishNum','ang','absx','absy','absHeadx','absHeady','col7','epochNum','fishLen']
     try:
         # raw = pd.read_csv(filename, sep="\t",names = col_names) # load .dlm
-        raw = pd.read_csv(filename, sep="\t",header=None)
+        raw = pd.read_csv(filename, sep="\t",header=None, on_bad_lines='warn')
     except FileNotFoundError:
         print(f"No .dlm file found in the directory entered")
     else:

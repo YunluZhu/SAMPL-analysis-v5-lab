@@ -25,6 +25,15 @@ NOTE
 230810: bug fixed in assigning adjusted swim/bout windows
 230918: analyze dlm bug fix. changed MAX_ANG_VEL to 1000, added options for analyzing data from oil-filled sb fish
 230928: include boxNum in saved hdf5 data
+240112: combine v5.3.20230913, v5.4.20240111, and 230928 update. remove unused parameters
+240417: fixed a bug when calculating IBI speed with 40 hz data. see sel_frames_for_spd
+240611: speed up pandas concat by using lists
+240711: turn on ang accel calculation
+240724: fix bug in IBI calculation. Speed up IBI calculation. Add strict IBI parameters
+241108: add x y coordinates to IEI 2 data
+250225: fixed a bug where when there are .ini without matching .dlm, boxNum sometimes cannot be read (0) and dlm loc and size are miscalculated
+250307: added a few more columns (head x head y) to aligned bouts data
+260319: speed optimization by moving boxNum assignment into the Grab Fish Angle function. Removed reset_index before final concatenation
 '''
 # %%
 # Import Modules and functions
@@ -42,9 +51,10 @@ import math
 from preprocessing.read_dlm import read_dlm
 from preprocessing.analyze_dlm_v5 import analyze_dlm_resliced
 from bout_analysis.logger import log_SAMPL_ana
+import re
 
 global grab_fish_angle_ver
-grab_fish_angle_ver = 'v5.2.20230810'
+grab_fish_angle_ver = 'v5.7.20260319'
 
 # %%
 # Define functions
@@ -60,7 +70,7 @@ def read_parameters(ini_file):
     """
     config = configparser.ConfigParser()
     config.read(ini_file)
-    box_number = config.getint('User-defined parameters','Box number')
+    boxNumber = config.getint('User-defined parameters','Box number')
     genotype = config.get('User-defined parameters','Genotype').replace('"','')
     age = config.getint('User-defined parameters','Age')
     notes = config.get('User-defined parameters','Notes').replace('"','')
@@ -73,7 +83,7 @@ def read_parameters(ini_file):
     num_fish = config.getint('User-defined parameters','Num fish')
     filename = config.get('User-defined parameters','Filename').replace('"','')
     parameters = pd.DataFrame({
-        'box_number':box_number,
+        'boxNumber':boxNumber,
         'genotype':genotype,
         'age':age,
         'notes':notes,
@@ -137,7 +147,7 @@ def smooth_ML(a,WSZ):
 # analyzed = pd.read_pickle(filenames[file_i])
 # fish_length = pd.read_pickle(f"./data/{file_i+1}_fish_length.pkl")
 
-def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
+def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb, boxNum):
     """    Function to analyze epochs, find bouts, and calculate things we care
 
     Args:
@@ -156,6 +166,8 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
     MIN_SWIM_INTERVAL = 0.1  # s, minimum swim interval duration
     POST_BOUT_BUF = math.ceil(0.1 * SAMPLE_RATE)  # 4 frames for 40hz
     PRE_BOUT_BUF = math.ceil(0.1 * SAMPLE_RATE)  # 4 frames for 40hz
+    POST_BOUT_BUF_strict = math.ceil(0.3 * SAMPLE_RATE)  
+    PRE_BOUT_BUF_strict = math.ceil(0.2 * SAMPLE_RATE)  
     BOUT_WINDOW_HALF = math.ceil(0.3 * SAMPLE_RATE)  # 12 frames for 40hz, changed in v4
     # SM_WINDOW = math.ceil((3/40) * SAMPLE_RATE)  # 3 for 40hz
     SM_WINDOW = 3
@@ -190,9 +202,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
     frame_number125 = int(0.125*SAMPLE_RATE) # 125ms, 5 at 40Hz
 
     # find epochs with max speed above threshold
-    df = grp_by_epoch(analyzed).filter(
-        lambda g: np.nanmax(g['swimSpeed'].values) >= PROPULSION_THRESHOLD
-    ).reset_index(drop=True)
+    df = analyzed[grp_by_epoch(analyzed)['swimSpeed'].transform('max').ge(PROPULSION_THRESHOLD)].reset_index(drop=True)
     
     if len(df) < 3:    # if no epoch found
         return "> not enough epoches > dlm file skipped"
@@ -208,7 +218,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
         # also get an x axis modifier, +1 to right, -1 to left
         x_dir = grouped_df['x'].transform(
             lambda x: (x.iloc[-1] - x.iloc[0])/np.absolute(x.iloc[-1] - x.iloc[0])
-        )
+        ),
     )
     # %% [markdown]
     # Identify start and end of window when fish crosses threshold
@@ -270,9 +280,12 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
     # get locomotion indices of the slow windows to adjust
     loco_idx_adj = loco_idx_adj + 1
 
+    # for window_idx in loco_idx_adj:
+    #     spd_window_adj.loc[spd_window_adj.locoIDX==window_idx,'swimIndicator']=1
+
     spd_window_adj = spd_window.copy()
-    for window_idx in loco_idx_adj:
-        spd_window_adj.loc[spd_window_adj.locoIDX==window_idx,'swimIndicator']=1
+    # Update all windows in a single operation using .isin()
+    spd_window_adj.loc[spd_window_adj['locoIDX'].isin(loco_idx_adj), 'swimIndicator'] = 1
 
     spd_window_adj = spd_window_adj.assign(
         locoIDXadj = spd_window_adj['swimIndicator'].diff().abs().cumsum()
@@ -299,8 +312,11 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
 
     # to avoid the new bout windows from crossing epochs, first, make an epoch generator
     grouped_epoch = iter(grp_by_epoch(spd_window_adj))
+    
+    
     # initialize a new dataframe
     spd_bout_window = pd.DataFrame()
+    dfs = []
     # get the first epoch
     current_epoch = pd.DataFrame(next(grouped_epoch)[1])
     # loop through bout_window, unpack start, end and peak for convenience
@@ -310,12 +326,15 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
             # if the peak of the bout is out of the current epoch, move to the next epoch
             current_epoch = pd.DataFrame(next(grouped_epoch)[1])
         if peak <= current_epoch.index[-1]:
-            spd_bout_window = pd.concat([spd_bout_window,current_epoch.loc[start:end].assign(boutIDX = i)])
+            dfs.append(current_epoch.loc[start:end].assign(boutIDX = i))
         # assign a bout index to the new bout window. index = i. start from 0
         # bout indices are only assigned to rows within the current epoch
         
-    spd_bout_window = spd_bout_window.reset_index(drop=False)
-
+    spd_bout_window = pd.concat(dfs)
+    spd_bout_window.reset_index(inplace=True)
+    
+    
+    
     # Note, at this point, spd_bout_window has duplicated rows assigned to adjacent bouts because the MIN_SWIM_INTERVAL is 100 ms but bout windows are 625 ms.
     # Nevertheless, the number of bouts remain the same
     if len(spd_bout_window.groupby('boutIDX').size()) == len(grp_by_swim(spd_window_adj,'locoIDXadj').size()):
@@ -338,7 +357,8 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
 
     # %%
     df = df.assign(
-        swimWindow = spd_window_adj['locoIDXadj']
+        swimWindow = spd_window_adj['locoIDXadj'],
+        boxNum = boxNum,
     )
     # initialize bout attributes
     bout_attributes = bout_idx.copy()
@@ -354,15 +374,20 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
     bout_attributes = bout_attributes.assign(
         # peak swim speed in SWIM windows
         peakSpeed = df.loc[swim_spd_peak_idx,'swimSpeed'].values,
+        
         # unsmoothed angVel.abs().max() in SWIM windows
         maxAbsRawAngVel = grp_by_swim(df, 'swimWindow')['angVel'].apply(
             lambda x: np.nanmax(np.absolute(x))).angVel,
+        
+        
         # unsmoothed peak angVel in SWIM windows
         peakRawAngVel = grp_by_swim(df, 'swimWindow')['angVel'].apply(
             lambda x: np.nanmax(np.absolute(x)) * (
                 (np.nanmax(x)+np.nanmin(x)) / np.absolute(np.nanmax(x)+np.nanmin(x))
             )
         ).angVel,
+        
+        
         # bout displacement in BOUT windows
         propBoutDispl = np.linalg.norm(bout_start_loc.values - bout_end_loc.values, axis=1),
         # SWIM window Duration
@@ -377,18 +402,19 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
         # detect if bout is a 'mixed' event with positive and negative angVel over threshold
         boutMixedPeak = spd_bout_window.groupby('boutIDX')['angVel'].apply(lambda v: v.abs().max()),
         boutMixedIntegral = spd_bout_window.groupby('boutIDX')['angVel'].sum(),
-        boutMixedValue = lambda x: x['boutMixedPeak']/x['boutMixedIntegral']
+        boutMixedValue = lambda x: x['boutMixedPeak']/x['boutMixedIntegral'],
+        if_align = False,
+        # if_align_long = False,
+        boutInflectAlign = np.nan,
+        boutAccAlign = np.nan,
+        boxNum = boxNum
     )
 
     # %%
-    # initialize more attributes
-    bout_attributes = bout_attributes.assign(
-        if_align = False,
-        if_align_long = False,
-        boutInflectAlign = np.nan,
-        boutAccAlign = np.nan,
-    )
-
+    # print('SLOW->', end = '')
+    
+    # this is slow, I know
+    
     # decide which bouts to "align".
     # if window is far enough from epoch edge to allow alignment & spd during pre/post peak window are sufficiently low
     # YZ add code to get rid of bouts with only 0.025s above speed threshold
@@ -407,10 +433,11 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
                 # in the Matlab code, since the smooth function doesn't actually smooth the first few values, this index is not accurate
                 bout_attributes.loc[i,'boutAccAlign'] = smooth_series_ML(df.loc[bout['bout_start_idx']+frame_number250:bout['peak_idx'],'swimSpeed'], SM_WINDOW).diff().idxmax()
 
-            # get bout number for longer duration alignment (20 extra frames for 40hz)
-            if bout['peak_idx'] < (df.loc[df['epochNum']== bout['epochNum']].index.max() - BOUT_LONG_TAIL):
-                bout_attributes.loc[i,'if_align_long'] = True
-
+            # # get bout number for longer duration alignment (20 extra frames for 40hz)
+            # if bout['peak_idx'] < (df.loc[df['epochNum']== bout['epochNum']].index.max() - BOUT_LONG_TAIL):
+            #     bout_attributes.loc[i,'if_align_long'] = True
+    
+    # print('<-SLOW', end = '')
     # %% [markdown]
     # ## Extract values
     # Unlike the original Matlab code where different values are stored in their own variables, most multi-frame values extracted from all bouts will be stored in one multi-indexed dataframe (bout_res) for convenience. Other 1-value-per-bout data will be stored in another dataframe (bout_res2)
@@ -441,19 +468,19 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
     # initialize result dataframe for bout alignment
     bouts = range(len(bout_aligned))
     frames = range(All_Aligned_FRAMES)
-    index = pd.MultiIndex.from_product([bouts, frames], names=['bout_i', 'frame_i'])
-    column = [  'propBoutAligned_angVel_hUp',
-                'propBoutAligned_angVel_hDn',
-                'propBoutAligned_speed_hUp',
-                'propBoutAligned_speed_hDn',
-                'propBoutAligned_pitch_hUp',
-                'propBoutAligned_pitch_hDn',
-                'propBoutAligned_instHeading',
-                'propBoutAligned_angVel_flat',
-                'propBoutAligned_speed_flat',
-                'propBoutAligned_pitch_flat',
-            ]
-    bout_res = pd.DataFrame(index=index, columns=column)
+    # index = pd.MultiIndex.from_product([bouts, frames], names=['bout_i', 'frame_i'])
+    # column = [  'propBoutAligned_angVel_hUp',
+    #             'propBoutAligned_angVel_hDn',
+    #             'propBoutAligned_speed_hUp',
+    #             'propBoutAligned_speed_hDn',
+    #             'propBoutAligned_pitch_hUp',
+    #             'propBoutAligned_pitch_hDn',
+    #             'propBoutAligned_instHeading',
+    #             'propBoutAligned_angVel_flat',
+    #             'propBoutAligned_speed_flat',
+    #             'propBoutAligned_pitch_flat',
+    #         ]
+    # bout_res = pd.DataFrame(index=index, columns=column)
 
     # set up idx for easy multi-indexing
     idx = pd.IndexSlice
@@ -480,96 +507,177 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
         propBoutIEI_yDisplTimes = np.datetime64('NaT'),
         propBoutIEI_yDisplMatchedIEIs = np.nan,
         aligned_time_flat = np.datetime64('NaT'),
+        boxNum = boxNum,
     )
 
-    # some counters
-    aligned_headUp_counter = 0
-    aligned_headDn_counter = 0
-    aligned_flat_counter = 0
+    # # some counters
+    # aligned_headUp_counter = 0
+    # aligned_headDn_counter = 0
+    # aligned_flat_counter = 0
 
-    # same as before, set up a res2 dataframe for 1-value-per-bout data
-    bout_long_res2 = pd.DataFrame(index=bout_aligned.loc[bout_aligned['if_align_long']].index)
+    # # same as before, set up a res2 dataframe for 1-value-per-bout data
+    # bout_long_res2 = pd.DataFrame(index=bout_aligned.loc[bout_aligned['if_align_long']].index)
 
-    bout_matchIndex = bout_aligned.loc[bout_aligned['if_align_long'], 'boutNum']
-    boutAlignLong = bout_aligned.loc[bout_aligned['if_align_long'], 'peak_idx']
-    aligned_timeLong = df.loc[boutAlignLong.values, 'absTime']
+    # bout_matchIndex = bout_aligned.loc[bout_aligned['if_align_long'], 'boutNum']
+    # boutAlignLong = bout_aligned.loc[bout_aligned['if_align_long'], 'peak_idx']
+    # aligned_timeLong = df.loc[boutAlignLong.values, 'absTime']
 
-    bout_long_res2 = bout_long_res2.assign(
-        bout_matchIndex = bout_matchIndex.values,
-        boutAlignLong = boutAlignLong.values,
-        alignedLong_time = aligned_timeLong.values,
-        propBoutLong_initPitch = np.nan,
-        propBoutLong_initYPos = np.nan,
-        propBoutLong_netPitchChg = np.nan,
-    )
+    # bout_long_res2 = bout_long_res2.assign(
+    #     bout_matchIndex = bout_matchIndex.values,
+    #     boutAlignLong = boutAlignLong.values,
+    #     alignedLong_time = aligned_timeLong.values,
+    #     propBoutLong_initPitch = np.nan,
+    #     propBoutLong_initYPos = np.nan,
+    #     propBoutLong_netPitchChg = np.nan,
+    # )
 
     # %%
     # align to each epoch
-    bout_res_tmp1 = pd.concat([
-        df.loc[bout['peak_idx']-PRE_PEAK_FRAMES:bout['peak_idx']+POST_PEAK_FRAMES,[  # select rows to concat
-            'oriIndex',  # select columns to concat
-            'absTime',  # added 06.17.2020
-            'angVelSmoothed',
-            'swimSpeed',
-            'angAccel',
-            'ang',
-            'absy',
-            'x',
-            'y',
-            'fishLen']
-        ].assign(bout_i=[i]*All_Aligned_FRAMES, frame_i=range(All_Aligned_FRAMES))  # assign bout_i for each bout, assign frame_i for each row
-        for i, bout in bout_aligned.iterrows()  # loop through bouts
-    ]).set_index(['bout_i','frame_i']).rename(columns={  # reset index
-            'oriIndex':'oriIndex',
-            'absTime':'propBoutAligned_time',
-            'angVelSmoothed':'propBoutAligned_angVel', # is smoothed!!!!!!!!!
-            'swimSpeed':'propBoutAligned_speed',
-            'angAccel':'propBoutAligned_accel',  # This is angAccel - calculated using unsmoothed angVel
-            'ang':'propBoutAligned_pitch',
-            'absy':'propBoutAligned_absy',
-            'x':'propBoutAligned_x',
-            'y':'propBoutAligned_y',
-            'fishLen':'fish_length'
+    
+    # new approach to speed this up:
+    # 1. Define the complete list of columns to preserve the data integrity
+    full_col_list = [
+        'oriIndex', 'absTime', 'angVelSmoothed', 'swimSpeed', 
+        'angAccel', 'ang', 'absy', 'absx', 'headx', 'heady', 
+        'x', 'y', 'fishLen'
+    ]
+
+    # 2. Generate the index matrix for vectorized extraction
+    peak_indices = bout_aligned['peak_idx'].values
+    offsets = np.arange(-PRE_PEAK_FRAMES, POST_PEAK_FRAMES + 1)
+
+    # Resulting shape: (num_bouts, window_size)
+    idx_matrix = peak_indices[:, None] + offsets
+    flat_indices = idx_matrix.ravel()
+
+    # 3. Pull all rows/columns in a single memory-efficient operation
+    # Using .copy() to avoid SettingWithCopy warnings during renaming
+    bout_res_tmp1 = df.iloc[flat_indices][full_col_list].copy()
+
+    # 4. Map the multi-index identifiers without using a loop
+    num_bouts = len(peak_indices)
+    window_len = len(offsets)
+    bout_res_tmp1['bout_i'] = np.repeat(np.arange(num_bouts), window_len)
+    bout_res_tmp1['frame_i'] = np.tile(np.arange(window_len), num_bouts)
+
+    # 5. Final index setup and renaming to match your existing downstream logic
+    bout_res_tmp1 = bout_res_tmp1.set_index(['bout_i', 'frame_i']).rename(columns={
+        'absTime': 'propBoutAligned_time',
+        'angVelSmoothed': 'propBoutAligned_angVel',
+        'swimSpeed': 'propBoutAligned_speed',
+        'angAccel': 'propBoutAligned_accel',
+        'ang': 'propBoutAligned_pitch',
+        'absy': 'propBoutAligned_absy',
+        'x': 'propBoutAligned_x',
+        'y': 'propBoutAligned_y',
+        'fishLen': 'fish_length',
+        'absx': 'propBoutAligned_absx',
+        'headx': 'propBoutAligned_headx',
+        'heady': 'propBoutAligned_heady'
     })
 
+    # Old approach below
+    
+    # bout_res_tmp1 = pd.concat([
+    #     df.loc[bout['peak_idx']-PRE_PEAK_FRAMES:bout['peak_idx']+POST_PEAK_FRAMES,[  # select rows to concat
+    #         'oriIndex',  # select columns to concat
+    #         'absTime',  # added 06.17.2020
+    #         'angVelSmoothed',
+    #         'swimSpeed',
+    #         'angAccel',
+    #         'ang',
+    #         'absy',
+    #         'absx',  # added 2025.03.07
+    #         'headx',  # added 2025.03.07
+    #         'heady',  # added 2025.03.07
+    #         'x',
+    #         'y',
+    #         'fishLen']
+    #     ].assign(bout_i=[i]*All_Aligned_FRAMES, frame_i=range(All_Aligned_FRAMES))  # assign bout_i for each bout, assign frame_i for each row
+    #     for i, bout in bout_aligned.iterrows()  # loop through bouts
+    # ]).set_index(['bout_i','frame_i']).rename(columns={  # reset index
+    #         'oriIndex':'oriIndex',
+    #         'absTime':'propBoutAligned_time',
+    #         'angVelSmoothed':'propBoutAligned_angVel', # is smoothed!!!!!!!!!
+    #         'swimSpeed':'propBoutAligned_speed',
+    #         'angAccel':'propBoutAligned_accel',  # This is angAccel - calculated using unsmoothed angVel
+    #         'ang':'propBoutAligned_pitch',
+    #         'absy':'propBoutAligned_absy',
+    #         'x':'propBoutAligned_x',
+    #         'y':'propBoutAligned_y',
+    #         'fishLen':'fish_length',
+    #         'absx':'propBoutAligned_absx',
+    #         'headx':'propBoutAligned_headx',
+    #         'heady':'propBoutAligned_heady',
+    # })
+    
+    
     # align to inflection point of speaed (peak of 2nd derivative)
-    bout_res_tmp2 = pd.concat([
-        df.loc[bout['boutInflectAlign']-PRE_PEAK_FRAMES:bout['boutInflectAlign']+POST_PEAK_FRAMES,[
-            'angVelSmoothed',
-            'swimSpeed',
-            'angAccel']
-        ].assign(bout_i=[i]*All_Aligned_FRAMES, frame_i=range(All_Aligned_FRAMES))
-        for i, bout in bout_aligned.iterrows()  # loop through bouts
-        # add a condition for inflect alignment
-        if bout['boutInflectAlign'] > PRE_PEAK_FRAMES and bout['boutInflectAlign'] < df.loc[df['epochNum']==bout['epochNum']].index.max()-POST_PEAK_FRAMES
-    ]).set_index(['bout_i','frame_i']).rename(columns={
-        'angVelSmoothed':'propBoutInflAligned_angVel',
-        'swimSpeed':'propBoutInflAligned_speed',
-        'angAccel':'propBoutInflAligned_accel'
-    })
+
+    # 1. Pre-calculate the max index for each epoch to handle the filter condition efficiently
+    epoch_max_map = df.groupby('epochNum').indices
+    epoch_max_indices = {k: v[-1] for k, v in epoch_max_map.items()}
+
+    # 2. Filter bout_aligned to only include valid inflection points (preserving original logic)
+    # This replaces the 'if' condition inside the loop
+    valid_inflect_mask = (
+        (bout_aligned['boutInflectAlign'] > PRE_PEAK_FRAMES) & 
+        (bout_aligned['boutInflectAlign'] < bout_aligned['epochNum'].map(epoch_max_indices) - POST_PEAK_FRAMES)
+    )
+    bout_inflect_valid = bout_aligned[valid_inflect_mask]
+
+    if not bout_inflect_valid.empty:
+        # 3. Define columns for tmp2 (matching your original list)
+        inflect_cols = ['angVelSmoothed', 'swimSpeed', 'angAccel']
+        
+        # 4. Generate the index matrix for vectorized extraction
+        inflect_indices = bout_inflect_valid['boutInflectAlign'].values.astype(int)
+        offsets = np.arange(-PRE_PEAK_FRAMES, POST_PEAK_FRAMES + 1)
+        
+        # Shape: (num_valid_bouts, window_size)
+        idx_matrix_tmp2 = inflect_indices[:, None] + offsets
+        flat_indices_tmp2 = idx_matrix_tmp2.ravel()
+        
+        # 5. Pull all data in one shot
+        bout_res_tmp2 = df.iloc[flat_indices_tmp2][inflect_cols].copy()
+        
+        # 6. Reconstruct the MultiIndex using the original bout_i (the index of bout_aligned)
+        num_valid_bouts = len(inflect_indices)
+        window_len = len(offsets)
+        
+        # Crucially, we use bout_inflect_valid.index to maintain the 'bout_i' relationship
+        bout_res_tmp2['bout_i'] = np.repeat(bout_inflect_valid.index.values, window_len)
+        bout_res_tmp2['frame_i'] = np.tile(np.arange(window_len), num_valid_bouts)
+        
+        # 7. Final setup and renaming
+        bout_res_tmp2 = bout_res_tmp2.set_index(['bout_i', 'frame_i']).rename(columns={
+            'angVelSmoothed': 'propBoutInflAligned_angVel',
+            'swimSpeed': 'propBoutInflAligned_speed',
+            'angAccel': 'propBoutInflAligned_accel'
+        })
+    else:
+        # Handle the empty case to avoid concat errors
+        bout_res_tmp2 = pd.DataFrame()
+        
+    # Below is old approach with loop
+    
+    # align to inflection point of speaed (peak of 2nd derivative)
+    # bout_res_tmp2 = pd.concat([
+    #     df.loc[bout['boutInflectAlign']-PRE_PEAK_FRAMES:bout['boutInflectAlign']+POST_PEAK_FRAMES,[
+    #         'angVelSmoothed',
+    #         'swimSpeed',
+    #         'angAccel']
+    #     ].assign(bout_i=[i]*All_Aligned_FRAMES, frame_i=range(All_Aligned_FRAMES))
+    #     for i, bout in bout_aligned.iterrows()  # loop through bouts
+    #     # add a condition for inflect alignment
+    #     if bout['boutInflectAlign'] > PRE_PEAK_FRAMES and bout['boutInflectAlign'] < df.loc[df['epochNum']==bout['epochNum']].index.max()-POST_PEAK_FRAMES
+    # ]).set_index(['bout_i','frame_i']).rename(columns={
+    #     'angVelSmoothed':'propBoutInflAligned_angVel',
+    #     'swimSpeed':'propBoutInflAligned_speed',
+    #     'angAccel':'propBoutInflAligned_accel'
+    # })
 
     bout_res = pd.concat([bout_res_tmp1,bout_res_tmp2],axis=1)
-
-    # long bout tail alignment
-    try:
-        bout_long_res = pd.concat([
-            df.loc[bout['peak_idx']-PRE_PEAK_FRAMES:bout['peak_idx']+BOUT_LONG_TAIL,[
-                'angVelSmoothed',
-                'swimSpeed',
-                'angAccel',
-                'ang']
-            ].assign(bout_i=i, frame_i=range(BOUT_LONG_TAIL+PRE_PEAK_FRAMES+1))
-            for i, bout in bout_aligned.iterrows()
-            # add a condition for long bout tail alignment
-            if bout['if_align_long']
-        ]).set_index(['bout_i','frame_i']).rename(columns={
-            'angVelSmoothed':'propBoutAlignedLong_angVel',
-            'swimSpeed':'propBoutAlignedLong_speed',
-            'angAccel':'propBoutAlignedLong_accel',
-            'ang':'propBoutAlignedLong_pitch'
-        })
-    except:
-        bout_long_res = pd.DataFrame()
 
     # %%
     # calculate heading values using (unchopped) df_chopped (Modified 2020.06.11)
@@ -600,7 +708,8 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
     bout_res = bout_res.assign(
         propBoutAligned_instHeading = np.degrees(np.arctan2(
             bout_heading['yvel_sm'], np.absolute(bout_heading['xvel_sm'])
-        ))
+        )),
+        boxNum = boxNum,
     )
 
     # %%
@@ -628,35 +737,35 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
                 bout_res2.loc[i, 'propBoutIEI_yDisplTimes'] = bout_res2.loc[i, 'aligned_time']
                 bout_res2.loc[i, 'propBoutIEI_yDisplMatchedIEIs'] = (swim_start_next - swim_start) / SAMPLE_RATE
 
-        # separate by head up and head down
-        if bout['peakRawAngVel'] > 0:
-            aligned_headUp_counter += 1
-            bout_res.loc[idx[i,:], 'propBoutAligned_angVel_hUp'] = bout_res.loc[idx[i,:], 'propBoutAligned_angVel']
-            bout_res.loc[idx[i,:], 'propBoutAligned_speed_hUp'] = bout_res.loc[idx[i,:], 'propBoutAligned_speed']
-            bout_res.loc[idx[i,:], 'propBoutAligned_pitch_hUp'] = bout_res.loc[idx[i,:], 'propBoutAligned_pitch']
-            bout_res2.loc[i, 'aligned_time_hUp'] = bout_res2.loc[i,'aligned_time']
-        else:
-            aligned_headDn_counter += 1
-            bout_res.loc[idx[i,:], 'propBoutAligned_angVel_hDn'] = bout_res.loc[idx[i,:], 'propBoutAligned_angVel']
-            bout_res.loc[idx[i,:], 'propBoutAligned_speed_hDn'] = bout_res.loc[idx[i,:], 'propBoutAligned_speed']
-            bout_res.loc[idx[i,:], 'propBoutAligned_pitch_hDn'] = bout_res.loc[idx[i,:], 'propBoutAligned_pitch']
-            bout_res2.loc[i, 'aligned_time_hDn'] = bout_res2.loc[i,'aligned_time']
+        # # separate by head up and head down
+        # if bout['peakRawAngVel'] > 0:
+        #     aligned_headUp_counter += 1
+        #     bout_res.loc[idx[i,:], 'propBoutAligned_angVel_hUp'] = bout_res.loc[idx[i,:], 'propBoutAligned_angVel']
+        #     bout_res.loc[idx[i,:], 'propBoutAligned_speed_hUp'] = bout_res.loc[idx[i,:], 'propBoutAligned_speed']
+        #     bout_res.loc[idx[i,:], 'propBoutAligned_pitch_hUp'] = bout_res.loc[idx[i,:], 'propBoutAligned_pitch']
+        #     bout_res2.loc[i, 'aligned_time_hUp'] = bout_res2.loc[i,'aligned_time']
+        # else:
+        #     aligned_headDn_counter += 1
+        #     bout_res.loc[idx[i,:], 'propBoutAligned_angVel_hDn'] = bout_res.loc[idx[i,:], 'propBoutAligned_angVel']
+        #     bout_res.loc[idx[i,:], 'propBoutAligned_speed_hDn'] = bout_res.loc[idx[i,:], 'propBoutAligned_speed']
+        #     bout_res.loc[idx[i,:], 'propBoutAligned_pitch_hDn'] = bout_res.loc[idx[i,:], 'propBoutAligned_pitch']
+        #     bout_res2.loc[i, 'aligned_time_hDn'] = bout_res2.loc[i,'aligned_time']
 
-        # collect data for flat bouts: net rotation less than 3 deg
-        if np.absolute(bout_res2.loc[i, 'propBout_netPitchChg']) <= 3:
-            aligned_flat_counter += 1
-            bout_res.loc[idx[i,:], 'propBoutAligned_angVel_flat'] = bout_res.loc[idx[i,:], 'propBoutAligned_angVel']
-            bout_res.loc[idx[i,:], 'propBoutAligned_speed_flat'] = bout_res.loc[idx[i,:], 'propBoutAligned_speed']
-            bout_res.loc[idx[i,:], 'propBoutAligned_pitch_flat'] = bout_res.loc[idx[i,:], 'propBoutAligned_pitch']
-            bout_res2.loc[i, 'aligned_time_flat'] = bout_res2.loc[i,'aligned_time']
+        # # collect data for flat bouts: net rotation less than 3 deg
+        # if np.absolute(bout_res2.loc[i, 'propBout_netPitchChg']) <= 3:
+        #     aligned_flat_counter += 1
+        #     bout_res.loc[idx[i,:], 'propBoutAligned_angVel_flat'] = bout_res.loc[idx[i,:], 'propBoutAligned_angVel']
+        #     bout_res.loc[idx[i,:], 'propBoutAligned_speed_flat'] = bout_res.loc[idx[i,:], 'propBoutAligned_speed']
+        #     bout_res.loc[idx[i,:], 'propBoutAligned_pitch_flat'] = bout_res.loc[idx[i,:], 'propBoutAligned_pitch']
+        #     bout_res2.loc[i, 'aligned_time_flat'] = bout_res2.loc[i,'aligned_time']
 
-        # long bout tail alignment  - see the cell above
+        # # long bout tail alignment  - see the cell above
 
-        if bout['if_align_long']:
-            bout_long_res2.loc[i,'propBoutLong_initPitch'] = df.loc[aligned_peak-frame_number250:aligned_peak-frame_number125,'ang'].mean()
-            bout_long_res2.loc[i,'propBoutLong_initYPos'] = df.loc[aligned_peak-frame_number250:aligned_peak-frame_number125,'y'].mean()
-            bout_long_res2.loc[i,'propBoutLong_netPitchChg'] = df.loc[aligned_peak+frame_number125:aligned_peak+frame_number250,'ang'].mean() - bout_res2.loc[i, 'propBout_initPitch']
-        #     bout_long_res.loc[idx[j,:], 'propBoutAlignedLong_angVel'] = df.loc[aligned_start:alignedLong_end,'angVelSmoothed'].values
+        # if bout['if_align_long']:
+        #     bout_long_res2.loc[i,'propBoutLong_initPitch'] = df.loc[aligned_peak-frame_number250:aligned_peak-frame_number125,'ang'].mean()
+        #     bout_long_res2.loc[i,'propBoutLong_initYPos'] = df.loc[aligned_peak-frame_number250:aligned_peak-frame_number125,'y'].mean()
+        #     bout_long_res2.loc[i,'propBoutLong_netPitchChg'] = df.loc[aligned_peak+frame_number125:aligned_peak+frame_number250,'ang'].mean() - bout_res2.loc[i, 'propBout_initPitch']
+        # #     bout_long_res.loc[idx[j,:], 'propBoutAlignedLong_angVel'] = df.loc[aligned_start:alignedLong_end,'angVelSmoothed'].values
         #     bout_long_res.loc[idx[j,:], 'propBoutAlignedLong_speed'] = df.loc[aligned_start:alignedLong_end,'swimSpeed'].values
         #     bout_long_res.loc[idx[j,:], 'propBoutAlignedLong_accel'] = df.loc[aligned_start:alignedLong_end,'angAccel'].values
         #     bout_long_res.loc[idx[j,:], 'propBoutAlignedLong_pitch'] = df.loc[aligned_start:alignedLong_end,'ang'].values
@@ -694,7 +803,7 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
         # epochBouts_earlyRotations_28_30 = bout_res.loc[idx[:,29],'propBoutAligned_pitch'].values - bout_res.loc[idx[:,27],'propBoutAligned_pitch'].values,
         # epochBouts_earlyRotations = bout_res.loc[idx[:,30],'propBoutAligned_pitch'].values - bout_res.loc[idx[:,27],'propBoutAligned_pitch'].values,
         # epochBouts_lateRotations = bout_res.loc[idx[:,34],'propBoutAligned_pitch'].values - bout_res.loc[idx[:,31],'propBoutAligned_pitch'].values,
-        epochBouts_trajectory = np.degrees(np.arctan(yy/absxx)) # direction of the bout, -90:90
+        epochBouts_trajectory = np.degrees(np.arctan(yy/absxx)), # direction of the bout, -90:90
     )
 
     # %%
@@ -721,11 +830,11 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
     # %%
     # calculate corresponding pitch and angular velocity for IEIs. include window from SpdWindEnd to next SpdWindStart padded with 0.1s
     # differs from IEI detection and PropBout BoutWindows)
-    # post_peak_buf = math.ceil(0.3 * SAMPLE_RATE)
-    # pre_peak_buf = math.ceil(0.1 * SAMPLE_RATE)
+    # NOTE: These are prebout IBIs
+
 
     # Initialize IEI attributes
-    IEI_attributes = bout_attributes[['boutNum','epochNum','swim_start_idx','swim_end_idx']]
+    IEI_attributes = bout_attributes[['boutNum','epochNum','swim_start_idx','swim_end_idx','boxNum']]
     IEI_attributes = IEI_attributes.assign(
         # shift the end of each bout down by 1 row for easy iteration
         # NOTE: the swim_end indices here are 1 idx smaller than that in Matlab
@@ -733,15 +842,15 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
     )
 
     # Initialize res2
-    IEI_res2 = bout_attributes[['boutNum','epochNum']]
+    IEI_res2 = bout_attributes[['boutNum','epochNum','propBout_time']]
     IEI_res2 = IEI_res2.assign(
-        propBoutIEI = grp_by_epoch(bout_attributes)['swim_start_idx'].diff()/SAMPLE_RATE,
-        propBoutIEItime = bout_attributes.loc[grp_by_epoch(bout_attributes).cumcount() >= 1, 'propBout_time'],
+        propBoutIEI = grp_by_epoch(bout_attributes)['swim_start_idx'].diff()/SAMPLE_RATE, 
+        location_bout_in_epoch = grp_by_epoch(bout_attributes).cumcount()
         # ignore PropBoutIEItrueTime
     )
 
     # drop first row of each epoch (rows with NA)
-    rows_to_drop = list(IEI_res2.loc[IEI_res2['propBoutIEItime'].isna()].index)
+    rows_to_drop = list(IEI_res2.loc[IEI_res2['location_bout_in_epoch'] == 0].index)
     IEI_attributes.drop(rows_to_drop, inplace=True)
     IEI_res2.drop(rows_to_drop, inplace=True)
     
@@ -753,113 +862,241 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
     IEI_attributes = IEI_attributes.reset_index(drop=True)
     IEI_res2 = IEI_res2.reset_index(drop=True)
     # get some values
+    sel_frames_for_spd_avg = np.arange(int(0.025 / (1/sample_rate)))
     IEI_res2 = IEI_res2.assign(
         # again, when using swim_end as an index, +1 to match the idx to Matlab
         propBoutIEI_pitchFirst = df.loc[IEI_attributes['swim_end_shift']+1+POST_BOUT_BUF, 'ang'].values,
         propBoutIEI_pitchLast = df.loc[IEI_attributes['swim_start_idx']-IEI_2_swim_buf, 'ang'].values,
+        propBoutIEI_xFirst = df.loc[IEI_attributes['swim_end_shift']+1+POST_BOUT_BUF, 'x'].values,
+        propBoutIEI_xLast = df.loc[IEI_attributes['swim_start_idx']-IEI_2_swim_buf, 'x'].values,
+        propBoutIEI_yFirst = df.loc[IEI_attributes['swim_end_shift']+1+POST_BOUT_BUF, 'y'].values,
+        propBoutIEI_yLast = df.loc[IEI_attributes['swim_start_idx']-IEI_2_swim_buf, 'y'].values,
         # use smoothed angVel for post bout vel
         propBoutIEI_angVel_postBout = df.loc[IEI_attributes['swim_end_shift']+1+POST_BOUT_BUF, 'angVelSmoothed'].values,
         propBoutIEI_angVel_preNextBout = df.loc[IEI_attributes['swim_start_idx']-IEI_2_swim_buf, 'angVelSmoothed'].values,
-        # Other values to calculate
-        propBoutIEI_pitch = np.nan,
-        propBoutIEI_angVel = np.nan,
-        propBoutIEI_angAcc = np.nan,
-        propBoutIEI_pauseDur = np.nan,
-        propBoutIEI_yvel = np.nan,
-        IEI_matchIndex = np.nan,
-        rowsInRes = np.nan,
-        propBoutIEI_heading = np.nan,
+        # NEW velocity 230913
+        propBoutIEI_xspdFirst = pd.DataFrame(df.loc[IEI_attributes['swim_end_shift']+i+POST_BOUT_BUF, 'xvel'].values for i in sel_frames_for_spd_avg+1).mean().abs().values,
+        propBoutIEI_xspdLast = pd.DataFrame(df.loc[IEI_attributes['swim_start_idx']-i-IEI_2_swim_buf, 'xvel'].values for i in sel_frames_for_spd_avg).mean().abs().values,
+        propBoutIEI_yvelFirst = pd.DataFrame(df.loc[IEI_attributes['swim_end_shift']+i+POST_BOUT_BUF, 'yvel'].values for i in sel_frames_for_spd_avg+1).mean().values,
+        propBoutIEI_yvelLast = pd.DataFrame(df.loc[IEI_attributes['swim_start_idx']-i-IEI_2_swim_buf, 'yvel'].values for i in sel_frames_for_spd_avg).mean().values,
+        propBoutIEI_spdFirst = pd.DataFrame(df.loc[IEI_attributes['swim_end_shift']+i+POST_BOUT_BUF, 'swimSpeed'].values for i in sel_frames_for_spd_avg+1).mean().values,
+        propBoutIEI_spdLast = pd.DataFrame(df.loc[IEI_attributes['swim_start_idx']-i-IEI_2_swim_buf, 'swimSpeed'].values for i in sel_frames_for_spd_avg).mean().values,
+        boxNum = boxNum,
+                # Other values to calculate
+
     )
 
     # initialize res3 for timed IEI results (multi-indexed)
     IEI = range(len(IEI_attributes))
     frames = range(IEI_tail)
-    index = pd.MultiIndex.from_product([IEI, frames], names=['IEI_i', 'frame_i'])
-    column = [  'propBoutIEI_timedHeading',
-                'propBoutIEI_timedPitch',
-                'propBoutIEI_timedHeadingPre',
-                'propBoutIEI_timedPitchPre',
-            ]
-    IEI_res3 = pd.DataFrame(index=index, columns=column, dtype=np.float64)
+    # index = pd.MultiIndex.from_product([IEI, frames], names=['IEI_i', 'frame_i'])
+    # column = [  'propBoutIEI_timedHeading',
+    #             'propBoutIEI_timedPitch',
+    #             'propBoutIEI_timedHeadingPre',
+    #             'propBoutIEI_timedPitchPre',
+    #         ]
+    # IEI_res3 = pd.DataFrame(index=index, columns=column, dtype=np.float64)
+
 
     # %%
-    # extract data
+    # extract more data
+    propBoutIEI_pitch_ = []
+    propBoutIEI_pitch_median_ = []
+    propBoutIEI_linearAccel_ = []
+    propBoutIEI_linearAccel_median_ = []
+    propBoutIEI_angVel_ = []
+    propBoutIEI_angVel_median_ = []
+    propBoutIEI_angAcc_ = []
+    propBoutIEI_angAcc_median_ = []
+    propBoutIEI_pauseDur_ = []
+    propBoutIEI_Dur_ = []
+    propBoutIEI_yvel_ = []
+    propBoutIEI_yvel_median_ = []
+    propBoutIEI_yAccel_ = []
+    propBoutIEI_yAccel_median_ = []
+    propBoutIEI_spd_ = []
+    IEI_matchIndex_ = []
+    rowsInRes_ = []
+    
+    propBoutIEI_strict_pitch_ = []
+    propBoutIEI_strict_pitch_median_ = []
+    propBoutIEI_strict_linearAccel_ = []
+    propBoutIEI_strict_linearAccel_median_ = []
+    propBoutIEI_strict_angVel_ = []
+    propBoutIEI_strict_angVel_median_ = []
+    propBoutIEI_strict_angAcc_ = []
+    propBoutIEI_strict_angAcc_median_ = []
+    propBoutIEI_strict_Dur_ = []
+    propBoutIEI_strict_yvel_ = []
+    propBoutIEI_strict_yvel_median_ = []
+    propBoutIEI_strict_yAccel = []
+    propBoutIEI_strict_yAccel_median = []
+    propBoutIEI_strict_spd_ = []
+    
+    res_df_ = []  
+    
     for i, row in IEI_attributes.iterrows():
         # get some index calculation done
-        bout_end_post = row['swim_end_shift'] + 1 + POST_BOUT_BUF  # where last bout ends. to match the swim end in Matlab, +1
-        bout_start_pre = row['swim_start_idx'] - IEI_2_swim_buf  # where next bout starts
-        bout_end_5frames = row['swim_end_shift'] + 1 + math.ceil(0.05*SAMPLE_RATE)  # why use 0.05 but not POST_BOUT_BUF for duration calculation???????
+        bout_end_post = row['swim_end_shift'] + POST_BOUT_BUF  # where last bout ends. 
+        bout_start_pre = row['swim_start_idx'] - PRE_BOUT_BUF  # where next bout starts
+        
+        bout_end_post_strict = row['swim_end_shift'] + POST_BOUT_BUF_strict  # where last bout ends. 
+        bout_start_pre_strict = row['swim_start_idx'] - PRE_BOUT_BUF_strict  # where next bout starts
+        
+        
+        bout_end_5frames = row['swim_end_shift'] + math.ceil(0.05*SAMPLE_RATE)  # why use 0.05 but not POST_BOUT_BUF for duration calculation???????
         bout_start_4frames = row['swim_start_idx'] - PRE_BOUT_BUF
-        # assign values. NOTE: smoothed results are used for angVel and angAccel
-        IEI_res2.loc[i,'propBoutIEI_pitch'] = df.loc[bout_end_post:bout_start_pre,'ang'].mean(skipna=True)
-        IEI_res2.loc[i,'propBoutIEI_angVel'] = df.loc[bout_end_post:bout_start_pre,'angVelSmoothed'].mean(skipna=True)
-        IEI_res2.loc[i,'propBoutIEI_angAcc'] = df.loc[bout_end_post:bout_start_4frames,'angVelSmoothed'].diff().mean(skipna=True)
-        IEI_res2.loc[i,'propBoutIEI_pauseDur'] = (bout_start_4frames - bout_end_5frames) / SAMPLE_RATE
-        # why use 0.3 but not POST_BOUT_BUF for yvel???????????
-        IEI_res2.loc[i,'propBoutIEI_yvel'] = df.loc[row['swim_end_shift']+1+math.ceil(0.3*SAMPLE_RATE):bout_start_4frames, 'yvel'].mean()
-        IEI_res2.loc[i,'IEI_matchIndex'] = i
-        IEI_res2.loc[i,'rowsInRes'] = bout_start_4frames - bout_end_5frames + 1
-        # is IEI long enough?
-        if row['swim_start_idx']-(row['swim_end_shift']+1) < IEI_tail:
-            # if not
-            IEI_res3.loc[idx[i,:],['propBoutIEI_timedHeading','propBoutIEI_timedPitch','propBoutIEI_timedHeadingPre','propBoutIEI_timedPitchPre']] = 500
-        else:
-            # if yes
-            swim_end = row['swim_end_shift'] + 1
-            swim_start = row['swim_start_idx']
-            # NOTE: headings below are different from the Matlab code. X differences are not abs()
-            # heading
-            IEI_res2.loc[i,'propBoutIEI_heading'] = np.degrees(np.arctan(
-                (df.loc[swim_start,'y'] - df.loc[swim_end,'y'])
-                / np.absolute(df.loc[swim_start,'x'] - df.loc[swim_end,'x'])
-                ))
-            # timed heading and heading pre
-            if df.loc[swim_end+IEI_tail, 'epochNum'] == row['epochNum']:
-                # if there's enough rows in the current epoch for getting (swim_end + IEI_tail)
-                IEI_res3.loc[idx[i,:],'propBoutIEI_timedHeading'] = np.degrees(np.arctan2(
-                    (df.loc[swim_end:swim_end+IEI_tail,'y'].diff().dropna().values),  # because of diff(), first value is na
-                     (df.loc[swim_end:swim_end+IEI_tail,'x'].diff().abs().dropna().values)  # use abs() to get rid of x directionality
-                ))
-                IEI_res3.loc[idx[i,:],'propBoutIEI_timedPitch'] = df.loc[swim_end:swim_end+IEI_tail-1,'ang'].values
+        if bout_start_pre > bout_end_post:
+            IEI_df_tmp = df.loc[bout_end_post:bout_start_pre,:]
+            # assign values. NOTE: smoothed results are used for angVel and angAccel
+            propBoutIEI_pitch_.append(IEI_df_tmp['ang'].mean(skipna=True))
+            propBoutIEI_pitch_median_.append(IEI_df_tmp['ang'].median(skipna=True))
+            propBoutIEI_linearAccel_.append(IEI_df_tmp['linearAccel'].mean(skipna=True))
+            propBoutIEI_linearAccel_median_.append(IEI_df_tmp['linearAccel'].median(skipna=True))
+            propBoutIEI_angVel_.append(IEI_df_tmp['angVelSmoothed'].mean(skipna=True) )
+            propBoutIEI_angVel_median_.append(IEI_df_tmp['angVelSmoothed'].median(skipna=True) )
+            propBoutIEI_angAcc_.append(np.nanmean(IEI_df_tmp['angVelSmoothed'].diff() / IEI_df_tmp[ 'deltaT']))
+            propBoutIEI_angAcc_median_.append(np.nanmedian(IEI_df_tmp['angVelSmoothed'].diff() / IEI_df_tmp[ 'deltaT']))
+            propBoutIEI_pauseDur_.append((bout_start_4frames - bout_end_5frames) / SAMPLE_RATE)
+            propBoutIEI_Dur_.append((bout_start_pre - bout_end_post) / SAMPLE_RATE)
+            propBoutIEI_yvel_.append(IEI_df_tmp[ 'yvel'].mean(skipna=True))
+            propBoutIEI_yvel_median_.append(IEI_df_tmp[ 'yvel'].median(skipna=True))
+            propBoutIEI_yAccel_median_.append(np.nanmedian(IEI_df_tmp[ 'yvel'].diff().values / IEI_df_tmp[ 'deltaT']))
+            propBoutIEI_yAccel_.append(np.nanmean(IEI_df_tmp[ 'yvel'].diff().values / IEI_df_tmp[ 'deltaT']))
+            propBoutIEI_spd_.append(IEI_df_tmp['swimSpeed'].mean(skipna=True))
+            
+            IEI_matchIndex_.append(i)
+            rowsInRes_.append(bout_start_4frames - bout_end_5frames + 1)
+            
+            res_df_.append(df.loc[bout_end_post:bout_start_pre].assign(IEI_matchIndex = i))
+
+            if bout_start_pre_strict > bout_end_post_strict:
+                IEI_df_tmp_strict = df.loc[bout_end_post_strict:bout_start_pre_strict,:]
+                
+                propBoutIEI_strict_pitch_.append(IEI_df_tmp_strict['ang'].mean(skipna=True))
+                propBoutIEI_strict_pitch_median_.append(IEI_df_tmp_strict['ang'].median(skipna=True))
+                propBoutIEI_strict_linearAccel_.append(IEI_df_tmp_strict['linearAccel'].mean(skipna=True))
+                propBoutIEI_strict_linearAccel_median_.append(IEI_df_tmp_strict['linearAccel'].median(skipna=True))
+                propBoutIEI_strict_angVel_.append(IEI_df_tmp_strict['angVelSmoothed'].mean(skipna=True) )
+                propBoutIEI_strict_angVel_median_.append(IEI_df_tmp_strict['angVelSmoothed'].median(skipna=True) )
+                propBoutIEI_strict_angAcc_.append(np.nanmean(IEI_df_tmp_strict['angVelSmoothed'].diff() / IEI_df_tmp_strict[ 'deltaT']))
+                propBoutIEI_strict_angAcc_median_.append(np.nanmedian(IEI_df_tmp_strict['angVelSmoothed'].diff() / IEI_df_tmp_strict[ 'deltaT']))
+                propBoutIEI_strict_Dur_.append((bout_start_pre_strict - bout_end_post_strict) / SAMPLE_RATE)
+                propBoutIEI_strict_yvel_.append(IEI_df_tmp_strict[ 'yvel'].mean(skipna=True))
+                propBoutIEI_strict_yvel_median_.append(IEI_df_tmp_strict[ 'yvel'].median(skipna=True))
+                propBoutIEI_strict_yAccel.append(np.nanmedian(IEI_df_tmp_strict[ 'yvel'].diff().values / IEI_df_tmp_strict[ 'deltaT']))
+                propBoutIEI_strict_yAccel_median.append(np.nanmean(IEI_df_tmp_strict[ 'yvel'].diff().values / IEI_df_tmp_strict[ 'deltaT']))
+                propBoutIEI_strict_spd_.append(IEI_df_tmp_strict['swimSpeed'].mean(skipna=True))
+                
             else:
-                IEI_res3.loc[idx[i,:],'propBoutIEI_timedHeading'] = 500
-                IEI_res3.loc[idx[i,:],'propBoutIEI_timedPitch'] = 500
+                propBoutIEI_strict_pitch_.append(np.nan)
+                propBoutIEI_strict_pitch_median_.append(np.nan)
+                propBoutIEI_strict_linearAccel_.append(np.nan)
+                propBoutIEI_strict_linearAccel_median_.append(np.nan)
+                propBoutIEI_strict_angVel_.append(np.nan)
+                propBoutIEI_strict_angVel_median_.append(np.nan)
+                propBoutIEI_strict_angAcc_.append(np.nan)
+                propBoutIEI_strict_angAcc_median_.append(np.nan)
+                propBoutIEI_strict_Dur_.append(np.nan)
+                propBoutIEI_strict_yvel_.append(np.nan)
+                propBoutIEI_strict_yvel_median_.append(np.nan)
+                propBoutIEI_strict_yAccel.append(np.nan)
+                propBoutIEI_strict_yAccel_median.append(np.nan)
+                propBoutIEI_strict_spd_.append(np.nan)
+            
+    IEI_res2_tomerge = pd.DataFrame()            
+    IEI_res2_tomerge = IEI_res2_tomerge.assign(
+        propBoutIEI_pitch = propBoutIEI_pitch_,
+        propBoutIEI_pitch_median = propBoutIEI_pitch_median_,
+        propBoutIEI_linearAccel = propBoutIEI_linearAccel_,
+        propBoutIEI_linearAccel_median = propBoutIEI_linearAccel_median_,
+        propBoutIEI_angVel = propBoutIEI_angVel_,
+        propBoutIEI_angVel_median = propBoutIEI_angVel_median_,
+        propBoutIEI_angAcc = propBoutIEI_angAcc_,
+        propBoutIEI_angAcc_median = propBoutIEI_angAcc_median_,
+        propBoutIEI_pauseDur = propBoutIEI_pauseDur_,
+        propBoutIEI_Dur = propBoutIEI_Dur_,
+        propBoutIEI_yvel = propBoutIEI_yvel_,
+        propBoutIEI_yvel_median = propBoutIEI_yvel_median_,
+        propBoutIEI_yAccel = propBoutIEI_yAccel_,
+        propBoutIEI_yAccel_median = propBoutIEI_yAccel_median_,
+        propBoutIEI_spd = propBoutIEI_spd_,
+        IEI_matchIndex = IEI_matchIndex_,
+        rowsInRes = rowsInRes_,
+        
+        propBoutIEI_strict_pitch = propBoutIEI_strict_pitch_,
+        propBoutIEI_strict_pitch_median = propBoutIEI_strict_pitch_median_,
+        propBoutIEI_strict_linearAccel = propBoutIEI_strict_linearAccel_,
+        propBoutIEI_strict_linearAccel_median = propBoutIEI_strict_linearAccel_median_,
+        propBoutIEI_strict_angVel = propBoutIEI_strict_angVel_,
+        propBoutIEI_strict_angVel_median = propBoutIEI_strict_angVel_median_,
+        propBoutIEI_strict_angAcc = propBoutIEI_strict_angAcc_,
+        propBoutIEI_strict_angAcc_median = propBoutIEI_strict_angAcc_median_,
+        propBoutIEI_strict_Dur = propBoutIEI_strict_Dur_,
+        propBoutIEI_strict_yvel = propBoutIEI_strict_yvel_,
+        propBoutIEI_strict_yvel_median = propBoutIEI_strict_yvel_median_,
+        propBoutIEI_strict_yAcce = propBoutIEI_strict_yAccel,
+        propBoutIEI_strict_yAccel_media = propBoutIEI_strict_yAccel_median,
+        propBoutIEI_strict_spd = propBoutIEI_strict_spd_,
+    )
+    
+    IEI_res2_tomerge.set_index('IEI_matchIndex', inplace=True)
+    IEI_res2 = IEI_res2.merge(IEI_res2_tomerge, left_index=True, right_index=True)
+    IEI_res2['propBoutIEI_time'] = IEI_res2['propBout_time']  # legacy column name
+    IEI_res2['propBoutIEItime'] = IEI_res2['propBout_time']  # legacy column name
+    IEI_res = pd.concat(res_df_, ignore_index=True)
+            # # is IEI long enough?
+            # if row['swim_start_idx']-(row['swim_end_shift']+1) < IEI_tail:
+            #     # if not
+            #     IEI_res3.loc[idx[i,:],['propBoutIEI_timedHeading','propBoutIEI_timedPitch','propBoutIEI_timedHeadingPre','propBoutIEI_timedPitchPre']] = 500
+            # else:
+            #     # if yes
+            #     swim_end = row['swim_end_shift'] + 1
+            #     swim_start = row['swim_start_idx']
+            #     # NOTE: headings below are different from the Matlab code. X differences are not abs()
+            #     # heading
+            #     IEI_res2.loc[i,'propBoutIEI_heading'] = np.degrees(np.arctan(
+            #         (df.loc[swim_start,'y'] - df.loc[swim_end,'y'])
+            #         / np.absolute(df.loc[swim_start,'x'] - df.loc[swim_end,'x'])
+            #         ))
+            #     # timed heading and heading pre
+            #     if df.loc[swim_end+IEI_tail, 'epochNum'] == row['epochNum']:
+            #         # if there's enough rows in the current epoch for getting (swim_end + IEI_tail)
+            #         IEI_res3.loc[idx[i,:],'propBoutIEI_timedHeading'] = np.degrees(np.arctan2(
+            #             (df.loc[swim_end:swim_end+IEI_tail,'y'].diff().dropna().values),  # because of diff(), first value is na
+            #             (df.loc[swim_end:swim_end+IEI_tail,'x'].diff().abs().dropna().values)  # use abs() to get rid of x directionality
+            #         ))
+            #         IEI_res3.loc[idx[i,:],'propBoutIEI_timedPitch'] = df.loc[swim_end:swim_end+IEI_tail-1,'ang'].values
+            #     else:
+            #         IEI_res3.loc[idx[i,:],'propBoutIEI_timedHeading'] = 500
+            #         IEI_res3.loc[idx[i,:],'propBoutIEI_timedPitch'] = 500
 
-            if df.loc[swim_start-IEI_tail, 'epochNum'] == row['epochNum']:
-                # if there's enough rows in the current epoch for getting (swim_start - IEI_tail)
-                IEI_res3.loc[idx[i,:],'propBoutIEI_timedHeadingPre'] = np.degrees(np.arctan2(
-                    (df.loc[swim_start-IEI_tail:swim_start,'y'].diff().dropna().values),
-                     (df.loc[swim_start-IEI_tail:swim_start,'x'].diff().abs().dropna().values)
-                ))
-                IEI_res3.loc[idx[i,:],'propBoutIEI_timedPitchPre'] = df.loc[swim_start-IEI_tail+1:swim_start,'ang'].values
-            else:
-                IEI_res3.loc[idx[i,:],'propBoutIEI_timedHeadingPre'] = 500
-                IEI_res3.loc[idx[i,:],'propBoutIEI_timedPitchPre'] = 500
+            #     if df.loc[swim_start-IEI_tail, 'epochNum'] == row['epochNum']:
+            #         # if there's enough rows in the current epoch for getting (swim_start - IEI_tail)
+            #         IEI_res3.loc[idx[i,:],'propBoutIEI_timedHeadingPre'] = np.degrees(np.arctan2(
+            #             (df.loc[swim_start-IEI_tail:swim_start,'y'].diff().dropna().values),
+            #             (df.loc[swim_start-IEI_tail:swim_start,'x'].diff().abs().dropna().values)
+            #         ))
+            #         IEI_res3.loc[idx[i,:],'propBoutIEI_timedPitchPre'] = df.loc[swim_start-IEI_tail+1:swim_start,'ang'].values
+            #     else:
+            #         IEI_res3.loc[idx[i,:],'propBoutIEI_timedHeadingPre'] = 500
+            #         IEI_res3.loc[idx[i,:],'propBoutIEI_timedPitchPre'] = 500
 
-    # for aligned values (multiple values for each IEI), use pd.concat (which is more efficient)
-    IEI_res = pd.concat([
-        df.loc[(
-            IEI_attributes.loc[i,'swim_end_shift']+POST_BOUT_BUF  # bout_end_5frames
-        ):(
-            IEI_attributes.loc[i,'swim_start_idx']-PRE_BOUT_BUF  # bout_start_4frames
-        ),['angVelSmoothed','ang','yvel','absTime']] for i in range(len(IEI_attributes)  # get these values for each IEI
-    )], ignore_index=True)
 
-    IEI_res = IEI_res.rename(columns = {'angVelSmoothed':'propBoutIEIAligned_angVel',
-                                    'ang':'propBoutIEIAligned_pitch',
-                                    'yvel':'propBoutIEIAligned_yvel'})
 
-    # find matching IEI, pre-IEI pitch and post-IEI net rotation
-    IEI_wolpert = pd.DataFrame({
-        # wolpert values starts from the second IEI, thus exclude the first IEI match index
-        'IEI_matchIndex': IEI_res2.loc[1:,'IEI_matchIndex'].tolist(),
-        # only get the pre IEI value, exclude the last speed_window_start.diff(). Be aware that df.loc[a:b] includes both a and b
-        'wolpert_IEI': IEI_res2.loc[:len(IEI_res2)-2,'propBoutIEI'].tolist(),
-        # same as above, exclude the last pitch
-        'wolpert_preIEI_pitch': IEI_res2.loc[:len(IEI_res2)-2,'propBoutIEI_pitchFirst'].tolist(),
-        'wolpert_postIEI_netRot': (IEI_res2.loc[1:,'propBoutIEI_pitchFirst'].values - IEI_res2.loc[:len(IEI_res2)-2,'propBoutIEI_pitchLast'].values).tolist(),
-        'wolpert_Time': IEI_res2.loc[1:,'propBoutIEItime'].tolist()
-        })
+
+
+    # # find matching IEI, pre-IEI pitch and post-IEI net rotation
+    # IEI_wolpert = pd.DataFrame({
+    #     # wolpert values starts from the second IEI, thus exclude the first IEI match index
+    #     'IEI_matchIndex': list(IEI_res2.index)[1:],
+    #     # only get the pre IEI value, exclude the last speed_window_start.diff(). Be aware that df.loc[a:b] includes both a and b
+    #     'wolpert_IEI': IEI_res2.loc[:len(IEI_res2)-2,'propBoutIEI'].tolist(),
+    #     # same as above, exclude the last pitch
+    #     'wolpert_preIEI_pitch': IEI_res2.loc[:len(IEI_res2)-2,'propBoutIEI_pitchFirst'].tolist(),
+    #     'wolpert_postIEI_netRot': (IEI_res2.loc[1:,'propBoutIEI_pitchFirst'].values - IEI_res2.loc[:len(IEI_res2)-2,'propBoutIEI_pitchLast'].values).tolist(),
+    #     'wolpert_Time': IEI_res2.loc[1:,'propBoutIEItime'].tolist()
+    #     })
 
     # %% [markdown]
     # ## Acqure epoch information
@@ -877,9 +1114,11 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
         epoch_mean_angVel = grouped_df['angVel'].mean(),
         # why use velocity????? shouldn't be using swimSpeed??????
         # YZ 2020.5.27 change to swimSpeed
-        epoch_pause_yvel = grouped_df.apply(lambda e: e.loc[e['swimSpeed']<BASELINE_THRESHOLD,'yvel'].mean()),
-        epoch_bout_yvel = grouped_df.apply(lambda e: e.loc[e['swimSpeed']>PROPULSION_THRESHOLD,'yvel'].mean()),
-        yvel_mean = grouped_df.apply(lambda e: e.loc[e['swimSpeed']>PROPULSION_THRESHOLD,'yvel'].mean()),
+        epoch_pause_yvel = grouped_df.apply(lambda e: e.loc[e['swimSpeed']<BASELINE_THRESHOLD,'yvel'].mean(), include_groups=False),
+        epoch_bout_yvel = grouped_df.apply(lambda e: e.loc[e['swimSpeed']>PROPULSION_THRESHOLD,'yvel'].mean(), include_groups=False),
+        yvel_mean = grouped_df.apply(lambda e: e.loc[e['swimSpeed']>PROPULSION_THRESHOLD,'yvel'].mean(), include_groups=False),
+        
+        boxNum = boxNum,
     ).reset_index()
 
     print(".", end='')
@@ -904,39 +1143,41 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb):
         headingMatched_angVel = df_chopped['angVel'],
         headingMatched_angAccel = df_chopped['angAccel'],
         headingMathced_time = df_chopped['absTime'],
-        headingMatched_yvel = df_chopped['yvel_sm']
+        headingMatched_yvel = df_chopped['yvel_sm'],
+        boxNum = boxNum,
     )
-    # calculate mean pitch and heading for epoch, and RMSpitch (line ~770 in Matlab)
-    heading_res2 = grp_by_epoch(heading_res)[['headingMatched_ang','moveAngle']].mean()
-    heading_res2 = heading_res2.rename(columns={'headingMatched_ang':'epochPitch','moveAngle':'epochHeading'})
-    # calculate RMS, NOTE I don't understand why the RMS is calculated in the way below, but this is the code from Matlab
-    heading_res2 = heading_res2.assign(
-        # in deg/sec
-        RMS_pitch = grp_by_epoch(df_chopped)['centeredAng'].apply(
-            lambda x: np.sqrt(np.sum(x**2))/len(x)*SAMPLE_RATE
-        ),
-        # in mm/(sec^2)
-        RMS_speed = grp_by_epoch(df_chopped)['velocity'].apply(
-            lambda x: np.sqrt(np.sum(x**2))/len(x)*SAMPLE_RATE
-        )
-    )
+    # # calculate mean pitch and heading for epoch, and RMSpitch (line ~770 in Matlab)
+    # heading_res2 = grp_by_epoch(heading_res)[['headingMatched_ang','moveAngle']].mean()
+    # heading_res2 = heading_res2.rename(columns={'headingMatched_ang':'epochPitch','moveAngle':'epochHeading'})
+    # # calculate RMS, NOTE I don't understand why the RMS is calculated in the way below, but this is the code from Matlab
+    # heading_res2 = heading_res2.assign(
+    #     # in deg/sec
+    #     RMS_pitch = grp_by_epoch(df_chopped)['centeredAng'].apply(
+    #         lambda x: np.sqrt(np.sum(x**2))/len(x)*SAMPLE_RATE
+    #     ),
+    #     # in mm/(sec^2)
+    #     RMS_speed = grp_by_epoch(df_chopped)['velocity'].apply(
+    #         lambda x: np.sqrt(np.sum(x**2))/len(x)*SAMPLE_RATE
+    #     )
+    # )
 
     # output dictionary
     output = {'grabbed_all':df,  # note, this is different from MATLAB grabbed values (line 694). Here, only epochs with bouts (max_swimSpeed filtered) are included
-              'baseline_angVel':all_baseline_angVel,  # angVel of swimSpeed < baseline threshold
+              'baseline_angVel':all_baseline_angVel.assign(boxNum=boxNum),  # angVel of swimSpeed < baseline threshold
               'bout_attributes':bout_attributes,
               'prop_bout_aligned':bout_res,
               'prop_bout2':bout_res2,
-              'prop_bout_aligned_long':bout_long_res,
-              'prop_bout_aligned_long2':bout_long_res2,
+            #   'prop_bout_aligned_long':bout_long_res,
+            #   'prop_bout_aligned_long2':bout_long_res2,
               'IEI_attributes':IEI_attributes,
               'prop_bout_IEI_aligned':IEI_res,
               'prop_bout_IEI2':IEI_res2,
-              'prop_bout_IEI_timed':IEI_res3,
-              'wolpert_IEI':IEI_wolpert,
+            #   'prop_bout_IEI_timed':IEI_res3,
+            #   'wolpert_IEI':IEI_wolpert,
               'epoch_attributes':epoch_attributes,
               'heading_matched':heading_res,
-              'epoch_pitch_heading_RMS':heading_res2}
+            #   'epoch_pitch_heading_RMS':heading_res2
+            }
     aligned_bout_num = len(bout_res2)
     print(f" {aligned_bout_num} bouts aligned")
 
@@ -961,45 +1202,67 @@ def run(filenames, folder, frame_rate:int, if_epoch_data:bool, if_oil_fill_sb=Fa
     bout_attributes = pd.DataFrame()
     prop_bout_aligned = pd.DataFrame()
     prop_bout2 = pd.DataFrame()
-    prop_bout_aligned_long = pd.DataFrame()
-    prop_bout_aligned_long2 = pd.DataFrame()
+    # prop_bout_aligned_long = pd.DataFrame()
+    # prop_bout_aligned_long2 = pd.DataFrame()
     IEI_attributes = pd.DataFrame()
     prop_bout_IEI_aligned = pd.DataFrame()
     prop_bout_IEI2 = pd.DataFrame()
-    prop_bout_IEI_timed = pd.DataFrame()
-    wolpert_IEI = pd.DataFrame()
+    # prop_bout_IEI_timed = pd.DataFrame()
+    # wolpert_IEI = pd.DataFrame()
     epoch_attributes = pd.DataFrame()
     heading_matched = pd.DataFrame()
-    epoch_pitch_heading_RMS = pd.DataFrame()
+    # epoch_pitch_heading_RMS = pd.DataFrame()
 
     total_bouts_aligned = 0
     metadata_from_bouts = pd.DataFrame()
 
     # read ini files of dlm files, if there's any
     par_files = [name.split(".dlm")[0]+" parameters.ini" for name in filenames]
-    all_ini_files = glob.glob(f"{folder}/*.ini")
-    ini_files_to_read = list(set(par_files).intersection(all_ini_files))
+    
+    all_ini_files_set = set(glob.glob(f"{folder}/*.ini"))  # Convert list to set (O(n))
+    ini_files_to_read = [par_file for par_file in par_files if par_file in all_ini_files_set]  # O(1) lookups
+
+    # all_ini_files = glob.glob(f"{folder}/*.ini")
+    # ini_files_to_read = list(set(par_files).intersection(all_ini_files))
     exp_parameters = pd.DataFrame()
+    dfs_=[]
     if ini_files_to_read:
         for i, this_par_file in enumerate(ini_files_to_read):
             this_par = read_parameters(this_par_file)
             this_par = this_par.assign(
-                dlm_loc = filenames[i],
-                dlm_size = os.path.getsize(filenames[i]),
+                dlm_loc = re.sub(r" parameters\.ini$", ".dlm", this_par_file),
+                dlm_size = os.path.getsize(re.sub(r" parameters\.ini$", ".dlm", this_par_file)),
                 ini_loc = this_par_file,
                 )
-            exp_parameters = pd.concat([exp_parameters, this_par],ignore_index=True)
+            dfs_.append(this_par)
+        exp_parameters = pd.concat(dfs_, ignore_index=True)    
         exp_parameters = exp_parameters.sort_values(by=['filename']).reset_index(drop=True)
         exp_parameters.to_csv(f"{folder}/dlm metadata.csv")
-
+        
     fish_length = pd.DataFrame()
+        # analyze dlm
+    grabbed_all_dfs_ = []
+    baseline_angVel_dfs_ = []
+    bout_attributes_dfs_ = []
+    prop_bout_aligned_dfs_ = []
+    prop_bout2_dfs_ = []
+    prop_bout_aligned_long_dfs_ = []
+    prop_bout_aligned_long2_dfs_ = []
+    IEI_attributes_dfs_ = []
+    prop_bout_IEI_aligned_dfs_ = []
+    prop_bout_IEI2_dfs_ = []
+    prop_bout_IEI_timed_dfs_ = []
+    # wolpert_IEI_dfs_ = []
+    epoch_attributes_dfs_ = []
+    heading_matched_dfs_ = []
+    epoch_pitch_heading_RMS_dfs_ = []
     # analyze dlm
     for i, file in enumerate(filenames):
         logger.info(f"File {i}: {file[-19:]}")
         raw = read_dlm(i, file)
         if ini_files_to_read:
             try:
-                boxNum = exp_parameters.loc[exp_parameters['dlm_loc']==file, 'box_number'].values[0]
+                boxNum = exp_parameters.loc[exp_parameters['dlm_loc']==file, 'boxNumber'].values[0]
             except:
                 boxNum = 0
         else:
@@ -1009,7 +1272,7 @@ def run(filenames, folder, frame_rate:int, if_epoch_data:bool, if_oil_fill_sb=Fa
             print(analyzed)
             logger.warning(analyzed)
             continue
-        res = grab_fish_angle(analyzed, this_fish_length,frame_rate, if_oil_fill_sb=if_oil_fill_sb)
+        res = grab_fish_angle(analyzed, this_fish_length,frame_rate, if_oil_fill_sb=if_oil_fill_sb, boxNum=boxNum)
         if type(res) == str:
             print(res)
             logger.warning(res)
@@ -1023,25 +1286,43 @@ def run(filenames, folder, frame_rate:int, if_epoch_data:bool, if_oil_fill_sb=Fa
         this_metadata = pd.DataFrame(data=this_metadata,index=[0])
         metadata_from_bouts = pd.concat([metadata_from_bouts,this_metadata])
         # transfer values to final var
-        grabbed_all = pd.concat([grabbed_all, res['grabbed_all'].assign(boxNum=boxNum)], ignore_index=True)
-        baseline_angVel = pd.concat([baseline_angVel, res['baseline_angVel'].assign(boxNum=boxNum)], ignore_index=True)
-        bout_attributes = pd.concat([bout_attributes, res['bout_attributes'].assign(boxNum=boxNum)], ignore_index=True)
-        prop_bout_aligned = pd.concat([prop_bout_aligned, res['prop_bout_aligned'].assign(boxNum=boxNum)], ignore_index=True)
-        prop_bout2 = pd.concat([prop_bout2, res['prop_bout2'].assign(boxNum=boxNum)], ignore_index=True)
-        prop_bout_aligned_long = pd.concat([prop_bout_aligned_long, res['prop_bout_aligned_long'].assign(boxNum=boxNum)], ignore_index=True)
-        prop_bout_aligned_long2 = pd.concat([prop_bout_aligned_long2, res['prop_bout_aligned_long2'].assign(boxNum=boxNum)], ignore_index=True)
-        IEI_attributes = pd.concat([IEI_attributes, res['IEI_attributes'].assign(boxNum=boxNum)], ignore_index=True)
-        prop_bout_IEI_aligned = pd.concat([prop_bout_IEI_aligned, res['prop_bout_IEI_aligned'].assign(boxNum=boxNum)], ignore_index=True)
-        prop_bout_IEI2 = pd.concat([prop_bout_IEI2, res['prop_bout_IEI2'].assign(boxNum=boxNum)], ignore_index=True)
-        prop_bout_IEI_timed = pd.concat([prop_bout_IEI_timed, res['prop_bout_IEI_timed'].assign(boxNum=boxNum)], ignore_index=True)
-        wolpert_IEI = pd.concat([wolpert_IEI, res['wolpert_IEI'].assign(boxNum=boxNum)], ignore_index=True)
-        epoch_attributes = pd.concat([epoch_attributes, res['epoch_attributes'].assign(boxNum=boxNum)], ignore_index=True)
-        heading_matched = pd.concat([heading_matched, res['heading_matched'].assign(boxNum=boxNum)], ignore_index=True)
-        epoch_pitch_heading_RMS = pd.concat([epoch_pitch_heading_RMS, res['epoch_pitch_heading_RMS'].assign(boxNum=boxNum)], ignore_index=True)
-        
-        
+        grabbed_all_dfs_.append(res['grabbed_all'])
+        baseline_angVel_dfs_.append(res['baseline_angVel'])
+        bout_attributes_dfs_.append(res['bout_attributes'])
+        prop_bout_aligned_dfs_.append(res['prop_bout_aligned'])
+        prop_bout2_dfs_.append(res['prop_bout2'])
+        # prop_bout_aligned_long_dfs_.append(res['prop_bout_aligned_long'])
+        # prop_bout_aligned_long2_dfs_.append(res['prop_bout_aligned_long2'])
+        IEI_attributes_dfs_.append(res['IEI_attributes'])
+        prop_bout_IEI_aligned_dfs_.append(res['prop_bout_IEI_aligned'])
+        prop_bout_IEI2_dfs_.append(res['prop_bout_IEI2'])
+        # prop_bout_IEI_timed_dfs_.append(res['prop_bout_IEI_timed'])
+        # wolpert_IEI_dfs_.append(res['wolpert_IEI'].assign)
+        epoch_attributes_dfs_.append(res['epoch_attributes'])
+        heading_matched_dfs_.append(res['heading_matched'])
+        # epoch_pitch_heading_RMS_dfs_.append(res['epoch_pitch_heading_RMS'])        
         
         logger.info(f"Bouts aligned: {this_metadata.loc[0,'aligned_bout']}")
+
+        del res
+        del analyzed
+        del raw
+        
+    grabbed_all = pd.concat(grabbed_all_dfs_, ignore_index=True)
+    baseline_angVel = pd.concat(baseline_angVel_dfs_, ignore_index=True)
+    bout_attributes = pd.concat(bout_attributes_dfs_, ignore_index=True)
+    prop_bout_aligned = pd.concat(prop_bout_aligned_dfs_, ignore_index=True)
+    prop_bout2 = pd.concat(prop_bout2_dfs_, ignore_index=True)
+    # prop_bout_aligned_long = pd.concat(prop_bout_aligned_long_dfs_)
+    # prop_bout_aligned_long2 = pd.concat(prop_bout_aligned_long2_dfs_)
+    IEI_attributes = pd.concat(IEI_attributes_dfs_, ignore_index=True)
+    prop_bout_IEI_aligned = pd.concat(prop_bout_IEI_aligned_dfs_, ignore_index=True)
+    prop_bout_IEI2 = pd.concat(prop_bout_IEI2_dfs_, ignore_index=True)
+    # prop_bout_IEI_timed = pd.concat(prop_bout_IEI_timed_dfs_)
+    # wolpert_IEI = pd.concat(wolpert_IEI_dfs_, ignore_index=True)
+    epoch_attributes = pd.concat(epoch_attributes_dfs_, ignore_index=True)
+    heading_matched = pd.concat(heading_matched_dfs_, ignore_index=True)
+    # epoch_pitch_heading_RMS = pd.concat(epoch_pitch_heading_RMS_dfs_)
 
 
     logger.info(f"dlm analysis program ver: {analyze_dlm_ver}")
@@ -1079,100 +1360,101 @@ def run(filenames, folder, frame_rate:int, if_epoch_data:bool, if_oil_fill_sb=Fa
         baseline_angVel.to_hdf(f'{output_dir}/all_data.h5', key='baseline_angVel', format='table')
         epoch_attributes.to_hdf(f'{output_dir}/all_data.h5', key='epoch_attributes', format='table')
         heading_matched.to_hdf(f'{output_dir}/all_data.h5', key='heading_matched', format='table')
-        epoch_pitch_heading_RMS.to_hdf(f'{output_dir}/all_data.h5', key='epoch_pitch_heading_RMS', format='table')
+        # epoch_pitch_heading_RMS.to_hdf(f'{output_dir}/all_data.h5', key='epoch_pitch_heading_RMS', format='table')
     else:
         pd.DataFrame().to_hdf(f'{output_dir}/all_data.h5', key='grabbed_all', mode='w', format='table')
         
     bout_attributes.to_hdf(f'{output_dir}/bout_data.h5', key='bout_attributes', mode='w', format='table')
     prop_bout_aligned.to_hdf(f'{output_dir}/bout_data.h5', key='prop_bout_aligned', format='table')
     prop_bout2.to_hdf(f'{output_dir}/bout_data.h5', key='prop_bout2', format='table')
-    prop_bout_aligned_long.to_hdf(f'{output_dir}/bout_data.h5', key='prop_bout_aligned_long', format='table')
-    prop_bout_aligned_long2.to_hdf(f'{output_dir}/bout_data.h5', key='prop_bout_aligned_long2', format='table')
+    # prop_bout_aligned_long.to_hdf(f'{output_dir}/bout_data.h5', key='prop_bout_aligned_long', format='table')
+    # prop_bout_aligned_long2.to_hdf(f'{output_dir}/bout_data.h5', key='prop_bout_aligned_long2', format='table')
     IEI_attributes.to_hdf(f'{output_dir}/IEI_data.h5', key='IEI_attributes', mode='w', format='table')
     prop_bout_IEI_aligned.to_hdf(f'{output_dir}/IEI_data.h5', key='prop_bout_IEI_aligned', format='table')
     prop_bout_IEI2.to_hdf(f'{output_dir}/IEI_data.h5', key='prop_bout_IEI2', format='table')
-    prop_bout_IEI_timed.to_hdf(f'{output_dir}/IEI_data.h5', key='prop_bout_IEI_timed', format='table')
-    wolpert_IEI.to_hdf(f'{output_dir}/IEI_data.h5', key='wolpert_IEI', format='table')
+    # prop_bout_IEI_timed.to_hdf(f'{output_dir}/IEI_data.h5', key='prop_bout_IEI_timed', format='table')
+    # wolpert_IEI.to_hdf(f'{output_dir}/IEI_data.h5', key='wolpert_IEI', format='table')
 
-    # %%
-    data_file_explained = pd.DataFrame.from_dict(
-        {'all_data.h5':[
-            'Contains following keys',
-            'grabbed_all',
-            'epoch_attributes',
-            'baseline_angVel',
-            'heading_matched',
-            'epoch_pitch_heading_RMS',
-            ],
-         'grabbed_all':['Contains raw data from dlm files, excluding Epochs with no bout detected.'],
-         'epoch_attributes':['Attributes for epochs'],
-         'baseline_angVel':['all baseline angular velocity'],
-         'heading_matched':['heading directions'],
-         'epoch_pitch_heading_RMS':['mean pitch and heading for epoch, and RMSpitch'],
+    # # %% commented out 240822
+    # data_file_explained = pd.DataFrame.from_dict(
+    #     {'all_data.h5':[
+    #         'Contains following keys',
+    #         'grabbed_all',
+    #         'epoch_attributes',
+    #         'baseline_angVel',
+    #         'heading_matched',
+    #         # 'epoch_pitch_heading_RMS',
+    #         ],
+    #      'grabbed_all':['Contains raw data from dlm files, excluding Epochs with no bout detected.'],
+    #      'epoch_attributes':['Attributes for epochs'],
+    #      'baseline_angVel':['all baseline angular velocity'],
+    #      'heading_matched':['heading directions'],
+    #     #  'epoch_pitch_heading_RMS':['mean pitch and heading for epoch, and RMSpitch'],
 
-         'bout_data.h5':[
-             'Bout data including following keys',
-             'bout_attributes',
-             'prop_bout_aligned',
-             'prop_bout2',
-             'prop_bout_aligned_long',
-             'prop_bout_aligned_long2',
-             ],
-         'bout_attributes':['Basic bout attributes'],
-         'prop_bout_aligned':['Aligned data are bouts aligned at the time of the peak speed including 500ms before and 300ms after.'],
-         'prop_bout2':['one-per-bout parameters'],
-         'prop_bout_aligned_long':['including bout data with 1s after the time of peak speed'],
-         'prop_bout_aligned_long2':['attributes for long bouts'],
+    #      'bout_data.h5':[
+    #          'Bout data including following keys',
+    #          'bout_attributes',
+    #          'prop_bout_aligned',
+    #          'prop_bout2',
+    #          'prop_bout_aligned_long',
+    #          'prop_bout_aligned_long2',
+    #          ],
+    #      'bout_attributes':['Basic bout attributes'],
+    #      'prop_bout_aligned':['Aligned data are bouts aligned at the time of the peak speed including 500ms before and 300ms after.'],
+    #      'prop_bout2':['one-per-bout parameters'],
+    #     #  'prop_bout_aligned_long':['including bout data with 1s after the time of peak speed'],
+    #     #  'prop_bout_aligned_long2':['attributes for long bouts'],
 
-         'IEI_data.h5':[
-         'Contains inter bout data. Includes following keys',
-         'prop_bout_IEI_aligned',
-         'prop_bout_IEI2',
-         'prop_bout_IEI_timed',
-         'wolpert_IEI',
-         ],
-         'prop_bout_IEI_aligned':['inter bout data, aligned'],
-         'prop_bout_IEI2':['inter bout data'],
-         'prop_bout_IEI_timed':[],
-         'wolpert_IEI':[],
-         }
-    , orient='index')
-    data_file_explained.to_csv(f'{output_dir}/data_file_explained.csv')
+    #      'IEI_data.h5':[
+    #      'Contains inter bout data. Includes following keys',
+    #      'prop_bout_IEI_aligned',
+    #      'prop_bout_IEI2',
+    #     #  'prop_bout_IEI_timed',
+    #     #  'wolpert_IEI',
+    #      ],
+    #      'prop_bout_IEI_aligned':['inter bout data, aligned'],
+    #      'prop_bout_IEI2':['inter bout data'],
+    #     #  'prop_bout_IEI_timed':[],
+    #     #  'wolpert_IEI':[],
+    #      }
+    # , orient='index')
+    # data_file_explained.to_csv(f'{output_dir}/data_file_explained.csv')
 
-    catalog_all_data = pd.DataFrame.from_dict(
-        {'grabbed_all':grabbed_all.columns.to_list(),
-         'epoch_attributes':epoch_attributes.columns.to_list(),
-         'baseline_angVel':baseline_angVel.columns.to_list(),
-         'heading_matched':heading_matched.columns.to_list(),
-         'epoch_pitch_heading_RMS':epoch_pitch_heading_RMS.columns.to_list(),
-            }
-    , orient='index')
-    catalog_all_data.to_csv(f'{output_dir}/catalog all_data.csv')
+    # catalog_all_data = pd.DataFrame.from_dict(
+    #     {'grabbed_all':grabbed_all.columns.to_list(),
+    #      'epoch_attributes':epoch_attributes.columns.to_list(),
+    #      'baseline_angVel':baseline_angVel.columns.to_list(),
+    #      'heading_matched':heading_matched.columns.to_list(),
+    #     #  'epoch_pitch_heading_RMS':epoch_pitch_heading_RMS.columns.to_list(),
+    #         }
+    # , orient='index')
+    # catalog_all_data.to_csv(f'{output_dir}/catalog all_data.csv')
 
-    catalog_IEI_data = pd.DataFrame.from_dict(
-        {
-         'prop_bout_IEI_aligned':prop_bout_IEI_aligned.columns.to_list(),
-         'prop_bout_IEI2':prop_bout_IEI2.columns.to_list(),
-         'prop_bout_IEI_timed':prop_bout_IEI_timed.columns.to_list(),
-         'wolpert_IEI':wolpert_IEI.columns.to_list() }
-    , orient='index')
-    catalog_IEI_data.to_csv(f'{output_dir}/catalog IEI_data.csv')
+    # catalog_IEI_data = pd.DataFrame.from_dict(
+    #     {
+    #      'prop_bout_IEI_aligned':prop_bout_IEI_aligned.columns.to_list(),
+    #      'prop_bout_IEI2':prop_bout_IEI2.columns.to_list(),
+    #     #  'prop_bout_IEI_timed':prop_bout_IEI_timed.columns.to_list(),
+    #     #  'wolpert_IEI':wolpert_IEI.columns.to_list() 
+    #      }
+    # , orient='index')
+    # catalog_IEI_data.to_csv(f'{output_dir}/catalog IEI_data.csv')
 
-    catalog_bout_data = pd.DataFrame.from_dict(
-        {
-         'bout_attributes':bout_attributes.columns.to_list(),
-         'prop_bout_aligned':prop_bout_aligned.columns.to_list(),
-         'prop_bout2':prop_bout2.columns.to_list(),
-         'prop_bout_aligned_long':prop_bout_aligned_long.columns.to_list(),
-         'prop_bout_aligned_long2':prop_bout_aligned_long2.columns.to_list(),
-         }
-    , orient='index')
-    catalog_bout_data.to_csv(f'{output_dir}/catalog bout_data.csv')
+    # catalog_bout_data = pd.DataFrame.from_dict(
+    #     {
+    #      'bout_attributes':bout_attributes.columns.to_list(),
+    #      'prop_bout_aligned':prop_bout_aligned.columns.to_list(),
+    #      'prop_bout2':prop_bout2.columns.to_list(),
+    #     #  'prop_bout_aligned_long':prop_bout_aligned_long.columns.to_list(),
+    #     #  'prop_bout_aligned_long2':prop_bout_aligned_long2.columns.to_list(),
+    #      }
+    # , orient='index')
+    # catalog_bout_data.to_csv(f'{output_dir}/catalog bout_data.csv')
 # %%
     info_dict = {
         'frame_rate':frame_rate,
-        'fish_length':fish_length.mean()[1],
-        'fish_length_std':fish_length.std()[1],
+        'fish_length':fish_length.mean().iloc[1],
+        'fish_length_std':fish_length.std().iloc[1],
         'total_bouts_aligned':total_bouts_aligned,
         'grab_fish_angle_ver':grab_fish_angle_ver,
         'analyze_dlm_ver':analyze_dlm_ver,
@@ -1181,3 +1463,6 @@ def run(filenames, folder, frame_rate:int, if_epoch_data:bool, if_oil_fill_sb=Fa
     analysis_info = pd.Series(info_dict)
     analysis_info.to_csv(os.path.join(output_dir,'analysis info.csv'))
     
+
+#%%
+

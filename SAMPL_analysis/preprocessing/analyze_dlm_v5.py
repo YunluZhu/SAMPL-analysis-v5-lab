@@ -8,11 +8,12 @@ import math
 
 # %%
 # Constants
-analyze_dlm_ver = 'v5.2.20230918'
+analyze_dlm_ver = 'v5.3.20240611'
 # MAX_FISH = 1         # all epochs that have more than one fish
 MAX_INST_DISPL = 35  # in mm epochs where fish# > 1 but appear as 1 fish will have improbably large instantaneous displacement.
-MAX_ANG_VEL = 250  # initial angular velocity filter
-MAX_ANG_ACCEL = 32000  # or an improbably large angular accel.
+MAX_ANG_VEL = 1000  # initial angular velocity filter
+MAX_DIST_TRAVEL = 26
+MAX_ANG_ACCEL = 32000  # 
 XY_SM_WSZ = 9  # smooth window size for x and y coordinates
 
 MIN_VERTICLE_VEL = -7 # (mm/s) max verdical displacement difference. Used to exclude fish bout downwards.
@@ -65,57 +66,65 @@ def raw_filter(df,EPOCH_BUF,MIN_DUR):
     del_buf = df[(grouped.cumcount(ascending=False) >= EPOCH_BUF) 
         & (grouped.cumcount() >= EPOCH_BUF)]
     # Flter by epoch duration & number of fish in the frame
-    filtered = grp_by_epoch(del_buf).filter(
-        lambda g: len(g) >= MIN_DUR 
-        # and 
-        # np.nanmax(g['fishNum'].values) < MAX_FISH
-    )
+    filtered = del_buf[
+        grp_by_epoch(del_buf)['oriIndex'].transform(lambda g: len(g)).ge(MIN_DUR)
+        ]
     print(".", end = '')
     return filtered
 
 def dur_y_x_filter(df,MAX_DELTA_T):
     # drop epochs with inexplicably large gaps between frame
-    f1 = grp_by_epoch(df).filter(
-        lambda g: np.nanmax(g['deltaT'].values) <= MAX_DELTA_T
+    f1 = df[grp_by_epoch(df)['deltaT'].transform('max').le(MAX_DELTA_T)]
     # turned off in Kyla's version
     #     # exclude fish bouts vertically down (sinking faster than 5mm/sec). 
     #     # Flip the sign so positive deltaY corresponds to upward motion
     #     and -(np.nanmax(np.diff(g['y'].values, prepend=g['y'].values[0]))) > MIN_VERTICLE_VEL * FRAME_INTERVAL * SCALE
-    )
+    
+    if f1.empty:
+        return f1
+    
     # only keep swims in which fish is pointed in the direction it moves. Within an epoch, if headx is greater than x (pointing right), x.tail should also be greater than x.head, and vice versa.
-    f2 = grp_by_epoch(f1).filter(
-        lambda g: ((g['headx'].mean() - g['x'].mean()) * g.tail(1)['x'].values)[0] >= 0
-    )
+    point_dir_assess = grp_by_epoch(f1).apply(lambda g: ((g['headx'].mean() - g['x'].mean()) * g.tail(1)['x'].values)[0])
+    sel_epochNum = list(point_dir_assess[point_dir_assess>=0].index)
+    f2 = f1[f1.epochNum.isin(sel_epochNum)]
     print(".", end='')
     return f2
 
-def displ_dist_vel_filter(df,MAX_DIST_TRAVEL):
+def displ_dist_vel_filter(df,if_oil_fill_sb):
     # drop epochs with improbably large instantaneous displacement, which happens where #fish > 1 but appear as 1 fish
-    f1 = grp_by_epoch(df).filter(
-        lambda g: np.nanmax(np.absolute(g['displ'].values)) <= MAX_INST_DISPL
-        # exclude epochs with sudden & large instantaneous movement (distance). Found in ~1-2 epochs per .dlm after MAX_INST_DISPL filtration - YZ 2020.05.13
-        # turn off vor now
-        and np.nanmax(np.abs(
-            g['dist'].values - g['dist'].rolling(3, center=True).median().values
-        )) < MAX_DIST_TRAVEL   
-    )
+    f0 = df[grp_by_epoch(df)['displ'].transform(lambda g: np.nanmax(np.absolute(g))).le(MAX_INST_DISPL)]
+    # exclude epochs with sudden & large instantaneous movement (distance). Found in ~1-2 epochs per .dlm after MAX_INST_DISPL filtration - YZ 2020.05.13
+    # SLOW!!!
+    f1 = f0[
+        grp_by_epoch(f0)['dist'].transform(
+            lambda g: np.nanmax(np.absolute(g.values - g.rolling(3, center=True).median().values))
+            ).lt(MAX_DIST_TRAVEL)
+        ]
     # exclude epochs with improbably large angular velocity. use smoothed results
-    f2 = grp_by_epoch(f1).filter(
+    f2 = f1[
+        grp_by_epoch(f1)['angVel'].transform(
         lambda g: np.nanmax(np.abs(
-            smooth_series_ML(g.loc[1:,'angVel'], SM_WINDOW_FOR_FILTER).values
-        )) <= MAX_ANG_VEL
-    )
-    # exclude epochs with improbably large angular accel. numpy calculation is faster
-    f3 = grp_by_epoch(f2).filter(
-        lambda g: np.nanmax(np.abs(g['angAccel'].rolling(3, center=True).mean())) <= MAX_ANG_ACCEL
-        # lambda g: np.nanmax(np.abs(g['angAccel'])) <= MAX_ANG_ACCEL
-    )
+            smooth_series_ML(g[1:], SM_WINDOW_FOR_FILTER)
+            ))
+        ).le(MAX_ANG_VEL)
+    ]
+    
+    if if_oil_fill_sb:
+        f3=f2
+    else:
+        # exclude epochs with improbably large angular accel. numpy calculation is faster
+        f3 = f2[grp_by_epoch(f2)['angAccel'].transform(
+            lambda g: np.nanmax(np.abs(
+                g.rolling(3, center=True).mean()
+                ))
+        ).le(MAX_ANG_ACCEL)]
+
     print(".", end="")
     return f3
 
 # %%
 # Main function
-def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
+def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate, if_oil_fill_sb):
     """
     Analyze Free Vertical (YZ 2021.06.18)
     1. Truncate epochs
@@ -138,7 +147,7 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
     MAX_DELTA_T = 3/frame_rate   # in s, epochs with inexplicably large gaps between frame timestamps
     MIN_DUR = 2.5 * frame_rate  # 2.5s, minimun duration of epochs     
     EPOCH_BUF = math.ceil(frame_rate/20)        # truncate the epochs from both ends. In Matlab code, 3 was excluded in analyzeFreeVerticalGrouped2 and another 5 was dropped in GrabFishAngel
-    MAX_DIST_TRAVEL = 26 # max distance traveled value. defined as: (dist-dist.rolling(3, center=True).median()).abs(), epochs with multiple fish but appeared as 1 fish have aberrent displ jumps - YZ 20.05.13
+  # max distance traveled value. defined as: (dist-dist.rolling(3, center=True).median()).abs(), epochs with multiple fish but appeared as 1 fish have aberrent displ jumps - YZ 20.05.13
     # However, in analyzeFreeVerticalGrouped2, line epochDex:epochStop(i):epochStop(i+1) incorrectly truncated the beginning of the epoch by 1 and the end by 3. 
 
     
@@ -189,11 +198,13 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
     ), columns = ['x','y','headx','heady','centeredAng'])
 
     ana = ana.reset_index(drop=True).join(centered_coordinates)
+    if ana.empty:
+        return "> no usable epoch detected > dlm file skipped", 0, 0
     
     # Apply filters
     ana_f = dur_y_x_filter(ana,MAX_DELTA_T)
     if ana_f.empty:
-        return "> no usable epoch detected > dlm file skipped", 0, 0
+        return "> no usable epoch detected, check time interval > dlm file skipped", 0, 0
     # %%
     # Calculate displacement, distance traveled, angular velocity, angular acceleration and filter epochs
 
@@ -206,7 +217,7 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
         dist = np.linalg.norm(ana_f_g[['x','y']].diff(), axis=1),
         # since beginning coordinates for each epoch has been set to 0, just use (x, y) values for displ
         displ = ana_f.groupby('epochNum', as_index=False, sort=False).apply(
-            lambda g: pd.Series((np.linalg.norm(g[['x','y']], axis=1)),index = g.index).diff()
+            lambda g: pd.Series((np.linalg.norm(g[['x','y']], axis=1)),index = g.index).diff(), include_groups=False
         ).reset_index(level=0, drop=True),
         # array calculation is more time effieient
         angVel = np.divide(ana_f_g['ang'].diff().values, ana_f['deltaT'].values)
@@ -222,7 +233,7 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
     )
 
     # Apply filters, drop previous index
-    ana_ff = displ_dist_vel_filter(ana_f,MAX_DIST_TRAVEL).reset_index(drop=True)
+    ana_ff = displ_dist_vel_filter(ana_f, if_oil_fill_sb).reset_index(drop=True)
 
     # Acquire fish length from raw data
     ana_ff['fishLen'] = raw.loc[ana_ff['oriIndex'],'fishLen'].values
@@ -238,6 +249,7 @@ def analyze_dlm_resliced(raw, file_i, file, folder, frame_rate):
     res.loc[:,'swimSpeed'] = np.divide(res['dist'].values, res['deltaT'].values)
     # calculate swim velocity (displacement/)
     res.loc[:,'velocity'] = np.divide(res['displ'].values, res['deltaT'].values)
+    res.loc[:,'linearAccel'] = np.divide(res['swimSpeed'].diff().values, res['deltaT'].values)
     # define fish length as 70th percentile of lengths captured.
     fish_length = grp_by_epoch(res)['fishLen'].agg(
         fishLenEst = lambda l: l.quantile(0.7)
