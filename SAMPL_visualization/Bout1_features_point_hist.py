@@ -17,7 +17,7 @@ import seaborn as sns
 
 # %%
 ##### Parameters to change #####
-pick_data = 'xxxxxx' # name of your dataset to plot as defined in function get_data_dir()
+pick_data = 'gtau' # name of your dataset to plot as defined in function get_data_dir()
 which_ztime = 'all' # 'day', 'night', or 'all'
 
 # %% get root directory and figure directory
@@ -50,7 +50,7 @@ median_df = all_feature_cond.groupby(['cond0','cond1','expNum','ztime'])[feature
 for this_feature in features_to_plt:
     plt_categorical_combined_3(
             data=median_df,
-            x='cond0',
+            x='cond1',
             y=this_feature,
             col='ztime',
             units='expNum',
@@ -68,7 +68,7 @@ for this_feature in features_to_plt:
         stat='probability',
         element='poly',
         x=this_feature,
-        col='cond0',
+        col='cond1',
         kind='hist',
         fill=True,
         common_norm=False,

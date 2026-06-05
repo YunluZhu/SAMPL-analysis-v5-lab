@@ -2,6 +2,7 @@
 *.json
 *.code-workspace
 
+SAMPL_visualization/figures/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
