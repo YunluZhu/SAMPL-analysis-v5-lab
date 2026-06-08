@@ -331,7 +331,7 @@ def extract_bout_features_v5(bout_data:pd.DataFrame,peak_idx:int, FRAME_RATE:int
     x_swim = x_post_swim - x_pre_swim
     
     # addedd 2026 June Jiahuan Liu's function
-    fwhm_result = bout_data.groupby('bout_num').apply(compute_fwhm_per_bout, FRAME_RATE=FRAME_RATE, include_groups=False)
+    fwhm_result = bout_data.groupby('bout_num').apply(compute_fwhm_per_bout, FRAME_RATE=FRAME_RATE, include_groups=False) # type: ignore
 
     
     displ_swim = np.sqrt(np.square(y_swim) + np.square(x_swim))
