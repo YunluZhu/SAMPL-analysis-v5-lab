@@ -84,7 +84,7 @@ def dur_y_x_filter(df,MAX_DELTA_T):
         return f1
     
     # only keep swims in which fish is pointed in the direction it moves. Within an epoch, if headx is greater than x (pointing right), x.tail should also be greater than x.head, and vice versa.
-    point_dir_assess = grp_by_epoch(f1).apply(lambda g: ((g['headx'].mean() - g['x'].mean()) * g.tail(1)['x'].values)[0])
+    point_dir_assess = grp_by_epoch(f1).apply(lambda g: ((g['headx'].mean() - g['x'].mean()) * g.tail(1)['x'].values)[0], include_groups=False)
     sel_epochNum = list(point_dir_assess[point_dir_assess>=0].index)
     f2 = f1[f1.epochNum.isin(sel_epochNum)]
     print(".", end='')

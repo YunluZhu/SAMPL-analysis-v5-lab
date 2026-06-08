@@ -17,7 +17,7 @@ import seaborn as sns
 
 # %%
 ##### Parameters to change #####
-pick_data = 'gtau' # name of your dataset to plot as defined in function get_data_dir()
+pick_data = 'nMLF' # name of your dataset to plot as defined in function get_data_dir()
 which_ztime = 'all' # 'day', 'night', or 'all'
 
 # %% get root directory and figure directory

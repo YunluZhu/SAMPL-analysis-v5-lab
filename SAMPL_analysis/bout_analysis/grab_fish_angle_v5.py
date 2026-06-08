@@ -710,6 +710,8 @@ def grab_fish_angle(analyzed, fish_length,sample_rate, if_oil_fill_sb, boxNum):
             bout_heading['yvel_sm'], np.absolute(bout_heading['xvel_sm'])
         )),
         boxNum = boxNum,
+        bout_i = bout_res.index.get_level_values('bout_i'),
+        frame_i = bout_res.index.get_level_values('frame_i'),
     )
 
     # %%
