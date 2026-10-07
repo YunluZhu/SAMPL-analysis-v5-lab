@@ -16,8 +16,11 @@ def compute_fwhm_per_bout(df, FRAME_RATE:int):
     '''Compute the full width at half maximum (FWHM) for a given bout.'''
     # Jiahuan Liu
     speeds = df['propBoutAligned_speed'].values
-    times = df['frame_i'].values
-
+    try:
+        times = df['frame_i'].values
+    except KeyError:
+        times = np.arange(len(speeds))
+        print("Column 'frame_i' not found in DataFrame. Using index as time values. Reanalyze this dataset.")
 
     peak_idx_local = np.argmax(speeds)
     peak_speed_local = speeds[peak_idx_local]

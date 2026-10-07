@@ -19,7 +19,7 @@ def get_data_dir(pick_data, which_storage='LabDataPro'):
         "vs": [f"/Volumes/{which_storage}/SAMPL_data_v5/Nefma/VS_lesion", 40],
         'depth_fin':  [f"/Volumes/{which_storage}/manuscript data/2024 Vertical Navigation/behavior data/fin_amputation", 166],
         'wt_dl':      [f"/Volumes/{which_storage}/SAMPL_data_v5/WT_daylight_2025/wt_2025", 166],
-        
+        'wt_light':   [f'/Volumes/{which_storage}/SAMPL_data_v5/Liu et al 2025 datasets/wt_2025', 166],
         'sampl_7d':     [f"/Volumes/{which_storage}/manuscript data/2023-01 SAMPL/original uncompressed data/behavior data/DD_7dpf", 166],
         
         'tau_bkg':      [f"/Volumes/{which_storage}/SAMPL_data_v5/Nefma/Tau background/_analyzed", 166],
@@ -31,7 +31,7 @@ def get_data_dir(pick_data, which_storage='LabDataPro'):
         
         # navigation paper dataset
         # 'otog_ld': [f"/Volumes/{which_storage}/manuscript data/2024 Vertical Navigation/unused behavior data/otog_ld", 166],
-        'blind': [f"/Volumes/{which_storage}/SAMPL_data_v5/data_from_others/KRH_blind", 40],
+        'blind': [f"/Volumes/LabDataPro/SAMPL_data_v5/blind_2025/organized", 166],
         'nMLF': [f'/Volumes/{which_storage}/SAMPL_data_v5/nMLF_lesion/nMLF_abla', 166],
         'nMLF_axon': [f'/Volumes/{which_storage}/SAMPL_data_v5/nMLF_lesion/nMLF_axon_abla', 166],
         'nMLF_axon_ld': [f'/Volumes/{which_storage}/SAMPL_data_v5/nMLF_lesion/nMLF_axon_abla_LD', 166],
@@ -39,9 +39,8 @@ def get_data_dir(pick_data, which_storage='LabDataPro'):
         "otog":     [f"/Volumes/{which_storage}/SAMPL_data_v5/otog",166],
         'otog_ld': [f"/Volumes/{which_storage}/SAMPL_data_v5/otog_ld", 166],
         # "otog_reana":   [f"/Volumes/{which_storage}/manuscript data/2022-11 depths exploration/behavior data/otog_reana", 166],
-        # "tan":      [f"/Volumes/{which_storage}/manuscript data/2024 Vertical Navigation/behavior data/TAN_lesion",40],
+        "tan":      [f"/Volumes/{which_storage}/manuscript data/2024 Vertical Navigation/behavior data/TAN_lesion",40],
         'tan_axon': [f"/Volumes/{which_storage}/SAMPL_data_v5/TAN_lesion/axonal_lesion/_analyzed", 166],
-        # 'vs':   [f"/Volumes/{which_storage}4TB/VF_data_in_use/40hz_data/LesionV4",40],
         
         
         'gfp_ctrl': [f'/Volumes/{which_storage}/SAMPL_data_v5/Nefma/N EGFP N no Tau/analyzed', 166],
@@ -59,7 +58,7 @@ def get_data_dir(pick_data, which_storage='LabDataPro'):
         # 'a_gtau': [f"/Volumes/{which_storage}/SAMPL_data_v5/Astrocyte to GTau/_analyzed", 166],
         
         
-        'otog_lightR': [f"/Volumes/{which_storage}/SAMPL_data_v5/otog_lightDir/side light/_analyzed", 166],
+        'otog_lightR': [f"/Volumes/{which_storage}/SAMPL_data_v5/2023_otog_lightDir/side light/_analyzed", 166],
         'wt_lightR': [f"/Volumes/{which_storage}/SAMPL_data_v5/wt_lightDir/_analyzed", 166],
         
         'creTau9': [f"/Volumes/{which_storage}/SAMPL_data_v5/NefmaLRL-CreER-GTau/D7-9", 166],

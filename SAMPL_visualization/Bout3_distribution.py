@@ -30,7 +30,7 @@ import matplotlib as mpl
 
 ##### Parameters to change #####
 
-pick_data = 'creTau8' # name of your dataset to plot as defined in function get_data_dir()
+pick_data = 'wt_light_long' # name of your dataset to plot as defined in function get_data_dir()
 which_ztime = 'day' # 'day', 'night', or 'all'
 
 ##### Parameters to change #####
@@ -145,4 +145,21 @@ g.set(xlim=(-30, 40))
 g.add_legend()
 plt.savefig(fig_dir+f"/IEIpitch distribution.pdf",format='PDF')
 
+# %%
+all_ibi_cond['swim_frequency'] = 1/(all_ibi_cond['propBoutIEI']-0.1)
+g = sns.displot(
+    data=all_ibi_cond,
+    x='swim_frequency',
+    stat='density',
+    col='cond0',
+    hue='cond1',
+    kind='hist',
+    bins=30,
+    element='poly',
+    height=2.5,
+    common_norm=False,
+    log_scale=True,
+    facet_kws={'xlim': [0.02,10]}
+    ) 
+plt.savefig(os.path.join(fig_dir, f"swim_frequency distribution.pdf"),format='PDF')
 # %%

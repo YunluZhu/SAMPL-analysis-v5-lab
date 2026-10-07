@@ -1,0 +1,262 @@
+#%%
+import os
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from cmath import exp
+import matplotlib.pyplot as plt
+from plot_functions.get_data_dir import (get_data_dir, get_figure_dir)
+from plot_functions.get_bout_features import (get_bout_features, get_connected_bouts)
+from plot_functions.get_IBIangles import get_IBIangles
+from plot_functions.plt_tools import (set_font_type, defaultPlotting,distribution_binned_average)
+from plot_functions.get_bout_kinetics import get_bout_kinetics
+from plot_functions.plt_functions import plt_categorical_combined_3
+
+#%%
+# Call the function to set the font type
+set_font_type()
+
+
+pick_data = 'wt_lightR' # name of your dataset to plot as defined in function get_data_dir()
+
+##### Parameters to change #####
+
+# %%
+# Select data and create figure folder
+root, FRAME_RATE = get_data_dir(pick_data)
+which_ztime = 'all' # 'day', 'night', or 'all'
+
+folder_name = f'BF_circadian'
+folder_dir = get_figure_dir(pick_data)
+fig_dir = os.path.join(folder_dir, folder_name)
+
+try:
+    os.makedirs(fig_dir)
+    print(f'fig folder created: {folder_name}')
+except:
+    print('Notes: re-writing old figures')
+
+set_font_type()
+
+# %% get features
+all_feature_cond, all_swim_direction, all_cond1 = get_bout_features(root, FRAME_RATE, ztime=which_ztime)
+# all_ibi_cond, _, _  = get_IBIangles(root, FRAME_RATE, ztime=which_ztime)
+
+# %% tidy data
+col_to_adj = 'pitch_end' 
+# origin for x is on the right. To make it North0East, use preX-postX to correct posture calculation 
+all_feature_cond['N0E_' + col_to_adj] = (all_feature_cond.x_pre_swim - all_feature_cond.x_post_swim)/(all_feature_cond.x_post_swim - all_feature_cond.x_pre_swim).abs() * (90 + all_feature_cond[col_to_adj]) + 180
+# col_to_adj = 'propBoutIEI_pitch'
+# all_ibi_cond = all_ibi_cond['N0E_' + col_to_adj] = (all_ibi_cond.x_post_swim - all_ibi_cond.x_pre_swim)/(all_ibi_cond.x_post_swim - all_ibi_cond.x_pre_swim).abs() * (90 + all_ibi_cond[col_to_adj]) + 180
+col_toplt = 'N0E_' + col_to_adj
+# add column for swim direction 1 / -1 based on x_pre_swim - x_post_swim
+all_feature_cond['swim_direction'] = np.where(all_feature_cond['x_pre_swim'] - all_feature_cond['x_post_swim'] > 0, 1, -1)
+
+
+# %%
+
+for col in ["cond1", "ztime", "swim_direction", "expNum"]:
+    all_feature_cond[col] = all_feature_cond[col].astype("category")
+all_feature_cond["bout_time"] = pd.to_datetime(all_feature_cond["bout_time"])
+
+all_feature_cond.groupby(['swim_direction','expNum'], observed=True).size()
+#%%
+# Calculate the experiment start time (Day‑1 9 AM) for each expNum, and optionally filter the first 48 hours
+all_feature_cond["exp_start_time_ori"] = (
+    all_feature_cond.groupby(["cond1","exp"])["bout_time"]
+      .transform(lambda x: x.min().floor("D") + pd.Timedelta(hours=9))
+)
+all_feature_cond["exp_start_time"] = all_feature_cond["exp_start_time_ori"]
+all_start_times = all_feature_cond["exp_start_time_ori"].unique()
+
+all_start_times = np.sort(all_start_times)
+# check minimum spacing between start times
+start_time_diffs = np.diff(all_start_times)
+#convert to hours
+# start_time_diffs_hours = start_time_diffs / np.timedelta64(1, 'h')
+# # check to see if any start times are less than 50 hours apart
+# if np.any(start_time_diffs_hours < 60):
+#     # replace the latter one with the earlier one 
+#     for i in range(len(all_start_times)-1):
+#         if start_time_diffs_hours[i] < 60:
+#             all_feature_cond.loc[all_feature_cond["exp_start_time"] == all_start_times[i+1], "exp_start_time"] = all_start_times[i]
+#%%
+# filter data that only starts after 10 AM on day 1
+# all_feature_cond = all_feature_cond[all_feature_cond["bout_time"] >= all_feature_cond["exp_start_time_ori"] + pd.Timedelta(hours=1)].copy()
+
+#%%
+# --- Time binning --- #
+time_bin_size_hours = 2
+# Calculate hours elapsed since exp_start_time
+all_feature_cond["time_offset_hours"] = (all_feature_cond["bout_time"] - all_feature_cond["exp_start_time"]).dt.total_seconds() / 3600
+# Calculate the "left edge" of each bin
+all_feature_cond["hour_bin_left"] = np.floor(all_feature_cond["time_offset_hours"] / time_bin_size_hours) * time_bin_size_hours
+# Calculate the "bin center": left edge + 1 hour
+all_feature_cond["hour_bin_center"] = all_feature_cond["hour_bin_left"] + time_bin_size_hours / 2
+
+# remove first day data
+df = all_feature_cond.copy()
+# remove data after 5 days
+# df = df[df["time_offset_hours"] <= 24*6].copy()
+#%%
+# --- Calculate the "median of medians" summary for WHM --- #
+param = [col_to_adj,
+         ]
+# Median WHM per expNum × bin × cond1
+medians_by_exp = (
+    df.groupby(["swim_direction","expNum", "hour_bin_center", "cond1"], observed=True)[param]
+      .median()
+      .reset_index()
+)
+# keep bins with more than ?? datapoints
+bout_counts_per_bin = df.groupby(["swim_direction",'expNum',"hour_bin_center", "cond1"], observed=True).size()
+bin_number_threshold = 5#np.percentile(bout_counts_per_bin, 5) 
+valid_bins = bout_counts_per_bin[bout_counts_per_bin >= bin_number_threshold].index  # Keep bins with at least the threshold number of bouts
+medians_by_exp_filtered = medians_by_exp.merge(
+    valid_bins.to_frame(name=["swim_direction",'expNum',"hour_bin_center", "cond1"]).reset_index(drop=True),
+    on=["swim_direction",'expNum',"hour_bin_center", "cond1"],
+    how="inner"
+)
+
+# filter boxNum based on data availability
+# box_counts = medians_by_exp_filtered.groupby(['swim_direction','expNum',"boxNum"], observed=True).size()
+# valid_boxes = box_counts[box_counts >= 30/time_bin_size_hours].index  # Keep boxes with at least 10 data points
+# medians_by_exp_filtered = medians_by_exp_filtered.merge(
+#     valid_boxes.to_frame(name=["swim_direction",'expNum',"boxNum"]).reset_index(drop=True),
+#     on=["swim_direction",'expNum',"boxNum"],
+#     how="inner"
+# )
+
+# medians_by_exp_filtered = medians_by_exp.copy()
+#%%
+#%
+
+for item in param:
+    # ploot param over time
+    g = sns.relplot(
+        data=medians_by_exp_filtered,
+        x="hour_bin_center",
+        y=item,
+        hue="swim_direction",
+        row='cond1',
+        kind="line",
+        aspect=2,
+        height=3,
+        alpha=0.3,
+        # facet_kws={"sharey": False}
+    )
+    # shade night time (night is from 11 PM to 9 AM)
+    for ax in g.axes.flatten():
+        for days in range(2):  # Shade for 6 days
+            ax.axvspan(14 + 24*days, 24 + 24*days, color='gray', alpha=0.2)  
+    plt.savefig(os.path.join(fig_dir, f"{item}_circadian.pdf"), bbox_inches='tight')
+    # medians_by_exp_filtered['unique_boxID'] = medians_by_exp_filtered['expNum'].astype(str) + "_" + medians_by_exp_filtered['boxNum'].astype(str)
+    
+    
+for item in param:
+    # ploot param over time
+    g = sns.relplot(
+        data=medians_by_exp_filtered,
+        x="hour_bin_center",
+        y=item,
+        hue="swim_direction",
+        row='cond1',
+        kind="line",
+        aspect=2,
+        height=3,
+        alpha=0.3,
+        units='expNum',
+        estimator=None,
+        # facet_kws={"sharey": False}
+    )
+    # shade night time (night is from 11 PM to 9 AM)
+    for ax in g.axes.flatten():
+        for days in range(2):  # Shade for 6 days
+            ax.axvspan(14 + 24*days, 24 + 24*days, color='gray', alpha=0.2)  
+    plt.savefig(os.path.join(fig_dir, f"{item}_circadian_byExp.pdf"), bbox_inches='tight')
+    # medians_by_exp_filtered['unique_boxID'] = medians_by_exp_filtered['expNum'].astype(str) + "_" + medians_by_exp_filtered['boxNum'].astype(str)
+    
+    
+#%%
+
+# --- Calculate the "median of medians" summary for WHM --- #
+param = [col_to_adj,
+         ]
+
+df['hour_bin_center_adjusted'] = df['hour_bin_center'] % 24
+# Median WHM per expNum × bin × cond1
+medians_by_exp_merged = (
+    df.groupby(["swim_direction","expNum", "hour_bin_center_adjusted", "cond1"], observed=True)[param]
+      .median()
+      .reset_index()
+)
+# keep bins with more than ?? datapoints
+bout_counts_per_bin = df.groupby(["swim_direction",'expNum',"hour_bin_center_adjusted", "cond1"], observed=True).size()
+bin_number_threshold = 5#np.percentile(bout_counts_per_bin, 5) 
+valid_bins = bout_counts_per_bin[bout_counts_per_bin >= bin_number_threshold].index  # Keep bins with at least the threshold number of bouts
+medians_by_exp_filtered = medians_by_exp_merged.merge(
+    valid_bins.to_frame(name=["swim_direction",'expNum',"hour_bin_center_adjusted", "cond1"]).reset_index(drop=True),
+    on=["swim_direction",'expNum',"hour_bin_center_adjusted", "cond1"],
+    how="inner"
+)
+
+
+for item in param:
+    # ploot param over time
+    g = sns.relplot(
+        data=medians_by_exp_filtered,
+        x="hour_bin_center_adjusted",
+        y=item,
+        hue="swim_direction",
+        row='cond1',
+        kind="line",
+        aspect=2,
+        height=3,
+        alpha=0.3,
+        # facet_kws={"sharey": False}
+    )
+    # shade night time (night is from 11 PM to 9 AM)
+    for ax in g.axes.flatten():
+        for days in range(1):  # Shade for 6 days
+            ax.axvspan(14 + 24*days, 24 + 24*days, color='gray', alpha=0.2)  
+    plt.savefig(os.path.join(fig_dir, f"{item}_24 h.pdf"), bbox_inches='tight')
+ 
+# %%
+# compare, day 1 and day 2, ztime=day pitch_end, point plot
+df_to_plot = df.query("ztime=='day'").copy()
+# assign day number based on hour_bin_center
+df_to_plot['day_num'] = (df_to_plot['hour_bin_center'] // 24) + 1
+df_to_plot['day_num'] = df_to_plot['day_num'].astype(int)
+df_to_plot = df_to_plot.query("day_num <= 2").copy()
+df_to_plot['hour'] = df_to_plot['hour_bin_center'] % 24
+
+
+#%%
+plt_categorical_combined_3(
+    data=df_to_plot.query("hour > 7"),
+    x='day_num',
+    y="pitch_end",
+    col='swim_direction',
+    row='cond1',
+    units='expNum',
+    estimator=np.median,
+)
+# %%
+df_to_plot["hour_bin_merged_by4"] = (df_to_plot["hour"] // 7) * 7
+sns.displot(
+    data=df_to_plot.query('cond1 == "2side"'),
+    x="pitch_end",
+    hue="hour_bin_merged_by4",
+    col="day_num",
+    row="swim_direction",
+    kind="kde",
+    common_norm=False,
+    alpha=0.5,
+    height=3,
+    fill=False,
+    
+)
+plt.savefig(os.path.join(fig_dir, f"pitch_end_dist_by4h.pdf"), bbox_inches='tight')
+# %%
