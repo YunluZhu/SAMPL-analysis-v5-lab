@@ -26,6 +26,7 @@ from statsmodels.stats.multicomp import pairwise_tukeyhsd
 ##### Parameters to change #####
 pick_data = 'nMLF' # name of your dataset to plot as defined in function get_data_dir()
 which_ztime = 'day' # 'day', 'night', or 'all'
+if_strict_DayNightSplit = True # if True, only include bouts that are fully within the day or night period. If False, include bouts that may cross the day/night boundary.
 # my_colors = ["#E4CB31", "#F7941D", "#E01F3E"]
 # my_palette = sns.color_palette(my_colors)
 # %% get root directory and figure directory
@@ -44,7 +45,7 @@ set_font_type()
 mpl.rc('figure', max_open_warning = 0)
 
 # %% get features
-all_feature_cond, all_cond0, all_cond1 = get_connected_bouts(root, FRAME_RATE, ztime=which_ztime, if_strict_DayNightSplit=True,)
+all_feature_cond, all_cond0, all_cond1 = get_connected_bouts(root, FRAME_RATE, ztime=which_ztime, if_strict_DayNightSplit=if_strict_DayNightSplit,)
 
 # %% tidy data
 # all_feature_cond = all_feature_cond.sort_values(by=['cond1','expNum']).reset_index(drop=True)
